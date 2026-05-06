@@ -1,0 +1,59 @@
+{
+  "name": "contactforge",
+  "version": "1.0.0",
+  "main": "index.ts",
+  "scripts": {
+    "start": "expo start",
+    "android": "expo start --android",
+    "ios": "expo start --ios",
+    "web": "expo start --web",
+    "test": "jest --watchAll=false",
+    "test:watch": "jest --watchAll",
+    "typecheck": "tsc --noEmit"
+  },
+  "jest": {
+    "preset": "jest-expo",
+    "transformIgnorePatterns": [
+      "node_modules/(?!((jest-)?react-native|@react-native(-community)?)|expo(nent)?|@expo(nent)?/.*|@expo-google-fonts/.*|react-navigation|@react-navigation/.*|@unimodules/.*|unimodules|sentry-expo|native-base|react-native-svg)"
+    ],
+    "moduleNameMapper": {
+      "^expo-sqlite$": "<rootDir>/src/__mocks__/expo-sqlite.ts",
+      "^expo-contacts$": "<rootDir>/src/__mocks__/expo-contacts.ts",
+      "^expo-file-system$": "<rootDir>/src/__mocks__/expo-file-system.ts",
+      "^expo-sharing$": "<rootDir>/src/__mocks__/expo-sharing.ts"
+    }
+  },
+  "dependencies": {
+    "@expo/vector-icons": "^15.0.3",
+    "@hookform/resolvers": "^5.2.2",
+    "@react-navigation/native": "^7.2.2",
+    "expo": "~54.0.33",
+    "expo-constants": "~18.0.13",
+    "expo-contacts": "~15.0.11",
+    "expo-file-system": "~19.0.22",
+    "expo-linking": "~8.0.12",
+    "expo-router": "~6.0.23",
+    "expo-sharing": "~14.0.8",
+    "expo-sqlite": "~16.0.10",
+    "expo-status-bar": "~3.0.9",
+    "react": "19.1.0",
+    "react-hook-form": "^7.75.0",
+    "react-native": "0.81.5",
+    "react-native-gesture-handler": "~2.28.0",
+    "react-native-paper": "^5.15.1",
+    "react-native-safe-area-context": "~5.6.0",
+    "react-native-screens": "~4.16.0",
+    "zod": "^4.4.3",
+    "zustand": "^5.0.13"
+  },
+  "devDependencies": {
+    "@babel/core": "^7.25.2",
+    "@types/jest": "^30.0.0",
+    "@types/react": "~19.1.0",
+    "babel-preset-expo": "^55.0.21",
+    "jest": "^29.7.0",
+    "jest-expo": "~54.0.4",
+    "typescript": "~5.9.2"
+  },
+  "private": true
+}
