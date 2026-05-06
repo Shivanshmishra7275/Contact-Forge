@@ -19,14 +19,10 @@ import { Text, Chip, FAB, ActivityIndicator, Button, Portal, Modal } from 'react
 import { router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import {
-  listContacts,
-  countContacts,
-  deleteContact,
-  updateContact,
-} from '../../src/db/repositories/contactRepository';
+import { listContacts, countContacts, deleteContact, updateContact } from '../../src/db/repositories/contactRepository';
 import { logAction } from '../../src/db/repositories/auditRepository';
-import { createFullBackup, shareFile } from '../../src/services/exportService';
+import { exportToCSV, shareFile } from '../../src/services/exportService';
+import { parseTagsSafe } from '../../src/utils/normalization';
 import { COLORS, SPACING, FONT_SIZE, PAGE_SIZE, CONTACT_TAGS } from '../../src/constants';
 import type { LocalContact } from '../../src/types';
 
@@ -164,9 +160,7 @@ export default function ContactsScreen() {
       for (const id of selectedIds) {
         const contact = contacts.find((c) => c.id === id);
         if (!contact) continue;
-        const existingTags: string[] = (() => {
-          try { return JSON.parse(contact.tags) as string[]; } catch { return []; }
-        })();
+        const existingTags = parseTagsSafe(contact.tags);
         if (!existingTags.includes(tag)) {
           updateContact(id, { tags: [...existingTags, tag] });
           logAction('contact_updated', id, { bulk: true, addedTag: tag });
@@ -186,8 +180,6 @@ export default function ContactsScreen() {
     if (selectedIds.size === 0) return;
     setIsBulkWorking(true);
     try {
-      // Build a temporary export of just the selected contacts
-      const { exportToCSV } = await import('../../src/services/exportService');
       const ts = new Date().toISOString().replace(/[:.]/g, '-');
       const filename = `contactforge-selection-${ts}.csv`;
       const result = await exportToCSV({
@@ -413,7 +405,7 @@ interface ContactRowProps {
 
 function ContactRow({ contact, isSelecting, isSelected, onPress, onLongPress }: ContactRowProps) {
   const initials = getInitials(contact.displayName);
-  const tags: string[] = (() => { try { return JSON.parse(contact.tags) as string[]; } catch { return []; } })();
+  const tags = parseTagsSafe(contact.tags);
 
   return (
     <TouchableOpacity

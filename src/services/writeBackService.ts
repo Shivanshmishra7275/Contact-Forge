@@ -40,12 +40,12 @@ export async function writeContactToNative(
     return { success: false, error: 'Contacts permission is not granted.' };
   }
 
-  const contact = getContactWithDetails(contactId);
-  if (!contact) {
-    return { success: false, error: 'Contact not found in local database.' };
-  }
-
   try {
+    const contact = getContactWithDetails(contactId);
+    if (!contact) {
+      return { success: false, error: 'Contact not found in local database.' };
+    }
+
     if (contact.nativeId) {
       // Update existing native contact — updateContactAsync takes { id } & Partial<ExistingContact>
       const updatePayload: { id: string } & Partial<Contacts.ExistingContact> = {

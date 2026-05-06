@@ -15,7 +15,7 @@ import {
 import { getDuplicatesByContactId } from '../../src/db/repositories/duplicateRepository';
 import { logAction } from '../../src/db/repositories/auditRepository';
 import { writeContactToNative } from '../../src/services/writeBackService';
-import { isoToDisplay } from '../../src/utils/normalization';
+import { isoToDisplay, parseTagsSafe } from '../../src/utils/normalization';
 import { COLORS, SPACING, FONT_SIZE } from '../../src/constants';
 import type { ContactWithDetails } from '../../src/types';
 
@@ -100,7 +100,7 @@ export default function ContactDetailScreen() {
     );
   }
 
-  const tags: string[] = (() => { try { return JSON.parse(contact.tags) as string[]; } catch { return []; } })();
+  const tags = parseTagsSafe(contact.tags);
 
   return (
     <SafeAreaView style={styles.safeArea} edges={['bottom']}>

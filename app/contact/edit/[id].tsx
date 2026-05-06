@@ -22,6 +22,7 @@ import {
 } from '../../../src/db/repositories/contactRepository';
 import { logAction } from '../../../src/db/repositories/auditRepository';
 import { writeContactToNative } from '../../../src/services/writeBackService';
+import { parseTagsSafe } from '../../../src/utils/normalization';
 import { COLORS, SPACING, FONT_SIZE, CONTACT_TAGS } from '../../../src/constants';
 import type { ContactWithDetails } from '../../../src/types';
 
@@ -54,7 +55,7 @@ export default function EditContactScreen() {
     setEmails(c.emails.map((e) => ({ label: e.label ?? '', email: e.email })));
     setNotes(c.notes ?? '');
     setIsTemporary(c.isTemporary);
-    try { setSelectedTags(JSON.parse(c.tags) as string[]); } catch { setSelectedTags([]); }
+    try { setSelectedTags(parseTagsSafe(c.tags)); } catch { setSelectedTags([]); }
   }, [id]);
 
   const toggleTag = useCallback((tag: string) => {

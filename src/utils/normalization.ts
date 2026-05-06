@@ -235,3 +235,17 @@ export function isoToDisplay(iso: string | null | undefined): string {
     return iso;
   }
 }
+
+/**
+ * Safely parses a JSON-encoded string array (used for contact tags).
+ * Returns an empty array if parsing fails.
+ */
+export function parseTagsSafe(value: string | null | undefined): string[] {
+  if (!value) return [];
+  try {
+    const parsed = JSON.parse(value);
+    return Array.isArray(parsed) ? (parsed as string[]) : [];
+  } catch {
+    return [];
+  }
+}
