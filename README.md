@@ -94,7 +94,7 @@ ContactForge is designed from the ground up for privacy:
 - [x] Phase 4 — Temporary contacts, tag system
 - [x] Phase 5 — Cleanup center, name standardization
 - [x] Phase 6 — CSV/VCF export, backup
-- [ ] Phase 7 — Advanced unknown workflows, bulk actions, write-back to device
+- [x] Phase 7 — Advanced unknown workflows, bulk actions, write-back to device
 
 ---
 
@@ -102,7 +102,7 @@ ContactForge is designed from the ground up for privacy:
 
 - **No call log scanning** — Not available in Expo managed workflow
 - **No real-time caller ID** — Not supported on iOS for third-party apps
-- **No write-back to native contacts** — Phase 7 feature; current version manages local-only copies
+- **No write-back to native contacts** — ~~Phase 7 feature~~ Now available: use the "Push to Device Contacts" button in contact detail or edit screens
 - **Background sync** — Not implemented; sync is foreground-only
 
 ---

@@ -70,6 +70,7 @@ export default function RootLayout() {
             <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
             <Stack.Screen name="contact/[id]" options={{ title: 'Contact Details' }} />
             <Stack.Screen name="contact/new" options={{ title: 'New Contact' }} />
+            <Stack.Screen name="contact/edit/[id]" options={{ title: 'Edit Contact' }} />
             <Stack.Screen name="merge/[id]" options={{ title: 'Merge Contacts' }} />
             <Stack.Screen name="permission-denied" options={{ title: 'Contacts Access', headerShown: false }} />
           </Stack>

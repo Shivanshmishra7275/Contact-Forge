@@ -14,6 +14,7 @@ import {
 } from '../../src/db/repositories/contactRepository';
 import { getDuplicatesByContactId } from '../../src/db/repositories/duplicateRepository';
 import { logAction } from '../../src/db/repositories/auditRepository';
+import { writeContactToNative } from '../../src/services/writeBackService';
 import { isoToDisplay } from '../../src/utils/normalization';
 import { COLORS, SPACING, FONT_SIZE } from '../../src/constants';
 import type { ContactWithDetails } from '../../src/types';
@@ -22,6 +23,7 @@ export default function ContactDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const [contact, setContact] = useState<ContactWithDetails | null>(null);
   const [hasDuplicates, setHasDuplicates] = useState(false);
+  const [isPushing, setIsPushing] = useState(false);
 
   const load = useCallback(() => {
     const c = getContactWithDetails(Number(id));
@@ -53,6 +55,41 @@ export default function ContactDetailScreen() {
       ],
     );
   }, [contact]);
+
+  const handlePushToDevice = useCallback(async () => {
+    if (!contact) return;
+    Alert.alert(
+      'Push to Device Contacts',
+      contact.nativeId
+        ? `Update "${contact.displayName}" in your device contacts book with the current local data?`
+        : `Create "${contact.displayName}" in your device contacts book?`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Push',
+          onPress: async () => {
+            setIsPushing(true);
+            try {
+              const result = await writeContactToNative(contact.id);
+              if (result.success) {
+                Alert.alert(
+                  'Done',
+                  result.created
+                    ? 'Contact created in your device contacts book.'
+                    : 'Device contact updated successfully.',
+                );
+                load(); // Refresh (native_id may have changed)
+              } else {
+                Alert.alert('Push Failed', result.error);
+              }
+            } finally {
+              setIsPushing(false);
+            }
+          },
+        },
+      ],
+    );
+  }, [contact, load]);
 
   if (!contact) {
     return (
@@ -181,7 +218,29 @@ export default function ContactDetailScreen() {
         >
           Delete Contact
         </Button>
+
+        {/* Push to device */}
+        <Button
+          mode="outlined"
+          onPress={handlePushToDevice}
+          loading={isPushing}
+          disabled={isPushing}
+          icon="cellphone-arrow-down"
+          textColor={COLORS.secondary}
+          style={styles.pushBtn}
+        >
+          {contact.nativeId ? 'Update Device Contact' : 'Push to Device Contacts'}
+        </Button>
       </ScrollView>
+
+      {/* Edit FAB */}
+      <FAB
+        icon="pencil"
+        style={styles.fab}
+        onPress={() => router.push(`/contact/edit/${contact.id}`)}
+        color={COLORS.textPrimary}
+        accessibilityLabel="Edit contact"
+      />
     </SafeAreaView>
   );
 }
@@ -224,5 +283,12 @@ const styles = StyleSheet.create({
   notes: { color: COLORS.textSecondary, fontSize: FONT_SIZE.sm, lineHeight: 20 },
   meta: { color: COLORS.textDisabled, fontSize: FONT_SIZE.xs, marginBottom: 2 },
   deleteBtn: { marginTop: SPACING.md, borderColor: COLORS.error },
+  pushBtn: { marginTop: SPACING.xs, borderColor: COLORS.secondary },
+  fab: {
+    position: 'absolute',
+    right: SPACING.lg,
+    bottom: SPACING.lg,
+    backgroundColor: COLORS.primary,
+  },
   notFound: { color: COLORS.textSecondary, fontSize: FONT_SIZE.md },
 });

@@ -22,7 +22,7 @@ import {
   syncContactsToLocal,
 } from '../../src/services/contactSyncService';
 import { runDuplicateScan } from '../../src/services/duplicateService';
-import { countContacts } from '../../src/db/repositories/contactRepository';
+import { countContacts, getExpiredTemporaryContactIds, purgeExpiredTemporaryContacts } from '../../src/db/repositories/contactRepository';
 import { countPendingDuplicates } from '../../src/db/repositories/duplicateRepository';
 import { isoToDisplay } from '../../src/utils/normalization';
 import type { SyncProgress } from '../../src/services/contactSyncService';
@@ -42,10 +42,12 @@ export default function DashboardScreen() {
   const [syncProgress, setSyncProgress] = useState<SyncProgress | null>(null);
   const [isSyncing, setIsSyncing] = useState(false);
   const [isScanning, setIsScanning] = useState(false);
+  const [expiredCount, setExpiredCount] = useState(0);
 
   const refreshStats = useCallback(() => {
     setTotalContacts(countContacts());
     setPendingDuplicateCount(countPendingDuplicates());
+    setExpiredCount(getExpiredTemporaryContactIds().length);
   }, []);
 
   useEffect(() => {
@@ -110,6 +112,26 @@ export default function DashboardScreen() {
     }
   }, [totalContacts]);
 
+  const handlePurgeExpired = useCallback(() => {
+    if (expiredCount === 0) return;
+    Alert.alert(
+      'Remove Expired Contacts',
+      `Delete ${expiredCount} expired temporary contact${expiredCount > 1 ? 's' : ''}? This cannot be undone.`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: () => {
+            const removed = purgeExpiredTemporaryContacts();
+            refreshStats();
+            Alert.alert('Done', `Removed ${removed} expired contact${removed > 1 ? 's' : ''}.`);
+          },
+        },
+      ],
+    );
+  }, [expiredCount, refreshStats]);
+
   return (
     <SafeAreaView style={styles.safeArea} edges={['top']}>
       <ScrollView style={styles.scroll} contentContainerStyle={styles.content}>
@@ -127,6 +149,26 @@ export default function DashboardScreen() {
               <Text style={styles.warningText}>
                 Contacts permission not granted. Tap Sync to request access.
               </Text>
+            </Card.Content>
+          </Card>
+        )}
+
+        {/* Expired temporary contacts warning */}
+        {expiredCount > 0 && (
+          <Card style={styles.expiredCard}>
+            <Card.Content style={styles.expiredContent}>
+              <MaterialCommunityIcons name="clock-alert" color={COLORS.error} size={20} />
+              <Text style={styles.expiredText}>
+                {expiredCount} temporary contact{expiredCount > 1 ? 's have' : ' has'} expired.
+              </Text>
+              <Button
+                mode="text"
+                onPress={handlePurgeExpired}
+                textColor={COLORS.error}
+                compact
+              >
+                Clean up
+              </Button>
             </Card.Content>
           </Card>
         )}
@@ -258,6 +300,9 @@ const styles = StyleSheet.create({
   warningCard: { backgroundColor: '#2a2010', marginBottom: SPACING.md },
   warningContent: { flexDirection: 'row', alignItems: 'center', gap: SPACING.sm },
   warningText: { color: COLORS.warning, fontSize: FONT_SIZE.sm, flex: 1 },
+  expiredCard: { backgroundColor: '#2a1010', marginBottom: SPACING.md },
+  expiredContent: { flexDirection: 'row', alignItems: 'center', gap: SPACING.sm },
+  expiredText: { color: COLORS.error, fontSize: FONT_SIZE.sm, flex: 1 },
   statsRow: { flexDirection: 'row', gap: SPACING.md, marginBottom: SPACING.md },
   statCard: {
     flex: 1,

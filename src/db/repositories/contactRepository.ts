@@ -345,3 +345,59 @@ export function getAllContactIds(): number[] {
     .getAllSync<{ id: number }>('SELECT id FROM contacts ORDER BY id', [])
     .map((r) => r.id);
 }
+
+// ---------------------------------------------------------------------------
+// Temporary contacts helpers
+// ---------------------------------------------------------------------------
+
+/**
+ * Inserts a row in temporary_contacts to track expiry metadata for a
+ * contact that was created with isTemporary = true.
+ */
+export function insertTemporaryContactMeta(params: {
+  contactId: number;
+  expiresAt?: string | null;
+  notes?: string | null;
+}): void {
+  getDatabase().runSync(
+    `INSERT OR IGNORE INTO temporary_contacts (contact_id, expires_at, notes, created_at)
+     VALUES (?,?,?,?)`,
+    [params.contactId, params.expiresAt ?? null, params.notes ?? null, now()],
+  );
+}
+
+/**
+ * Returns IDs of temporary contacts whose expiry date has passed.
+ */
+export function getExpiredTemporaryContactIds(): number[] {
+  const currentIso = now();
+  return getDatabase()
+    .getAllSync<{ contact_id: number }>(
+      `SELECT tc.contact_id
+         FROM temporary_contacts tc
+         JOIN contacts c ON c.id = tc.contact_id
+        WHERE c.is_temporary = 1
+          AND tc.expires_at IS NOT NULL
+          AND tc.expires_at < ?`,
+      [currentIso],
+    )
+    .map((r) => r.contact_id);
+}
+
+/**
+ * Deletes all contacts whose temporary expiry has passed.
+ * Returns the number of contacts removed.
+ */
+export function purgeExpiredTemporaryContacts(): number {
+  const ids = getExpiredTemporaryContactIds();
+  if (ids.length === 0) return 0;
+
+  const db = getDatabase();
+  db.withTransactionSync(() => {
+    for (const id of ids) {
+      db.runSync('DELETE FROM contacts WHERE id = ?', [id]);
+    }
+  });
+
+  return ids.length;
+}

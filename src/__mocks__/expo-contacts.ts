@@ -8,6 +8,11 @@ export const PermissionStatus = {
   UNDETERMINED: 'undetermined',
 };
 
+export const ContactTypes = {
+  Person: 'person',
+  Company: 'company',
+};
+
 export const Fields = {
   ID: 'id',
   FirstName: 'firstName',
@@ -28,3 +33,6 @@ export const getContactsAsync = jest.fn().mockResolvedValue({
   hasNextPage: false,
   total: 0,
 });
+export const addContactAsync = jest.fn().mockResolvedValue('mock-native-id-123');
+export const updateContactAsync = jest.fn().mockResolvedValue(undefined);
+export const removeContactAsync = jest.fn().mockResolvedValue(undefined);
