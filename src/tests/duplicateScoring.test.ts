@@ -124,4 +124,28 @@ describe('buildContactSnapshot', () => {
     });
     expect(snap.phoneNumbers).toHaveLength(1);
   });
+
+  /**
+   * Regression: duplicateService.ts previously hardcoded normalizedName to ''
+   * for every contact during a scan, silently disabling name-based scoring.
+   * This test documents the correct behavior: snapshot must preserve the name.
+   */
+  it('preserves normalizedName for name-based scoring (regression: must not be empty)', () => {
+    const snap = buildContactSnapshot({
+      id: 1,
+      normalizedName: 'john doe',
+      phones: [],
+      emails: [],
+    });
+    expect(snap.normalizedName).toBe('john doe');
+    expect(snap.normalizedName.length).toBeGreaterThan(0);
+  });
+
+  it('scores exact name match correctly when both have same name (regression check)', () => {
+    const a = buildContactSnapshot({ id: 1, normalizedName: 'alice smith', phones: [], emails: [] });
+    const b = buildContactSnapshot({ id: 2, normalizedName: 'alice smith', phones: [], emails: [] });
+    const result = scoreDuplicatePair(a, b);
+    expect(result.reasons).toContain('exact_name_match');
+    expect(result.score).toBeGreaterThan(0);
+  });
 });

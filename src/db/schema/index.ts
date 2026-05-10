@@ -164,6 +164,10 @@ export const CREATE_INDEXES = [
   `CREATE INDEX IF NOT EXISTS idx_dupes_score
      ON duplicate_candidates(score)`,
 
+  // temporary_contacts — for fast expiry queries
+  `CREATE INDEX IF NOT EXISTS idx_temp_contacts_expires_at
+     ON temporary_contacts(expires_at)`,
+
   // audit_logs
   `CREATE INDEX IF NOT EXISTS idx_audit_created_at
      ON audit_logs(created_at)`,

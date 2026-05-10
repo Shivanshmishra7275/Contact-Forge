@@ -1,8 +1,8 @@
 /**
  * ContactForge — Cleanup Center Screen
  *
- * Scans local contacts for issues and presents a review queue.
- * Issues: missing name, malformed phone, uncapitalized name, whitespace, ghost contacts.
+ * Presents a review queue of contacts with data quality issues.
+ * All detection and fix logic is delegated to cleanupService.ts.
  */
 
 import { useCallback, useEffect, useState } from 'react';
@@ -11,92 +11,12 @@ import { Text, Card, Button, Chip, ActivityIndicator } from 'react-native-paper'
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import {
-  listContacts,
-  getPhonesByContactId,
-  updateContact,
-} from '../../src/db/repositories/contactRepository';
-import { logAction } from '../../src/db/repositories/auditRepository';
-import {
-  toTitleCase,
-  hasExcessWhitespace,
-  collapseWhitespace,
-  normalizePhone,
-} from '../../src/utils/normalization';
+  scanAllContactsForIssues,
+  applyCleanupFix,
+  type ContactIssues,
+} from '../../src/services/cleanupService';
 import { COLORS, SPACING, FONT_SIZE } from '../../src/constants';
-import type { CleanupIssue, LocalContact } from '../../src/types';
-
-interface ContactIssues {
-  contact: LocalContact;
-  issues: CleanupIssue[];
-}
-
-function scanContactForIssues(contact: LocalContact, phoneNumbers: string[]): CleanupIssue[] {
-  const issues: CleanupIssue[] = [];
-
-  // Missing name
-  if (
-    !contact.firstName?.trim() &&
-    !contact.lastName?.trim() &&
-    !contact.company?.trim()
-  ) {
-    issues.push({
-      contactId: contact.id,
-      kind: 'missing_name',
-      field: 'displayName',
-      currentValue: contact.displayName,
-      suggestedValue: null,
-    });
-  }
-
-  // Uncapitalized name
-  if (contact.displayName && contact.displayName !== '(Unknown)') {
-    const titled = toTitleCase(contact.displayName);
-    if (titled !== contact.displayName) {
-      issues.push({
-        contactId: contact.id,
-        kind: 'uncapitalized_name',
-        field: 'displayName',
-        currentValue: contact.displayName,
-        suggestedValue: titled,
-      });
-    }
-  }
-
-  // Extra whitespace in name
-  if (contact.displayName && hasExcessWhitespace(contact.displayName)) {
-    issues.push({
-      contactId: contact.id,
-      kind: 'extra_whitespace',
-      field: 'displayName',
-      currentValue: contact.displayName,
-      suggestedValue: collapseWhitespace(contact.displayName),
-    });
-  }
-
-  // Missing phone
-  if (phoneNumbers.length === 0) {
-    issues.push({
-      contactId: contact.id,
-      kind: 'missing_phone',
-      field: 'phoneNumbers',
-      currentValue: null,
-      suggestedValue: null,
-    });
-  }
-
-  // Ghost contact (no name, phone, email)
-  if (contact.isGhost) {
-    issues.push({
-      contactId: contact.id,
-      kind: 'ghost_contact',
-      field: 'all',
-      currentValue: null,
-      suggestedValue: null,
-    });
-  }
-
-  return issues;
-}
+import type { CleanupIssue } from '../../src/types';
 
 const ISSUE_LABELS: Record<string, string> = {
   missing_name: 'Missing Name',
@@ -127,24 +47,8 @@ export default function CleanupScreen() {
 
   const runScan = useCallback(() => {
     setIsScanning(true);
-    const results: ContactIssues[] = [];
-
-    // Process in memory — no async needed for cleanup scan
-    let page = 0;
-    while (true) {
-      const batch = listContacts({ page, pageSize: 100 });
-      if (batch.length === 0) break;
-
-      for (const contact of batch) {
-        const phones = getPhonesByContactId(contact.id).map((p) => p.number);
-        const issues = scanContactForIssues(contact, phones);
-        if (issues.length > 0) {
-          results.push({ contact, issues });
-        }
-      }
-      page++;
-    }
-
+    // Run synchronously — cleanup scan is fast enough for foreground
+    const results = scanAllContactsForIssues();
     setIssueList(results);
     setIsScanning(false);
     setHasScanned(true);
@@ -156,16 +60,9 @@ export default function CleanupScreen() {
 
   const handleApplyFix = useCallback(
     (item: ContactIssues, issue: CleanupIssue) => {
-      if (!issue.suggestedValue) return;
-
-      if (issue.kind === 'uncapitalized_name' || issue.kind === 'extra_whitespace') {
-        const parts = toTitleCase(collapseWhitespace(item.contact.displayName)).split(' ');
-        updateContact(item.contact.id, {
-          firstName: parts[0] ?? null,
-          lastName: parts.slice(1).join(' ') || null,
-        });
-        logAction('cleanup_applied', item.contact.id, { kind: issue.kind });
-        runScan();
+      const applied = applyCleanupFix(item.contact, issue);
+      if (applied) {
+        runScan(); // Refresh the issue list after a fix
       }
     },
     [runScan],

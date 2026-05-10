@@ -9,7 +9,7 @@
  */
 
 import {
-  listContacts,
+  getContactById,
   getPhonesByContactId,
   getEmailsByContactId,
   getAllContactIds,
@@ -52,12 +52,18 @@ export async function runDuplicateScan(
 
   for (let i = 0; i < allIds.length; i += DUPLICATE_SCAN_CHUNK_SIZE) {
     const chunkIds = allIds.slice(i, i + DUPLICATE_SCAN_CHUNK_SIZE);
-    const chunkSnapshots = chunkIds.map((id) => {
+    const chunkSnapshots = chunkIds.flatMap((id) => {
+      const contact = getContactById(id);
+      // Skip contacts that were deleted between fetching IDs and processing
+      if (!contact) return [];
       const phones = getPhonesByContactId(id).map((p) => p.normalizedNumber);
       const emails = getEmailsByContactId(id).map((e) => e.normalizedEmail);
-      const contact = listContacts({ page: 0, pageSize: 1 });
-      // We stored normalizedName in the DB, fetch it inline
-      return buildContactSnapshot({ id, normalizedName: '', phones, emails });
+      return [buildContactSnapshot({
+        id,
+        normalizedName: contact.normalizedName,
+        phones,
+        emails,
+      })];
     });
 
     // Pair within the new chunk

@@ -20,6 +20,7 @@
       "^expo-sqlite$": "<rootDir>/src/__mocks__/expo-sqlite.ts",
       "^expo-contacts$": "<rootDir>/src/__mocks__/expo-contacts.ts",
       "^expo-file-system$": "<rootDir>/src/__mocks__/expo-file-system.ts",
+      "^expo-file-system/legacy$": "<rootDir>/src/__mocks__/expo-file-system.ts",
       "^expo-sharing$": "<rootDir>/src/__mocks__/expo-sharing.ts"
     }
   },
