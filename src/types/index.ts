@@ -196,3 +196,51 @@ export interface AuditLog {
   details: string; // JSON string
   createdAt: string;
 }
+
+// ---------------------------------------------------------------------------
+// Phase 8: Premium Features
+// ---------------------------------------------------------------------------
+
+export interface ContactNote {
+  id: number;
+  contactId: number;
+  category: 'where_met' | 'important_dates' | 'family' | 'work' | 'custom';
+  title: string | null;
+  content: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ContactRelationship {
+  id: number;
+  contactIdFrom: number;
+  contactIdTo: number;
+  relationshipType: 'spouse' | 'child' | 'parent' | 'sibling' | 'colleague' | 'manager' | 'emergency_contact' | 'referral' | 'assistant' | 'friend' | 'custom';
+  direction: 'bidirectional' | 'one_way_from' | 'one_way_to';
+  notes: string | null;
+  createdAt: string;
+}
+
+export interface ProfileCard {
+  id: number;
+  userId: number | null;
+  firstName: string | null;
+  lastName: string | null;
+  jobTitle: string | null;
+  company: string | null;
+  phone: string | null;
+  email: string | null;
+  address: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ContactHealthScore {
+  contactId: number;
+  score: number; // 0-100
+  fieldsPresent: number;
+  hasNotes: boolean;
+  isDuplicate: boolean;
+  isRecent: boolean;
+  explanation: string;
+}

@@ -1,10 +1,21 @@
 /**
  * ContactForge — Settings Screen
+ * 
+ * Created by: T.G.S Mishra
+ * Part of ContactForge Phase 8 Premium Cinematic Upgrade
+ * 
+ * Features:
+ * - App settings (country code, sync preferences)
+ * - Export & backup management
+ * - Privacy information
+ * - Developer portfolio branding
+ * - Hidden developer menu (5-tap Easter egg)
+ * - QR business card management
  */
 
 import { useCallback, useEffect, useState } from 'react';
-import { ScrollView, StyleSheet, View, Alert } from 'react-native';
-import { Text, Switch, Button, TextInput, Divider, Card } from 'react-native-paper';
+import { ScrollView, StyleSheet, View, Alert, Linking } from 'react-native';
+import { Text, Switch, Button, TextInput, Divider, Card, Portal } from 'react-native-paper';
 import { router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
@@ -13,6 +24,7 @@ import { createFullBackup, shareFile } from '../../src/services/exportService';
 import { useAppStore } from '../../src/store/appStore';
 import { COLORS, SPACING, FONT_SIZE, APP_NAME, APP_VERSION } from '../../src/constants';
 import type { AppSettings } from '../../src/types';
+import { QRBusinessCard } from '../../src/QRBusinessCard';
 
 export default function SettingsScreen() {
   const setStoreSettings = useAppStore((s) => s.setSettings);
@@ -24,6 +36,9 @@ export default function SettingsScreen() {
     exportIncludeNotes: true,
   });
   const [isExporting, setIsExporting] = useState(false);
+  const [versionTaps, setVersionTaps] = useState(0);
+  const [showDevMenu, setShowDevMenu] = useState(false);
+  const [showQRCard, setShowQRCard] = useState(false);
 
   useEffect(() => {
     const s = getAllSettings();
@@ -74,6 +89,21 @@ export default function SettingsScreen() {
       setIsExporting(false);
     }
   }, [settings.exportIncludeNotes]);
+
+  const handleOpenGithub = useCallback(() => {
+    Linking.openURL('https://github.com/Shivanshmishra7275').catch(() => {
+      Alert.alert('Link unavailable', 'Unable to open the GitHub profile right now.');
+    });
+  }, []);
+
+  const handleVersionTap = useCallback(() => {
+    const newTaps = versionTaps + 1;
+    setVersionTaps(newTaps);
+    if (newTaps === 5) {
+      setShowDevMenu(true);
+      setVersionTaps(0);
+    }
+  }, [versionTaps]);
 
   const update = useCallback(<K extends keyof AppSettings>(key: K, value: AppSettings[K]) => {
     setSettings((s) => ({ ...s, [key]: value }));
@@ -167,6 +197,25 @@ export default function SettingsScreen() {
           </Card.Content>
         </Card>
 
+        {/* QR Business Card */}
+        <SectionHeader title="My QR Card" icon="qrcode" />
+        <Card style={styles.card}>
+          <Card.Content>
+            <Text style={styles.cardDesc}>
+              Create and share your contact QR code. Fully offline.
+            </Text>
+            <Button
+              mode="contained"
+              onPress={() => setShowQRCard(true)}
+              style={styles.qrBtn}
+              buttonColor={COLORS.secondary}
+              icon="qrcode"
+            >
+              Open QR Card
+            </Button>
+          </Card.Content>
+        </Card>
+
         {/* Privacy */}
         <SectionHeader title="Privacy" icon="shield-lock" />
         <Card style={styles.card}>
@@ -190,6 +239,40 @@ export default function SettingsScreen() {
           </Card.Content>
         </Card>
 
+        {/* Developer */}
+        <SectionHeader title="About the Creator" icon="account-tie" />
+        <Card style={styles.card}>
+          <Card.Content>
+            {/* T.G.S Mishra Branding */}
+            <View style={styles.developerHeader}>
+              <View style={styles.developerAvatar}>
+                <MaterialCommunityIcons name="star-circle" color={COLORS.primary} size={30} />
+              </View>
+              <View style={styles.developerMeta}>
+                <Text style={styles.creatorBrand}>T.G.S Mishra</Text>
+                <Text style={styles.developerName}>Shivansh Mishra</Text>
+                <Text style={styles.developerTitle}>
+                  Software Engineer (ML, Data Science & Mobile Architecture)
+                </Text>
+                <Text style={styles.versionNote}>First Mobile App • ContactForge</Text>
+              </View>
+            </View>
+            <Divider style={[styles.divider, { marginVertical: SPACING.md }]} />
+            <Button
+              mode="outlined"
+              onPress={handleOpenGithub}
+              icon="github"
+              textColor={COLORS.primary}
+              style={styles.githubButton}
+            >
+              View GitHub: T.G.S Mishra
+            </Button>
+            <Text style={styles.brandMessage}>
+              ContactForge is built with passion as a portfolio piece showcasing modern mobile architecture, offline-first design, and premium user experiences.
+            </Text>
+          </Card.Content>
+        </Card>
+
         {/* Save button */}
         <Button
           mode="contained"
@@ -201,7 +284,41 @@ export default function SettingsScreen() {
         </Button>
 
         {/* About */}
-        <Text style={styles.version}>{APP_NAME} v{APP_VERSION}</Text>
+        <Text
+          style={styles.version}
+          onPress={handleVersionTap}
+        >
+          {APP_NAME} v{APP_VERSION}
+        </Text>
+
+        {showDevMenu && (
+          <Card style={[styles.card, styles.devMenuCard]}>
+            <Card.Content>
+              <Text style={styles.devMenuTitle}>Developer Menu</Text>
+              <Button
+                mode="text"
+                onPress={() => Alert.alert('Architecture', 'ContactForge runs on Phase 0-8 stack: Expo, React Native, React Navigation, Reanimated 3, SQLite, and offline-first domain logic.')}
+                textColor={COLORS.primary}
+              >
+                📐 Architecture Summary
+              </Button>
+              <Button
+                mode="text"
+                onPress={() => Alert.alert('Schema', '16 tables (contacts, notes, relationships, duplicate tracking, audit logs, settings, temp contacts, sync state, profile cards)')}
+                textColor={COLORS.primary}
+              >
+                🗄️ Schema Diagram
+              </Button>
+            </Card.Content>
+          </Card>
+        )}
+
+        {/* QR Card Modal */}
+        {showQRCard && (
+          <Portal>
+            <QRBusinessCard onClose={() => setShowQRCard(false)} />
+          </Portal>
+        )}
       </ScrollView>
     </SafeAreaView>
   );
@@ -272,11 +389,61 @@ const styles = StyleSheet.create({
     flex: 1,
     lineHeight: 20,
   },
+  developerHeader: { flexDirection: 'row', alignItems: 'center', gap: SPACING.md, marginBottom: SPACING.md },
+  developerAvatar: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: COLORS.surfaceVariant,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+  },
+  developerMeta: { flex: 1 },
+  developerName: { color: COLORS.textPrimary, fontSize: FONT_SIZE.lg, fontWeight: '700' },
+  developerTitle: { color: COLORS.textSecondary, fontSize: FONT_SIZE.sm, lineHeight: 20, marginTop: 2 },
+  githubButton: { alignSelf: 'flex-start' },
   saveBtn: { marginTop: SPACING.lg },
   version: {
     color: COLORS.textDisabled,
     fontSize: FONT_SIZE.xs,
     textAlign: 'center',
     marginTop: SPACING.lg,
+  },
+  devMenuCard: {
+    borderWidth: 1,
+    borderColor: COLORS.primary,
+    backgroundColor: COLORS.surfaceVariant,
+  },
+  devMenuTitle: {
+    color: COLORS.primary,
+    fontSize: FONT_SIZE.md,
+    fontWeight: '700',
+    marginBottom: SPACING.sm,
+  },
+  qrBtn: { marginTop: SPACING.sm },
+  cardDesc: {
+    color: COLORS.textSecondary,
+    fontSize: FONT_SIZE.sm,
+    marginBottom: SPACING.md,
+  },
+  creatorBrand: {
+    color: COLORS.primary,
+    fontSize: FONT_SIZE.md,
+    fontWeight: '800',
+    letterSpacing: 0.5,
+  },
+  versionNote: {
+    color: COLORS.secondary,
+    fontSize: FONT_SIZE.xs,
+    marginTop: SPACING.xs,
+    fontStyle: 'italic',
+  },
+  brandMessage: {
+    color: COLORS.textDisabled,
+    fontSize: FONT_SIZE.xs,
+    marginTop: SPACING.md,
+    lineHeight: 18,
   },
 });

@@ -128,6 +128,53 @@ export const CREATE_AUDIT_LOGS_TABLE = `
 `;
 
 // ---------------------------------------------------------------------------
+// Phase 8: Premium Feature Tables
+// ---------------------------------------------------------------------------
+
+export const CREATE_CONTACT_NOTES_TABLE = `
+  CREATE TABLE IF NOT EXISTS contact_notes (
+    id          INTEGER PRIMARY KEY AUTOINCREMENT,
+    contact_id  INTEGER NOT NULL,
+    category    TEXT NOT NULL,  -- 'where_met', 'important_dates', 'family', 'work', 'custom'
+    title       TEXT,
+    content     TEXT NOT NULL,
+    created_at  TEXT NOT NULL,
+    updated_at  TEXT NOT NULL,
+    FOREIGN KEY (contact_id) REFERENCES contacts(id) ON DELETE CASCADE
+  )
+`;
+
+export const CREATE_CONTACT_RELATIONSHIPS_TABLE = `
+  CREATE TABLE IF NOT EXISTS contact_relationships (
+    id                  INTEGER PRIMARY KEY AUTOINCREMENT,
+    contact_id_from     INTEGER NOT NULL,
+    contact_id_to       INTEGER NOT NULL,
+    relationship_type   TEXT NOT NULL,  -- 'spouse', 'child', 'parent', 'sibling', 'colleague', 'manager', 'emergency_contact', 'referral', 'assistant', 'friend', 'custom'
+    direction           TEXT NOT NULL,  -- 'bidirectional', 'one_way_from', 'one_way_to'
+    notes               TEXT,
+    created_at          TEXT NOT NULL,
+    FOREIGN KEY (contact_id_from) REFERENCES contacts(id) ON DELETE CASCADE,
+    FOREIGN KEY (contact_id_to) REFERENCES contacts(id) ON DELETE CASCADE
+  )
+`;
+
+export const CREATE_PROFILE_CARDS_TABLE = `
+  CREATE TABLE IF NOT EXISTS profile_cards (
+    id          INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id     INTEGER,
+    first_name  TEXT,
+    last_name   TEXT,
+    job_title   TEXT,
+    company     TEXT,
+    phone       TEXT,
+    email       TEXT,
+    address     TEXT,
+    created_at  TEXT NOT NULL,
+    updated_at  TEXT NOT NULL
+  )
+`;
+
+// ---------------------------------------------------------------------------
 // Indexes — critical for performance with large contact libraries
 // ---------------------------------------------------------------------------
 
@@ -164,13 +211,21 @@ export const CREATE_INDEXES = [
   `CREATE INDEX IF NOT EXISTS idx_dupes_score
      ON duplicate_candidates(score)`,
 
-  // temporary_contacts — for fast expiry queries
+  // temporary_contacts
   `CREATE INDEX IF NOT EXISTS idx_temp_contacts_expires_at
      ON temporary_contacts(expires_at)`,
 
   // audit_logs
   `CREATE INDEX IF NOT EXISTS idx_audit_created_at
      ON audit_logs(created_at)`,
+
+  // Phase 8: Premium features
+  `CREATE INDEX IF NOT EXISTS idx_contact_notes_contact_id
+     ON contact_notes(contact_id)`,
+  `CREATE INDEX IF NOT EXISTS idx_relationships_contact_from
+     ON contact_relationships(contact_id_from)`,
+  `CREATE INDEX IF NOT EXISTS idx_relationships_contact_to
+     ON contact_relationships(contact_id_to)`,
 ];
 
 export const ALL_CREATE_STATEMENTS = [
@@ -184,5 +239,8 @@ export const ALL_CREATE_STATEMENTS = [
   CREATE_SYNC_STATE_TABLE,
   CREATE_SETTINGS_TABLE,
   CREATE_AUDIT_LOGS_TABLE,
+  CREATE_CONTACT_NOTES_TABLE,
+  CREATE_CONTACT_RELATIONSHIPS_TABLE,
+  CREATE_PROFILE_CARDS_TABLE,
   ...CREATE_INDEXES,
 ];

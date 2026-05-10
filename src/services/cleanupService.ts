@@ -15,12 +15,15 @@
 
 import {
   listContacts,
+  getContactById,
   getPhonesByContactId,
   replacePhonesByContactId,
+  replacePhonesByContactIdSync,
   updateContact,
   deleteContact,
 } from '../db/repositories/contactRepository';
 import { logAction } from '../db/repositories/auditRepository';
+import { getDatabase } from '../db';
 import { DEFAULT_COUNTRY_CODE } from '../constants';
 import {
   appendCountryCode,
@@ -246,6 +249,14 @@ export function applyCleanupFix(
   contact: LocalContact,
   issue: CleanupIssue,
 ): boolean {
+  return applyCleanupFixInternal(contact, issue, replacePhonesByContactId);
+}
+
+function applyCleanupFixInternal(
+  contact: LocalContact,
+  issue: CleanupIssue,
+  replacePhones: typeof replacePhonesByContactId,
+): boolean {
   switch (issue.kind) {
     case 'uncapitalized_name':
     case 'extra_whitespace': {
@@ -268,7 +279,7 @@ export function applyCleanupFix(
         number: phone.number,
       }));
       const standardized = buildStandardizedPhoneEntries(phoneEntries, DEFAULT_COUNTRY_CODE);
-      replacePhonesByContactId(contact.id, standardized);
+      replacePhones(contact.id, standardized);
       logAction('cleanup_applied', contact.id, {
         kind: issue.kind,
         phoneCount: standardized.length,
@@ -326,4 +337,31 @@ export function purgeGhostContacts(contactIssuesList: ContactIssues[]): number {
   }
 
   return ghostContacts.length;
+}
+
+export function applyBulkCleanupFixesByContactIds(contactIds: number[]): number {
+  if (contactIds.length === 0) return 0;
+
+  const db = getDatabase();
+  let totalFixes = 0;
+
+  db.withTransactionSync(() => {
+    for (const contactId of contactIds) {
+      const contact = getContactById(contactId);
+
+      if (!contact) continue;
+
+      const phoneNumbers = getPhonesByContactId(contact.id).map((phone) => phone.number);
+      const issues = scanContactForIssues(contact, phoneNumbers);
+
+      for (const issue of issues) {
+        if (issue.kind === 'ghost_contact') continue;
+        if (applyCleanupFixInternal(contact, issue, replacePhonesByContactIdSync)) {
+          totalFixes++;
+        }
+      }
+    }
+  });
+
+  return totalFixes;
 }

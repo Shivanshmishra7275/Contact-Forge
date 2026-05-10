@@ -5,15 +5,16 @@
  * All detection and fix logic is delegated to cleanupService.ts.
  */
 
-import { useCallback, useEffect, useMemo, useState } from 'react';
-import { View, FlatList, StyleSheet, Alert } from 'react-native';
-import { Text, Card, Button, Chip, ActivityIndicator, Divider } from 'react-native-paper';
+import { memo, useCallback, useEffect, useMemo, useState } from 'react';
+import { View, FlatList, StyleSheet, Alert, InteractionManager } from 'react-native';
+import { Text, Card, Button, Chip, ActivityIndicator, Divider, IconButton } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import {
   scanAllContactsForIssues,
   applyCleanupFix,
   applyBulkCleanupFixes,
+  applyBulkCleanupFixesByContactIds,
   purgeGhostContacts,
   type ContactIssues,
 } from '../../src/services/cleanupService';
@@ -51,6 +52,9 @@ export default function CleanupScreen() {
   const [expiredTemps, setExpiredTemps] = useState<TemporaryContact[]>([]);
   const [isScanning, setIsScanning] = useState(false);
   const [hasScanned, setHasScanned] = useState(false);
+  const [selectionMode, setSelectionMode] = useState(false);
+  const [selectedContactIds, setSelectedContactIds] = useState<number[]>([]);
+  const selectedCount = selectedContactIds.length;
 
   const runScan = useCallback(() => {
     setIsScanning(true);
@@ -63,8 +67,12 @@ export default function CleanupScreen() {
   }, []);
 
   useEffect(() => {
-    runScan();
-  }, []);
+    const task = InteractionManager.runAfterInteractions(() => {
+      runScan();
+    });
+
+    return () => task.cancel();
+  }, [runScan]);
 
   const fixableContacts = useMemo(
     () => issueList.filter((item) => item.issues.some((issue) => issue.suggestedValue)),
@@ -117,6 +125,41 @@ export default function CleanupScreen() {
       ],
     );
   }, [fixableContacts, runScan]);
+
+  const clearSelection = useCallback(() => {
+    setSelectedContactIds([]);
+    setSelectionMode(false);
+  }, []);
+
+  const toggleContactSelection = useCallback((contactId: number) => {
+    setSelectedContactIds((current) => {
+      if (current.includes(contactId)) {
+        return current.filter((id) => id !== contactId);
+      }
+      return [...current, contactId];
+    });
+  }, []);
+
+  const handleFixSelected = useCallback(() => {
+    if (selectedContactIds.length === 0) return;
+
+    Alert.alert(
+      'Apply Selected Cleanup Fixes',
+      `Apply cleanup fixes to ${selectedContactIds.length} selected contacts in one transaction?`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Apply',
+          onPress: () => {
+            const count = applyBulkCleanupFixesByContactIds(selectedContactIds);
+            Alert.alert('Cleanup complete', `Applied ${count} cleanup fixes.`);
+            clearSelection();
+            runScan();
+          },
+        },
+      ],
+    );
+  }, [clearSelection, runScan, selectedContactIds]);
 
   const handleDeleteGhosts = useCallback(() => {
     if (ghostContacts.length === 0) return;
@@ -179,22 +222,64 @@ export default function CleanupScreen() {
 
   return (
     <SafeAreaView style={styles.safeArea} edges={['top']}>
+      <View style={styles.headerBar}>
+        <View>
+          <Text style={styles.headerText}>
+            {issueList.length} contacts with issues
+          </Text>
+          {selectionMode && <Text style={styles.selectionText}>{selectedCount} selected</Text>}
+        </View>
+        <View style={styles.headerActions}>
+          {selectedCount > 0 && (
+            <Button mode="text" onPress={clearSelection} textColor={COLORS.textSecondary} compact>
+              Clear
+            </Button>
+          )}
+          <Button
+            mode={selectionMode ? 'contained' : 'outlined'}
+            onPress={() => {
+              if (selectionMode) {
+                clearSelection();
+              } else {
+                setSelectionMode(true);
+              }
+            }}
+            buttonColor={selectionMode ? COLORS.primary : undefined}
+            textColor={selectionMode ? COLORS.textPrimary : COLORS.primary}
+            compact
+          >
+            {selectionMode ? 'Done' : 'Select'}
+          </Button>
+        </View>
+      </View>
+      {selectionMode && selectedCount > 0 && (
+        <Card style={styles.bulkCard}>
+          <Card.Content style={styles.bulkActions}>
+            <Button mode="contained" buttonColor={COLORS.primary} onPress={handleFixSelected}>
+              Fix Selected
+            </Button>
+            <Button mode="outlined" textColor={COLORS.textSecondary} onPress={clearSelection}>
+              Reset Selection
+            </Button>
+          </Card.Content>
+        </Card>
+      )}
       <FlatList
         data={issueList}
         keyExtractor={(item) => String(item.contact.id)}
         renderItem={({ item }) => (
           <CleanupCard
             item={item}
+            selectionMode={selectionMode}
+            selected={selectedContactIds.includes(item.contact.id)}
+            onToggleSelect={() => toggleContactSelection(item.contact.id)}
             onApplyFix={(issue) => handleApplyFix(item, issue)}
             onApplyAllFixes={() => handleApplyAllForContact(item)}
           />
         )}
         ListHeaderComponent={(
           <View>
-            <View style={styles.header}>
-              <Text style={styles.headerText}>
-                {issueList.length} contacts with issues
-              </Text>
+            <View style={styles.refreshRow}>
               <Button
                 mode="text"
                 onPress={runScan}
@@ -253,6 +338,10 @@ export default function CleanupScreen() {
         )}
         ListEmptyComponent={<View style={styles.listEmptySpacer} />}
         contentContainerStyle={styles.listContent}
+        initialNumToRender={8}
+        maxToRenderPerBatch={10}
+        windowSize={7}
+        removeClippedSubviews
       />
     </SafeAreaView>
   );
@@ -260,17 +349,38 @@ export default function CleanupScreen() {
 
 interface CleanupCardProps {
   item: ContactIssues;
+  selected: boolean;
+  selectionMode: boolean;
+  onToggleSelect: () => void;
   onApplyFix: (issue: CleanupIssue) => void;
   onApplyAllFixes: () => void;
 }
 
-function CleanupCard({ item, onApplyFix, onApplyAllFixes }: CleanupCardProps) {
+const CleanupCard = memo(function CleanupCard({
+  item,
+  selected,
+  selectionMode,
+  onToggleSelect,
+  onApplyFix,
+  onApplyAllFixes,
+}: CleanupCardProps) {
   const hasFixableIssue = item.issues.some((issue) => issue.suggestedValue);
 
   return (
-    <Card style={styles.card}>
+    <Card style={[styles.card, selected && styles.cardSelected]}>
       <Card.Content>
-        <Text style={styles.contactName}>{item.contact.displayName}</Text>
+        <View style={styles.cardHeader}>
+          <Text style={styles.contactName}>{item.contact.displayName}</Text>
+          {selectionMode && (
+            <IconButton
+              icon={selected ? 'checkbox-marked' : 'checkbox-blank-outline'}
+              onPress={onToggleSelect}
+              size={20}
+              iconColor={selected ? COLORS.primary : COLORS.textSecondary}
+              style={styles.selectIcon}
+            />
+          )}
+        </View>
         {item.issues.map((issue, idx) => (
           <View key={idx} style={styles.issueRow}>
             <MaterialCommunityIcons
@@ -308,10 +418,22 @@ function CleanupCard({ item, onApplyFix, onApplyAllFixes }: CleanupCardProps) {
       </Card.Content>
     </Card>
   );
-}
+});
 
 const styles = StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: COLORS.background },
+  headerBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: SPACING.md,
+    paddingBottom: SPACING.xs,
+  },
+  headerActions: { flexDirection: 'row', alignItems: 'center', gap: SPACING.xs },
+  selectionText: { color: COLORS.primary, fontSize: FONT_SIZE.xs, marginTop: 2 },
+  bulkCard: { backgroundColor: COLORS.surfaceVariant, marginHorizontal: SPACING.md, marginBottom: SPACING.sm },
+  bulkActions: { flexDirection: 'row', gap: SPACING.sm, justifyContent: 'space-between' },
+  refreshRow: { flexDirection: 'row', justifyContent: 'flex-end', paddingHorizontal: SPACING.md, paddingBottom: SPACING.xs },
   center: {
     flex: 1,
     alignItems: 'center',
@@ -321,13 +443,6 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.background,
   },
   loadingText: { color: COLORS.textSecondary, marginTop: SPACING.sm },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    padding: SPACING.md,
-    paddingBottom: SPACING.xs,
-  },
   headerText: { color: COLORS.textSecondary, fontSize: FONT_SIZE.sm },
   listContent: { padding: SPACING.md, gap: SPACING.sm, paddingBottom: SPACING.xxl },
   summaryRow: {
@@ -345,6 +460,9 @@ const styles = StyleSheet.create({
   expiredCard: { borderColor: COLORS.error, borderWidth: 1, marginHorizontal: SPACING.md, marginBottom: SPACING.md },
   listEmptySpacer: { height: 1 },
   card: { backgroundColor: COLORS.surface },
+  cardSelected: { borderColor: COLORS.primary, borderWidth: 1 },
+  cardHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  selectIcon: { margin: 0 },
   contactName: {
     color: COLORS.textPrimary,
     fontSize: FONT_SIZE.md,

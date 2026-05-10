@@ -1,8 +1,12 @@
 <div align="center">
 
+# ⭐ T.G.S Mishra Presents
+
 # ContactForge
 
-<img src="https://readme-typing-svg.demolab.com?font=Fira+Code&weight=700&size=24&pause=1000&color=00C2A8&center=true&vCenter=true&width=980&lines=ContactForge+%E2%80%94+Privacy-First+Offline+Contact+Manager;Clean+duplicates+%7C+Organize+contacts+%7C+Export+safely;Built+with+Expo%2C+React+Native%2C+TypeScript+and+SQLite;Created+and+maintained+by+Shivansh+Mishra" alt="ContactForge typing banner" />
+## *My First Mobile App*
+
+<img src="https://readme-typing-svg.demolab.com?font=Fira+Code&weight=700&size=24&pause=1000&color=8b7eff&center=true&vCenter=true&width=980&lines=ContactForge+%E2%80%94+Privacy-First+Offline+Contact+Manager;Clean+duplicates+%7C+Organize+contacts+%7C+Local+relationships;Built+with+Expo%2C+React+Native%2C+TypeScript+and+SQLite;Phase+8%3A+Premium+cinematic+upgrade;Created+by+T.G.S+Mishra+(Shivansh+Mishra)" alt="ContactForge typing banner" />
 
 <br />
 
@@ -12,11 +16,25 @@
 <img alt="SQLite" src="https://img.shields.io/badge/SQLite-Local_Database-003B57?style=for-the-badge&logo=sqlite&logoColor=white" />
 <img alt="Offline First" src="https://img.shields.io/badge/Offline-First-1B4332?style=for-the-badge" />
 <img alt="Privacy First" src="https://img.shields.io/badge/Privacy-Local_Only-0F766E?style=for-the-badge" />
-<img alt="Open Source" src="https://img.shields.io/badge/Open_Source-Ready-7C3AED?style=for-the-badge" />
+<img alt="Premium UI" src="https://img.shields.io/badge/UI-Premium_Cinematic-8b7eff?style=for-the-badge" />
 
 <br />
 
-**Created and maintained by Shivansh Mishra**
+### 🎯 Built by: **T.G.S Mishra** (Shivansh Mishra)
+
+**First Mobile App • Phase 8: Premium Cinematic Upgrade**
+
+---
+
+> **T.G.S Mishra** — Software Engineer specializing in Machine Learning, Data Science & Mobile Architecture
+>
+> ContactForge is my first mobile app, representing a commitment to offline-first design, premium user experience, and production-grade software architecture. This project demonstrates full-stack mobile development capabilities, from SQLite schema design to React Native component architecture to TypeScript-safe state management.
+>
+> This is my portfolio piece for mobile development excellence. 🚀
+
+### 🔗 Connect with me:
+- **GitHub:** [github.com/Shivanshmishra7275](https://github.com/Shivanshmishra7275)
+- **Project:** [github.com/Shivanshmishra7275/Contact-Forge](https://github.com/Shivanshmishra7275/Contact-Forge)
 
 </div>
 
@@ -27,6 +45,17 @@
 > A calm, offline-first contact studio for real-world contact chaos.
 >
 > ContactForge turns duplicate cleanup, merge safety, temporary contact review, and local backup/export into a single trusted workflow that never leaves the device.
+
+## 📥 Download App
+
+**Latest Build:** ContactForge Phase 8 (Premium Cinematic Upgrade)
+
+[📱 Download Android APK from EAS Build](https://example.com/contactforge-latest-android.apk)
+
+> ⚠️ **Before Publishing:** Replace placeholder URL with your latest EAS Android APK build link
+> - Go to EAS Dashboard: https://expo.dev/
+> - Copy your production Android APK link
+> - Update this README with the real link
 
 ## Table of Contents
 
@@ -142,6 +171,14 @@ ContactForge is intended to feel like a control room for your address book: not 
 - Provides a local Backup Vault for listing, sharing, and deleting backups.
 - Captures safety snapshots before risky operations.
 
+### 9. Premium offline features (Phase 8)
+- **Contact Memory Notes** — Structured contextual notes per contact (where met, important dates, family context, work notes).
+- **Relationship Mapping** — Link contacts as family, colleagues, managers, etc. with directional support.
+- **QR Business Card** — Generate local QR codes from user's contact card (offline, no internet required).
+- **Contact Health Score** — Explainable quality score based on field completeness, notes, relationships, recency.
+- **Cinematic UI** — Premium dark mode, smooth Reanimated animations, tactile haptic feedback, elevated card design.
+- **Developer Branding** — Architect's portfolio card with premium styling and hidden developer menu.
+
 ## What Makes This Project Different
 
 ContactForge is not trying to be a social product, caller-ID network, or cloud CRM. Its strength is focus: it solves the real maintenance problems of a personal contact library while respecting the boundaries of privacy, device permissions, and platform limitations.
@@ -165,9 +202,10 @@ The app is intentionally utility-first. Every major flow is designed to be previ
 - **Phase 4** — Temporary contacts, unknown workflows, local heuristic tagging, grouping logic.
 - **Phase 5** — Cleanup center, standardization actions, ghost cleanup, bulk review.
 - **Phase 6** — CSV / VCF export, local backup vault, safety snapshots.
+- **Phase 7** — Performance optimization, Tab navigation fixes, bulk selection workflows, README polish.
 
-### Next phase
-- **Phase 7** — polish, optimization, broader test coverage, docs, and open-source readiness.
+### Current phase
+- **Phase 8** — Premium cinematic UI upgrade, advanced offline features, developer branding, contact notes, relationship mapping, QR business cards, contact health scores.
 
 ## Verified Build Health
 
@@ -238,16 +276,19 @@ Business logic stays in services, persistence stays in repositories, and screens
 
 The local schema centers on normalized contact management:
 
-- `contacts`
-- `phone_numbers`
-- `emails`
-- `duplicate_candidates`
-- `duplicate_groups`
-- `merge_history`
-- `audit_logs`
-- `temporary_contacts`
-- `settings`
-- `sync_state`
+- `contacts` — local contact mirror
+- `phone_numbers` — normalized phone numbers
+- `emails` — normalized emails
+- `duplicate_candidates` — duplicate pair detection
+- `duplicate_groups` — grouped duplicates
+- `merge_history` — merge operation audit trail
+- `temporary_contacts` — expirable contacts
+- `settings` — app preferences
+- `sync_state` — sync status tracking
+- `audit_logs` — action audit trail
+- `contact_notes` — **Phase 8** contextual notes (where met, important dates, family context, work)
+- `contact_relationships` — **Phase 8** relationship linking (family, colleague, manager, etc.)
+- `profile_cards` — **Phase 8** user's own contact card (for QR generation)
 
 Important indexes are defined for:
 
@@ -403,7 +444,34 @@ Recommended contribution areas:
 
 ## Author Highlight
 
-**Shivansh Mishra** is building ContactForge as a privacy-focused open-source utility centered on trust, local ownership, and long-term maintainability. The project reflects a serious interest in offline-first mobile engineering, clean data workflows, and user-respecting software design.
+### **T.G.S Mishra** (Shivansh Mishra)
+
+Building ContactForge as a privacy-focused open-source utility centered on trust, local ownership, and long-term maintainability. This is my first mobile app and represents a serious commitment to:
+
+✨ **Offline-first mobile engineering** — Understanding distributed systems and constraints  
+✨ **Clean data workflows** — Designing schemas and managing complex state  
+✨ **User-respecting software** — Privacy-by-default and transparency in mutations  
+✨ **Production-grade quality** — TypeScript strict mode, comprehensive testing, professional UX  
+✨ **Portfolio excellence** — Demonstrating full-stack capabilities for recruiters and collaborators  
+
+### Why This Project Matters
+
+This is not a toy app. ContactForge combines:
+
+- **Contact permissions handling** (platform-specific quirks)
+- **SQLite schema design** (normalized data modeling)
+- **Duplicate detection** (fuzzy matching and confidence scoring)
+- **Safe mutation workflows** (preview-first, confirmation-gated operations)
+- **Large-list performance** (windowing, memoization, optimized queries)
+- **Offline operation** (100% local, zero backend)
+- **Premium UI/UX** (React Native Paper, Reanimated, haptic feedback)
+- **Production-ready code** (TypeScript strict, JSDoc comments, error handling)
+
+### Connect
+
+- **GitHub Profile:** [github.com/Shivanshmishra7275](https://github.com/Shivanshmishra7275)
+- **This Repository:** [Contact-Forge](https://github.com/Shivanshmishra7275/Contact-Forge)
+- **Specializations:** Machine Learning, Data Science, Mobile Architecture
 
 ## README Notes
 

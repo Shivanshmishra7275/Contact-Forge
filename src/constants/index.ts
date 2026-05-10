@@ -48,27 +48,49 @@ export const CONTACT_TAGS = [
   'Review Later',
 ] as const;
 
-// Colors — dark-mode focused palette
+// --- PHASE 8: PREMIUM DESIGN TOKENS ---
+
+// Premium Color Palette (Dark Mode First)
 export const COLORS = {
-  background: '#0f0f1a',
-  surface: '#1a1a2e',
-  surfaceVariant: '#252540',
-  primary: '#7c6af7',
-  primaryLight: '#9c8fff',
-  secondary: '#4ecdc4',
-  accent: '#f7a76c',
-  error: '#e05252',
-  warning: '#f0c040',
-  success: '#4caf80',
-  textPrimary: '#f0f0f5',
-  textSecondary: '#9090b0',
-  textDisabled: '#505070',
-  border: '#2a2a45',
-  divider: '#1e1e38',
-  overlay: 'rgba(0,0,0,0.6)',
+  // Neutral layers
+  background: '#0a0e1a',
+  backgroundAlt: '#0f1219',
+  surface: '#121722',
+  surfaceElevated: '#161d2e',
+  surfaceHover: '#1a2234',
+  surfaceOverlay: '#0a0e1a88',
+
+  // Brand accent colors (refined)
+  primary: '#8b7eff',
+  primaryDim: '#6a5dd0',
+  primaryLight: '#a9a1ff',
+
+  secondary: '#5ed9c9',
+  accent: '#f5a85d',
+
+  // Semantic colors (muted)
+  success: '#5cba82',
+  warning: '#f5c842',
+  error: '#e86c6c',
+  info: '#6db3e8',
+
+  // Text hierarchy
+  textPrimary: '#f5f7fa',
+  textSecondary: '#a8b3c1',
+  textTertiary: '#707a88',
+  textDisabled: '#50576a',
+
+  // Borders and dividers
+  border: '#1f2a3a',
+  divider: '#161d2e',
+  borderFocus: '#8b7eff44',
+
+  // Feedback and overlays
+  overlay: 'rgba(0,0,0,0.5)',
+  overlayDark: 'rgba(0,0,0,0.75)',
 } as const;
 
-// Typography sizes
+// Typography
 export const FONT_SIZE = {
   xs: 11,
   sm: 13,
@@ -76,23 +98,65 @@ export const FONT_SIZE = {
   lg: 17,
   xl: 20,
   xxl: 24,
-  title: 30,
+  xxxl: 32,
+  title: 40,
+} as const;
+
+export const FONT_WEIGHT = {
+  light: '300' as any,
+  normal: '400' as any,
+  medium: '500' as any,
+  semibold: '600' as any,
+  bold: '700' as any,
+  extrabold: '800' as any,
 } as const;
 
 // Spacing
 export const SPACING = {
-  xs: 4,
-  sm: 8,
-  md: 16,
-  lg: 24,
-  xl: 32,
-  xxl: 48,
+  xs: 2,
+  sm: 4,
+  md: 8,
+  lg: 16,
+  xl: 24,
+  xxl: 32,
+  xxxl: 48,
+  giant: 64,
 } as const;
 
 // Radius
 export const RADIUS = {
-  sm: 6,
+  xs: 4,
+  sm: 8,
   md: 12,
-  lg: 18,
+  lg: 16,
+  xl: 20,
   full: 999,
+} as const;
+
+// Elevation/Shadow depth
+export const ELEVATION = {
+  none: 0,
+  low: 2,
+  standard: 4,
+  medium: 8,
+  high: 12,
+  overlay: 16,
+} as const;
+
+// Motion system
+export const MOTION = {
+  duration: {
+    instant: 0,
+    quick: 150,
+    fast: 250,
+    normal: 400,
+    slow: 600,
+    deliberate: 1000,
+  },
+  spring: {
+    quick: { damping: 12, mass: 1, stiffness: 100 },
+    standard: { damping: 10, mass: 1, stiffness: 80 },
+    gentle: { damping: 8, mass: 1, stiffness: 60 },
+    bouncy: { damping: 6, mass: 1, stiffness: 80 },
+  },
 } as const;

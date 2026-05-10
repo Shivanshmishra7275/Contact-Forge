@@ -55,8 +55,8 @@ export function scoreDuplicatePair(
   a: ContactSnapshot,
   b: ContactSnapshot,
 ): DuplicateScoreResult {
-  let score = 0;
   const reasons: DuplicateReason[] = [];
+  let score = 0;
 
   const aPhones = new Set(a.phoneNumbers.filter(Boolean));
   const bPhones = new Set(b.phoneNumbers.filter(Boolean));
@@ -72,7 +72,6 @@ export function scoreDuplicatePair(
     }
   }
   if (exactPhoneMatch) {
-    score += SCORE_EXACT_PHONE;
     reasons.push('exact_phone_match');
   } else {
     // Check for overlapping (partial) phones — e.g. one has country code, other doesn't
@@ -90,6 +89,24 @@ export function scoreDuplicatePair(
       score += SCORE_OVERLAPPING_PHONE;
       reasons.push('overlapping_phone');
     }
+  }
+
+  const exactNameMatch = Boolean(a.normalizedName && b.normalizedName && a.normalizedName === b.normalizedName);
+
+  // Strict duplicate detection: both exact name AND exact phone must match for auto-flagging as duplicate
+  if (exactNameMatch && exactPhoneMatch) {
+    return {
+      score: 100,
+      confidence: 'very_high',
+      reasons: ['exact_phone_match', 'exact_name_match', 'name_phone_combination'],
+      isDuplicate: true,
+    };
+  }
+
+  // If only exact phone matches (without name), score it high but don't auto-flag as duplicate yet
+  // This allows user review before merging
+  if (exactPhoneMatch) {
+    score += SCORE_EXACT_PHONE;
   }
 
   // --- Email matching ---
@@ -122,7 +139,7 @@ export function scoreDuplicatePair(
 
   // --- Name matching ---
   if (a.normalizedName && b.normalizedName) {
-    if (a.normalizedName === b.normalizedName) {
+    if (exactNameMatch) {
       score += SCORE_EXACT_NAME;
       reasons.push('exact_name_match');
     } else {

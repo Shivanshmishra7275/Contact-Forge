@@ -1,15 +1,19 @@
 /**
  * ContactForge — Dashboard Screen
+ * 
+ * Created by: T.G.S Mishra
+ * Part of ContactForge Phase 8 Premium Cinematic Upgrade
  *
  * Shows:
  * - Sync status and last sync time
  * - Quick stats (total contacts, pending duplicates, cleanup issues)
+ * - Library health overview
  * - Quick action buttons (sync, scan duplicates, export)
  * - Permission status warning if not granted
  */
 
 import { useCallback, useEffect, useState } from 'react';
-import { View, ScrollView, StyleSheet, Alert } from 'react-native';
+import { View, ScrollView, StyleSheet, Alert, InteractionManager } from 'react-native';
 import { Text, Button, Card, ActivityIndicator, Divider, Chip } from 'react-native-paper';
 import { router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -25,6 +29,7 @@ import { runDuplicateScan } from '../../src/services/duplicateService';
 import { countContacts } from '../../src/db/repositories/contactRepository';
 import { countPendingDuplicates } from '../../src/db/repositories/duplicateRepository';
 import { countExpiredTemporaryContacts } from '../../src/services/temporaryContactService';
+import { calculateAverageContactHealth } from '../../src/services/contactHealthService';
 import { isoToDisplay } from '../../src/utils/normalization';
 import type { SyncProgress } from '../../src/services/contactSyncService';
 
@@ -40,6 +45,7 @@ export default function DashboardScreen() {
 
   const [totalContacts, setTotalContacts] = useState(0);
   const [expiredTemps, setExpiredTemps] = useState(0);
+  const [averageHealth, setAverageHealth] = useState(0);
   const [permissionGranted, setPermissionGranted] = useState<boolean | null>(null);
   const [syncProgress, setSyncProgress] = useState<SyncProgress | null>(null);
   const [isSyncing, setIsSyncing] = useState(false);
@@ -49,14 +55,25 @@ export default function DashboardScreen() {
     setTotalContacts(countContacts());
     setPendingDuplicateCount(countPendingDuplicates());
     setExpiredTemps(countExpiredTemporaryContacts());
+    setAverageHealth(calculateAverageContactHealth());
   }, []);
 
   useEffect(() => {
-    getContactsPermissionStatus().then((status) => {
-      setPermissionGranted(status === 'granted');
+    let cancelled = false;
+    const task = InteractionManager.runAfterInteractions(() => {
+      getContactsPermissionStatus().then((status) => {
+        if (!cancelled) {
+          setPermissionGranted(status === 'granted');
+        }
+      });
+      refreshStats();
     });
-    refreshStats();
-  }, []);
+
+    return () => {
+      cancelled = true;
+      task.cancel();
+    };
+  }, [refreshStats]);
 
   const handleSync = useCallback(async () => {
     const granted = await requestContactsPermission();
@@ -117,6 +134,16 @@ export default function DashboardScreen() {
     <SafeAreaView style={styles.safeArea} edges={['top']}>
       <ScrollView style={styles.scroll} contentContainerStyle={styles.content}>
         {/* Header */}
+        {/* Branding Header */}
+        <View style={styles.brandingHeader}>
+          <MaterialCommunityIcons name="star-circle" size={28} color={COLORS.primary} />
+          <View style={styles.brandingText}>
+            <Text style={styles.brandName}>T.G.S Mishra</Text>
+            <Text style={styles.appTagline}>{APP_NAME} • First Mobile App</Text>
+          </View>
+        </View>
+
+        {/* Dashboard Header */}
         <View style={styles.header}>
           <Text style={styles.appName}>{APP_NAME}</Text>
           <Text style={styles.tagline}>Privacy-first contact management</Text>
@@ -157,6 +184,22 @@ export default function DashboardScreen() {
             onPress={() => router.push('/(tabs)/cleanup')}
           />
         </View>
+
+        {/* Health Overview Card */}
+        <Card style={styles.healthCard}>
+          <Card.Content style={styles.healthContent}>
+            <View style={styles.healthLeft}>
+              <MaterialCommunityIcons name="heart-pulse" size={28} color={COLORS.primary} />
+              <View>
+                <Text style={styles.healthLabel}>Library Health</Text>
+                <Text style={styles.healthValue}>{Math.round(averageHealth)}%</Text>
+              </View>
+            </View>
+            <View style={styles.healthBar}>
+              <View style={[styles.healthProgress, { width: `${averageHealth}%` }]} />
+            </View>
+          </Card.Content>
+        </Card>
 
         {/* Sync status */}
         <Card style={styles.card}>
@@ -257,6 +300,28 @@ const styles = StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: COLORS.background },
   scroll: { flex: 1 },
   content: { padding: SPACING.md, paddingBottom: SPACING.xxl },
+  brandingHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: SPACING.sm,
+    paddingHorizontal: SPACING.xs,
+    paddingVertical: SPACING.md,
+    backgroundColor: COLORS.surfaceVariant,
+    borderRadius: 12,
+    marginBottom: SPACING.lg,
+  },
+  brandingText: { flex: 1 },
+  brandName: {
+    color: COLORS.primary,
+    fontSize: FONT_SIZE.sm,
+    fontWeight: '800',
+    letterSpacing: 0.5,
+  },
+  appTagline: {
+    color: COLORS.textDisabled,
+    fontSize: FONT_SIZE.xs,
+    marginTop: 2,
+  },
   header: { marginBottom: SPACING.lg },
   appName: {
     fontSize: FONT_SIZE.title,
@@ -289,4 +354,11 @@ const styles = StyleSheet.create({
   privacyCard: { backgroundColor: COLORS.surfaceVariant },
   privacyContent: { flexDirection: 'row', alignItems: 'center', gap: SPACING.sm },
   privacyText: { color: COLORS.textSecondary, fontSize: FONT_SIZE.sm, flex: 1 },
+  healthCard: { backgroundColor: COLORS.surface, marginBottom: SPACING.md },
+  healthContent: { flexDirection: 'row', alignItems: 'center', gap: SPACING.md },
+  healthLeft: { flexDirection: 'row', alignItems: 'center', gap: SPACING.sm, flex: 1 },
+  healthLabel: { color: COLORS.textSecondary, fontSize: FONT_SIZE.sm },
+  healthValue: { color: COLORS.primary, fontSize: FONT_SIZE.lg, fontWeight: '700', marginTop: 2 },
+  healthBar: { height: 4, backgroundColor: COLORS.surfaceVariant, borderRadius: 2, overflow: 'hidden', flex: 1, minWidth: 60 },
+  healthProgress: { height: 4, backgroundColor: COLORS.primary, borderRadius: 2 },
 });

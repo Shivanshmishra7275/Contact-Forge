@@ -14,13 +14,15 @@ import {
 } from '../../src/db/repositories/contactRepository';
 import { getDuplicatesByContactId } from '../../src/db/repositories/duplicateRepository';
 import { logAction } from '../../src/db/repositories/auditRepository';
+import { getNotesByContactId } from '../../src/db/repositories/noteRepository';
+import { calculateContactHealthScore, getContactHealthGrade } from '../../src/services/contactHealthService';
 import {
   markContactAsTemporary,
   unmarkContactAsTemporary,
   getTemporaryContactEntry,
 } from '../../src/services/temporaryContactService';
 import { isoToDisplay } from '../../src/utils/normalization';
-import type { TemporaryContact } from '../../src/types';
+import type { TemporaryContact, ContactNote } from '../../src/types';
 import { COLORS, SPACING, FONT_SIZE } from '../../src/constants';
 import type { ContactWithDetails } from '../../src/types';
 
@@ -29,6 +31,9 @@ export default function ContactDetailScreen() {
   const [contact, setContact] = useState<ContactWithDetails | null>(null);
   const [tempEntry, setTempEntry] = useState<TemporaryContact | null>(null);
   const [hasDuplicates, setHasDuplicates] = useState(false);
+  const [notes, setNotes] = useState<ContactNote[]>([]);
+  const [healthScore, setHealthScore] = useState(0);
+  const [healthGrade, setHealthGrade] = useState('C');
 
   const [isTempModalVisible, setTempModalVisible] = useState(false);
   const [selectedExpiry, setSelectedExpiry] = useState<'none' | '1day' | '1week' | '1month'>('none');
@@ -40,6 +45,10 @@ export default function ContactDetailScreen() {
       const dupes = getDuplicatesByContactId(c.id);
       setHasDuplicates(dupes.length > 0);
       setTempEntry(getTemporaryContactEntry(c.id));
+      setNotes(getNotesByContactId(c.id));
+      const score = calculateContactHealthScore(c.id);
+      setHealthScore(score.score);
+      setHealthGrade(getContactHealthGrade(score.score));
     }
   }, [id]);
 
@@ -109,6 +118,12 @@ export default function ContactDetailScreen() {
           <Text style={styles.displayName}>{contact.displayName}</Text>
           {contact.company && <Text style={styles.company}>{contact.company}</Text>}
           {contact.jobTitle && <Text style={styles.jobTitle}>{contact.jobTitle}</Text>}
+          
+          {/* Health Score Badge */}
+          <View style={styles.healthBadge}>
+            <MaterialCommunityIcons name="heart-pulse" size={16} color={COLORS.primary} />
+            <Text style={styles.healthScoreText}>{healthScore}% • Grade {healthGrade}</Text>
+          </View>
         </View>
 
         {/* Duplicate warning */}
@@ -215,7 +230,31 @@ export default function ContactDetailScreen() {
           </Card>
         )}
 
-        {/* Metadata */}
+        {/* Contextual Notes (Phase 8) */}
+        {notes.length > 0 && (
+          <Card style={styles.card}>
+            <Card.Title
+              title="Memory Notes"
+              titleStyle={styles.sectionTitle}
+              left={() => <MaterialCommunityIcons name="notebook" color={COLORS.secondary} size={20} />}
+            />
+            <Card.Content>
+              {notes.map((note, i) => (
+                <View key={note.id}>
+                  {i > 0 && <Divider style={styles.divider} />}
+                  <View style={styles.noteRow}>
+                    <Chip style={styles.categoryChip} size={28} textStyle={{ fontSize: FONT_SIZE.xs }}>
+                      {note.category}
+                    </Chip>
+                    <Text style={styles.noteText}>{note.content}</Text>
+                  </View>
+                </View>
+              ))}
+            </Card.Content>
+          </Card>
+        )}
+
+        {/* Original Notes */}
         <Card style={styles.card}>
           <Card.Content>
             {contact.syncedAt && (
@@ -306,4 +345,35 @@ const styles = StyleSheet.create({
   tempTitle: { fontSize: FONT_SIZE.md, marginLeft: SPACING.sm, fontWeight: 'bold' },
   tempDesc: { fontSize: FONT_SIZE.sm, color: COLORS.textSecondary, marginBottom: SPACING.xs },
   dialog: { backgroundColor: COLORS.surface },
+  healthBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: SPACING.xs,
+    paddingHorizontal: SPACING.md,
+    paddingVertical: SPACING.xs,
+    borderRadius: 12,
+    backgroundColor: COLORS.surfaceVariant,
+    marginTop: SPACING.sm,
+  },
+  healthScoreText: {
+    color: COLORS.primary,
+    fontSize: FONT_SIZE.sm,
+    fontWeight: '600',
+  },
+  noteRow: {
+    flexDirection: 'row',
+    gap: SPACING.sm,
+    alignItems: 'flex-start',
+    paddingVertical: SPACING.xs,
+  },
+  categoryChip: {
+    backgroundColor: COLORS.primary,
+    marginTop: 2,
+  },
+  noteText: {
+    color: COLORS.textSecondary,
+    fontSize: FONT_SIZE.sm,
+    flex: 1,
+    lineHeight: 18,
+  },
 });

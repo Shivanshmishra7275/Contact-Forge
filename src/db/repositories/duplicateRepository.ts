@@ -78,7 +78,31 @@ export function resolveDuplicateCandidate(
   id: number,
   status: 'merged' | 'ignored' | 'safe',
 ): void {
-  getDatabase().runSync(
+  updateDuplicateCandidateStatus(getDatabase(), id, status);
+}
+
+export function resolveDuplicateCandidatesBulk(
+  ids: number[],
+  status: 'merged' | 'ignored' | 'safe',
+): number {
+  if (ids.length === 0) return 0;
+
+  const db = getDatabase();
+  db.withTransactionSync(() => {
+    for (const id of ids) {
+      updateDuplicateCandidateStatus(db, id, status);
+    }
+  });
+
+  return ids.length;
+}
+
+function updateDuplicateCandidateStatus(
+  db: ReturnType<typeof getDatabase>,
+  id: number,
+  status: 'merged' | 'ignored' | 'safe',
+): void {
+  db.runSync(
     `UPDATE duplicate_candidates SET status = ?, resolved_at = ? WHERE id = ?`,
     [status, now(), id],
   );

@@ -238,16 +238,24 @@ export function replacePhonesByContactId(
   const db = getDatabase();
 
   db.withTransactionSync(() => {
-    db.runSync('DELETE FROM phone_numbers WHERE contact_id = ?', [contactId]);
-
-    for (const phone of phones) {
-      db.runSync(
-        `INSERT INTO phone_numbers (contact_id, label, number, normalized_number)
-         VALUES (?,?,?,?)`,
-        [contactId, phone.label ?? null, phone.number, normalizePhone(phone.number)],
-      );
-    }
+    replacePhonesByContactIdSync(contactId, phones);
   });
+}
+
+export function replacePhonesByContactIdSync(
+  contactId: number,
+  phones: Array<{ label?: string | null; number: string }>,
+): void {
+  const db = getDatabase();
+  db.runSync('DELETE FROM phone_numbers WHERE contact_id = ?', [contactId]);
+
+  for (const phone of phones) {
+    db.runSync(
+      `INSERT INTO phone_numbers (contact_id, label, number, normalized_number)
+       VALUES (?,?,?,?)`,
+      [contactId, phone.label ?? null, phone.number, normalizePhone(phone.number)],
+    );
+  }
 }
 
 export function deleteEmailsByContactId(contactId: number): void {

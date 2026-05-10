@@ -6,15 +6,16 @@
  * Actions: Merge, Ignore, Mark Safe.
  */
 
-import { useCallback, useEffect, useState } from 'react';
-import { View, FlatList, StyleSheet, Alert } from 'react-native';
-import { Text, Card, Button, Chip, ActivityIndicator } from 'react-native-paper';
+import { memo, useCallback, useEffect, useState } from 'react';
+import { View, FlatList, StyleSheet, Alert, InteractionManager } from 'react-native';
+import { Text, Card, Button, Chip, ActivityIndicator, IconButton } from 'react-native-paper';
 import { router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import {
   getPendingDuplicates,
   resolveDuplicateCandidate,
+  resolveDuplicateCandidatesBulk,
 } from '../../src/db/repositories/duplicateRepository';
 import { getContactById } from '../../src/db/repositories/contactRepository';
 import { useAppStore } from '../../src/store/appStore';
@@ -37,6 +38,8 @@ const CONFIDENCE_COLORS: Record<string, string> = {
 export default function DuplicatesScreen() {
   const [pairs, setPairs] = useState<DuplicatePair[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [selectionMode, setSelectionMode] = useState(false);
+  const [selectedCandidateIds, setSelectedCandidateIds] = useState<number[]>([]);
   const setPendingDuplicateCount = useAppStore((s) => s.setPendingDuplicateCount);
 
   const loadDuplicates = useCallback(() => {
@@ -53,23 +56,65 @@ export default function DuplicatesScreen() {
   }, []);
 
   useEffect(() => {
-    loadDuplicates();
+    const task = InteractionManager.runAfterInteractions(() => {
+      loadDuplicates();
+    });
+
+    return () => task.cancel();
+  }, [loadDuplicates]);
+
+  const clearSelection = useCallback(() => {
+    setSelectedCandidateIds([]);
+    setSelectionMode(false);
   }, []);
+
+  const toggleCandidateSelection = useCallback((candidateId: number) => {
+    setSelectedCandidateIds((current) => {
+      if (current.includes(candidateId)) {
+        return current.filter((id) => id !== candidateId);
+      }
+      return [...current, candidateId];
+    });
+  }, []);
+
+  const handleBulkResolve = useCallback(
+    (status: 'ignored' | 'safe') => {
+      if (selectedCandidateIds.length === 0) return;
+      Alert.alert(
+        status === 'safe' ? 'Mark selected as safe?' : 'Ignore selected duplicates?',
+        `Apply this action to ${selectedCandidateIds.length} selected duplicate candidates?`,
+        [
+          { text: 'Cancel', style: 'cancel' },
+          {
+            text: 'Apply',
+            onPress: () => {
+              resolveDuplicateCandidatesBulk(selectedCandidateIds, status);
+              clearSelection();
+              loadDuplicates();
+            },
+          },
+        ],
+      );
+    },
+    [clearSelection, loadDuplicates, selectedCandidateIds],
+  );
 
   const handleIgnore = useCallback(
     (candidate: DuplicateCandidate) => {
       resolveDuplicateCandidate(candidate.id, 'ignored');
+      clearSelection();
       loadDuplicates();
     },
-    [loadDuplicates],
+    [clearSelection, loadDuplicates],
   );
 
   const handleMarkSafe = useCallback(
     (candidate: DuplicateCandidate) => {
       resolveDuplicateCandidate(candidate.id, 'safe');
+      clearSelection();
       loadDuplicates();
     },
-    [loadDuplicates],
+    [clearSelection, loadDuplicates],
   );
 
   const handleMerge = useCallback(
@@ -77,6 +122,21 @@ export default function DuplicatesScreen() {
       router.push(`/merge/${pair.candidate.id}`);
     },
     [],
+  );
+
+  const renderItem = useCallback(
+    ({ item }: { item: DuplicatePair }) => (
+      <DuplicateCard
+        pair={item}
+        selectionMode={selectionMode}
+        selected={selectedCandidateIds.includes(item.candidate.id)}
+        onToggleSelect={() => toggleCandidateSelection(item.candidate.id)}
+        onMerge={() => handleMerge(item)}
+        onIgnore={() => handleIgnore(item.candidate)}
+        onMarkSafe={() => handleMarkSafe(item.candidate)}
+      />
+    ),
+    [handleIgnore, handleMarkSafe, handleMerge, selectedCandidateIds, selectionMode, toggleCandidateSelection],
   );
 
   if (isLoading) {
@@ -102,20 +162,54 @@ export default function DuplicatesScreen() {
   return (
     <SafeAreaView style={styles.safeArea} edges={['top']}>
       <View style={styles.header}>
-        <Text style={styles.headerText}>{pairs.length} pending</Text>
+        <View>
+          <Text style={styles.headerText}>{pairs.length} pending</Text>
+          {selectionMode && <Text style={styles.selectionText}>{selectedCandidateIds.length} selected</Text>}
+        </View>
+        <View style={styles.headerActions}>
+          {selectedCandidateIds.length > 0 && (
+            <Button mode="text" onPress={clearSelection} textColor={COLORS.textSecondary} compact>
+              Clear
+            </Button>
+          )}
+          <Button
+            mode={selectionMode ? 'contained' : 'outlined'}
+            onPress={() => {
+              if (selectionMode) {
+                clearSelection();
+              } else {
+                setSelectionMode(true);
+              }
+            }}
+            buttonColor={selectionMode ? COLORS.primary : undefined}
+            textColor={selectionMode ? COLORS.textPrimary : COLORS.primary}
+            compact
+          >
+            {selectionMode ? 'Done' : 'Select'}
+          </Button>
+        </View>
       </View>
+      {selectionMode && selectedCandidateIds.length > 0 && (
+        <Card style={styles.bulkCard}>
+          <Card.Content style={styles.bulkActions}>
+            <Button mode="contained" buttonColor={COLORS.primary} onPress={() => handleBulkResolve('safe')}>
+              Mark Safe Selected
+            </Button>
+            <Button mode="outlined" textColor={COLORS.textSecondary} onPress={() => handleBulkResolve('ignored')}>
+              Ignore Selected
+            </Button>
+          </Card.Content>
+        </Card>
+      )}
       <FlatList
         data={pairs}
         keyExtractor={(item) => String(item.candidate.id)}
-        renderItem={({ item }) => (
-          <DuplicateCard
-            pair={item}
-            onMerge={() => handleMerge(item)}
-            onIgnore={() => handleIgnore(item.candidate)}
-            onMarkSafe={() => handleMarkSafe(item.candidate)}
-          />
-        )}
+        renderItem={renderItem}
         contentContainerStyle={styles.listContent}
+        initialNumToRender={8}
+        maxToRenderPerBatch={10}
+        windowSize={7}
+        removeClippedSubviews
       />
     </SafeAreaView>
   );
@@ -123,21 +217,41 @@ export default function DuplicatesScreen() {
 
 interface DuplicateCardProps {
   pair: DuplicatePair;
+  selected: boolean;
+  selectionMode: boolean;
+  onToggleSelect: () => void;
   onMerge: () => void;
   onIgnore: () => void;
   onMarkSafe: () => void;
 }
 
-function DuplicateCard({ pair, onMerge, onIgnore, onMarkSafe }: DuplicateCardProps) {
+const DuplicateCard = memo(function DuplicateCard({
+  pair,
+  selected,
+  selectionMode,
+  onToggleSelect,
+  onMerge,
+  onIgnore,
+  onMarkSafe,
+}: DuplicateCardProps) {
   const { candidate, contactA, contactB } = pair;
   const color = CONFIDENCE_COLORS[candidate.confidence] ?? COLORS.textSecondary;
   const reasons = candidate.reasons;
 
   return (
-    <Card style={styles.card}>
+    <Card style={[styles.card, selected && styles.cardSelected]}>
       <Card.Content>
         {/* Confidence badge */}
         <View style={styles.badgeRow}>
+          {selectionMode && (
+            <IconButton
+              icon={selected ? 'checkbox-marked' : 'checkbox-blank-outline'}
+              size={20}
+              onPress={onToggleSelect}
+              iconColor={selected ? COLORS.primary : COLORS.textSecondary}
+              style={styles.selectIcon}
+            />
+          )}
           <Chip
             style={[styles.badge, { backgroundColor: color + '33' }]}
             textStyle={{ color, fontSize: FONT_SIZE.xs }}
@@ -198,7 +312,7 @@ function DuplicateCard({ pair, onMerge, onIgnore, onMarkSafe }: DuplicateCardPro
       </Card.Content>
     </Card>
   );
-}
+});
 
 function ContactNameBlock({
   contact,
@@ -227,9 +341,15 @@ const styles = StyleSheet.create({
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: SPACING.xl, gap: SPACING.md, backgroundColor: COLORS.background },
   header: { padding: SPACING.md, paddingBottom: SPACING.xs },
   headerText: { color: COLORS.textSecondary, fontSize: FONT_SIZE.sm },
+  selectionText: { color: COLORS.primary, fontSize: FONT_SIZE.xs, marginTop: 2 },
+  headerActions: { flexDirection: 'row', alignItems: 'center', gap: SPACING.xs },
+  bulkCard: { marginHorizontal: SPACING.md, marginBottom: SPACING.sm, backgroundColor: COLORS.surfaceVariant },
+  bulkActions: { flexDirection: 'row', gap: SPACING.sm, justifyContent: 'space-between' },
   listContent: { padding: SPACING.md, gap: SPACING.md, paddingBottom: SPACING.xxl },
   card: { backgroundColor: COLORS.surface },
+  cardSelected: { borderColor: COLORS.primary, borderWidth: 1 },
   badgeRow: { marginBottom: SPACING.sm },
+  selectIcon: { margin: 0, marginRight: SPACING.xs },
   badge: { alignSelf: 'flex-start' },
   namesRow: {
     flexDirection: 'row',

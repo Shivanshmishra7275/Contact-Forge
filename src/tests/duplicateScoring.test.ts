@@ -27,6 +27,19 @@ describe('scoreDuplicatePair', () => {
     expect(result.reasons).toContain('exact_phone_match');
   });
 
+  it('returns very_high confidence when exact name and exact phone both match', () => {
+    const a = makeSnapshot(1, 'john doe', ['5551234567'], []);
+    const b = makeSnapshot(2, 'john doe', ['5551234567'], []);
+    const result = scoreDuplicatePair(a, b);
+    expect(result.score).toBe(100);
+    expect(result.confidence).toBe('very_high');
+    expect(result.reasons).toEqual(expect.arrayContaining([
+      'exact_phone_match',
+      'exact_name_match',
+      'name_phone_combination',
+    ]));
+  });
+
   it('returns very_high confidence for exact email match', () => {
     const a = makeSnapshot(1, 'jane smith', [], ['jane@example.com']);
     const b = makeSnapshot(2, 'jane smith', [], ['jane@example.com']);

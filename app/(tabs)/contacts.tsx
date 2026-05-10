@@ -5,7 +5,7 @@
  * Supports filtering by state: all / temporary / ghost / by tag.
  */
 
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { memo, useCallback, useEffect, useRef, useState } from 'react';
 import {
   View,
   FlatList,
@@ -13,6 +13,7 @@ import {
   TouchableOpacity,
   TextInput as RNTextInput,
   AppState,
+  InteractionManager,
 } from 'react-native';
 import { Text, Chip, FAB, ActivityIndicator } from 'react-native-paper';
 import { router } from 'expo-router';
@@ -76,8 +77,11 @@ export default function ContactsScreen() {
   }, [filter]);
 
   useEffect(() => {
-    refreshContacts();
-    setPage(0);
+    const task = InteractionManager.runAfterInteractions(() => {
+      refreshContacts();
+    });
+
+    return () => task.cancel();
   }, [filter, refreshContacts]);
 
   useEffect(() => {
@@ -187,6 +191,10 @@ export default function ContactsScreen() {
         contentContainerStyle={contacts.length === 0 ? styles.listEmpty : undefined}
         style={styles.list}
         getItemLayout={(_, index) => ({ length: 72, offset: 72 * index, index })}
+        initialNumToRender={10}
+        maxToRenderPerBatch={12}
+        windowSize={7}
+        removeClippedSubviews
       />
 
       <FAB
@@ -205,7 +213,7 @@ interface ContactRowProps {
   onPress: () => void;
 }
 
-function ContactRow({ contact, onPress }: ContactRowProps) {
+const ContactRow = memo(function ContactRow({ contact, onPress }: ContactRowProps) {
   const initials = getInitials(contact.displayName);
   const tags: string[] = (() => { try { return JSON.parse(contact.tags) as string[]; } catch { return []; } })();
 
@@ -229,7 +237,7 @@ function ContactRow({ contact, onPress }: ContactRowProps) {
       <MaterialCommunityIcons name="chevron-right" color={COLORS.textDisabled} size={20} />
     </TouchableOpacity>
   );
-}
+});
 
 function getInitials(name: string): string {
   const parts = name.trim().split(/\s+/);
