@@ -5,6 +5,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { ScrollView, StyleSheet, View, Alert } from 'react-native';
 import { Text, Switch, Button, TextInput, Divider, Card } from 'react-native-paper';
+import { router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { getAllSettings, saveAllSettings } from '../../src/db/repositories/settingsRepository';
@@ -154,6 +155,15 @@ export default function SettingsScreen() {
                 Export VCF
               </Button>
             </View>
+            <Button
+              mode="text"
+              onPress={() => router.push('/backups')}
+              textColor={COLORS.primary}
+              style={styles.backupLink}
+              icon="archive"
+            >
+              Open Backup Vault
+            </Button>
           </Card.Content>
         </Card>
 
@@ -250,6 +260,7 @@ const styles = StyleSheet.create({
   divider: { backgroundColor: COLORS.divider },
   exportButtons: { flexDirection: 'row', gap: SPACING.sm, paddingTop: SPACING.sm },
   exportBtn: { flex: 1 },
+  backupLink: { marginTop: SPACING.sm },
   privacyRow: {
     flexDirection: 'row',
     gap: SPACING.sm,

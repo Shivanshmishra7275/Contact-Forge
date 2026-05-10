@@ -11,5 +11,6 @@ export const EncodingType = {
 
 export const writeAsStringAsync = jest.fn().mockResolvedValue(undefined);
 export const readAsStringAsync = jest.fn().mockResolvedValue('');
+export const readDirectoryAsync = jest.fn().mockResolvedValue([]);
 export const deleteAsync = jest.fn().mockResolvedValue(undefined);
 export const getInfoAsync = jest.fn().mockResolvedValue({ exists: true, size: 0 });

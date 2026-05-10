@@ -145,6 +145,14 @@ The cleanup center performs local-only standardization and review actions:
 - Duplicate phone cleanup inside a contact
 - Bulk review and bulk fix actions with confirmation
 
+## Backup Vault
+
+The backup vault stores timestamped CSV and VCF exports in the app document directory.
+
+- Users can create a fresh local backup from Settings or the vault screen
+- Existing backups can be listed, shared, and deleted locally
+- Merge snapshots continue to be captured in `merge_history` before destructive actions
+
 ---
 
 ## Platform Limitations
