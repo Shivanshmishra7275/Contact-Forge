@@ -5,7 +5,10 @@
  * so it can be tested without any DB or UI mocks.
  */
 
-import { scanContactForIssues } from '../services/cleanupService';
+import {
+  buildStandardizedPhoneEntries,
+  scanContactForIssues,
+} from '../services/cleanupService';
 import type { LocalContact } from '../types';
 
 // ---------------------------------------------------------------------------
@@ -157,6 +160,48 @@ describe('scanContactForIssues — missing_phone', () => {
 });
 
 // ---------------------------------------------------------------------------
+// phone standardization
+// ---------------------------------------------------------------------------
+
+describe('scanContactForIssues — phone standardization', () => {
+  it('flags a 10-digit number as missing country code', () => {
+    const contact = makeContact();
+    const issues = scanContactForIssues(contact, ['(555) 123-4567']);
+    const kinds = issues.map((i) => i.kind);
+    expect(kinds).toContain('no_country_code');
+  });
+
+  it('flags malformed phone formatting when the number needs standardization', () => {
+    const contact = makeContact();
+    const issues = scanContactForIssues(contact, ['(555) 123-4567']);
+    const kinds = issues.map((i) => i.kind);
+    expect(kinds).toContain('malformed_phone');
+  });
+
+  it('flags duplicate phone numbers after normalization', () => {
+    const contact = makeContact();
+    const issues = scanContactForIssues(contact, ['5551234567', '(555) 123-4567']);
+    const kinds = issues.map((i) => i.kind);
+    expect(kinds).toContain('duplicate_numbers');
+  });
+});
+
+describe('buildStandardizedPhoneEntries', () => {
+  it('adds a country code and removes duplicates in a stable order', () => {
+    const result = buildStandardizedPhoneEntries([
+      { label: 'mobile', number: '(555) 123-4567' },
+      { label: 'other', number: '15551234567' },
+    ]);
+
+    expect(result).toHaveLength(1);
+    expect(result[0]).toEqual({
+      label: 'mobile',
+      number: '+15551234567',
+    });
+  });
+});
+
+// ---------------------------------------------------------------------------
 // ghost_contact
 // ---------------------------------------------------------------------------
 
@@ -196,7 +241,7 @@ describe('scanContactForIssues — clean contact', () => {
       normalizedName: 'john doe',
       isGhost: false,
     });
-    const issues = scanContactForIssues(contact, ['5551234567']);
+    const issues = scanContactForIssues(contact, ['+1 (555) 123-4567']);
     expect(issues).toHaveLength(0);
   });
 });

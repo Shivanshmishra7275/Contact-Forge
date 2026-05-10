@@ -5,14 +5,16 @@
  * All detection and fix logic is delegated to cleanupService.ts.
  */
 
-import { useCallback, useEffect, useState } from 'react';
-import { View, FlatList, StyleSheet, Alert, ScrollView } from 'react-native';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { View, FlatList, StyleSheet, Alert } from 'react-native';
 import { Text, Card, Button, Chip, ActivityIndicator, Divider } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import {
   scanAllContactsForIssues,
   applyCleanupFix,
+  applyBulkCleanupFixes,
+  purgeGhostContacts,
   type ContactIssues,
 } from '../../src/services/cleanupService';
 import {
@@ -64,6 +66,16 @@ export default function CleanupScreen() {
     runScan();
   }, []);
 
+  const fixableContacts = useMemo(
+    () => issueList.filter((item) => item.issues.some((issue) => issue.suggestedValue)),
+    [issueList],
+  );
+
+  const ghostContacts = useMemo(
+    () => issueList.filter((item) => item.issues.some((issue) => issue.kind === 'ghost_contact')),
+    [issueList],
+  );
+
   const handleApplyFix = useCallback(
     (item: ContactIssues, issue: CleanupIssue) => {
       const applied = applyCleanupFix(item.contact, issue);
@@ -74,14 +86,66 @@ export default function CleanupScreen() {
     [runScan],
   );
 
+  const handleApplyAllForContact = useCallback(
+    (item: ContactIssues) => {
+      const applied = item.issues.reduce((count, issue) => {
+        return applyCleanupFix(item.contact, issue) ? count + 1 : count;
+      }, 0);
+
+      if (applied > 0) {
+        runScan();
+      }
+    },
+    [runScan],
+  );
+
+  const handleFixAll = useCallback(() => {
+    if (fixableContacts.length === 0) return;
+    Alert.alert(
+      'Apply Cleanup Fixes',
+      `Apply all fixable cleanup actions to ${fixableContacts.length} contacts?`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Apply',
+          onPress: () => {
+            const count = applyBulkCleanupFixes(fixableContacts);
+            Alert.alert('Cleanup complete', `Applied ${count} cleanup fixes.`);
+            runScan();
+          },
+        },
+      ],
+    );
+  }, [fixableContacts, runScan]);
+
+  const handleDeleteGhosts = useCallback(() => {
+    if (ghostContacts.length === 0) return;
+    Alert.alert(
+      'Delete Ghost Contacts',
+      `Delete ${ghostContacts.length} ghost contacts? This cannot be undone.`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: () => {
+            const deleted = purgeGhostContacts(ghostContacts);
+            Alert.alert('Ghost cleanup complete', `Deleted ${deleted} ghost contacts.`);
+            runScan();
+          },
+        },
+      ],
+    );
+  }, [ghostContacts, runScan]);
+
   const handlePurgeExpired = useCallback(() => {
     Alert.alert(
       'Purge Expired Contacts',
       `Are you sure you want to permanently delete ${expiredTemps.length} expired temporary contacts?`,
       [
         { text: 'Cancel', style: 'cancel' },
-        { 
-          text: 'Purge', 
+        {
+          text: 'Purge',
           style: 'destructive',
           onPress: () => {
             const count = reviewAndPurgeExpired();
@@ -115,45 +179,81 @@ export default function CleanupScreen() {
 
   return (
     <SafeAreaView style={styles.safeArea} edges={['top']}>
-      <View style={styles.header}>
-        <Text style={styles.headerText}>
-          {issueList.length} contacts with issues
-        </Text>
-        <Button
-          mode="text"
-          onPress={runScan}
-          textColor={COLORS.primary}
-          compact
-        >
-          Re-scan
-        </Button>
-      </View>
-
-      <ScrollView contentContainerStyle={styles.listContent}>
-        {expiredTemps.length > 0 && (
-          <Card style={[styles.card, { borderColor: COLORS.error, borderWidth: 1, marginBottom: SPACING.md }]}>
-            <Card.Title
-              title={`${expiredTemps.length} Expired Temporary Contacts`}
-              subtitle="These contacts have passed their expiry date."
-              titleStyle={{ color: COLORS.error, fontSize: FONT_SIZE.md }}
-              left={() => <MaterialCommunityIcons name="timer-sand-empty" color={COLORS.error} size={24} />}
-            />
-            <Card.Content>
-              <Button mode="contained" buttonColor={COLORS.error} onPress={handlePurgeExpired}>
-                Review & Purge All
-              </Button>
-            </Card.Content>
-          </Card>
-        )}
-
-        {issueList.map(item => (
+      <FlatList
+        data={issueList}
+        keyExtractor={(item) => String(item.contact.id)}
+        renderItem={({ item }) => (
           <CleanupCard
-            key={item.contact.id}
             item={item}
             onApplyFix={(issue) => handleApplyFix(item, issue)}
+            onApplyAllFixes={() => handleApplyAllForContact(item)}
           />
-        ))}
-      </ScrollView>
+        )}
+        ListHeaderComponent={(
+          <View>
+            <View style={styles.header}>
+              <Text style={styles.headerText}>
+                {issueList.length} contacts with issues
+              </Text>
+              <Button
+                mode="text"
+                onPress={runScan}
+                textColor={COLORS.primary}
+                compact
+              >
+                Re-scan
+              </Button>
+            </View>
+
+            <View style={styles.summaryRow}>
+              <Chip style={styles.summaryChip} textStyle={styles.summaryChipText}>
+                {fixableContacts.length} fixable
+              </Chip>
+              <Chip style={styles.summaryChip} textStyle={styles.summaryChipText}>
+                {ghostContacts.length} ghosts
+              </Chip>
+              <Chip style={styles.summaryChip} textStyle={styles.summaryChipText}>
+                {expiredTemps.length} expired temporary
+              </Chip>
+            </View>
+
+            {(fixableContacts.length > 0 || ghostContacts.length > 0 || expiredTemps.length > 0) && (
+              <Card style={styles.actionCard}>
+                <Card.Content style={styles.actionCardContent}>
+                  {fixableContacts.length > 0 && (
+                    <Button mode="contained" buttonColor={COLORS.primary} onPress={handleFixAll} style={styles.actionButton}>
+                      Fix All Fixable
+                    </Button>
+                  )}
+                  {ghostContacts.length > 0 && (
+                    <Button mode="outlined" textColor={COLORS.error} onPress={handleDeleteGhosts} style={styles.actionButton}>
+                      Delete Ghost Contacts
+                    </Button>
+                  )}
+                  {expiredTemps.length > 0 && (
+                    <Button mode="outlined" textColor={COLORS.warning} onPress={handlePurgeExpired} style={styles.actionButton}>
+                      Review & Purge Expired
+                    </Button>
+                  )}
+                </Card.Content>
+              </Card>
+            )}
+
+            {expiredTemps.length > 0 && (
+              <Card style={[styles.card, styles.expiredCard]}>
+                <Card.Title
+                  title={`${expiredTemps.length} Expired Temporary Contacts`}
+                  subtitle="These contacts have passed their expiry date."
+                  titleStyle={{ color: COLORS.error, fontSize: FONT_SIZE.md }}
+                  left={() => <MaterialCommunityIcons name="timer-sand-empty" color={COLORS.error} size={24} />}
+                />
+              </Card>
+            )}
+          </View>
+        )}
+        ListEmptyComponent={<View style={styles.listEmptySpacer} />}
+        contentContainerStyle={styles.listContent}
+      />
     </SafeAreaView>
   );
 }
@@ -161,9 +261,12 @@ export default function CleanupScreen() {
 interface CleanupCardProps {
   item: ContactIssues;
   onApplyFix: (issue: CleanupIssue) => void;
+  onApplyAllFixes: () => void;
 }
 
-function CleanupCard({ item, onApplyFix }: CleanupCardProps) {
+function CleanupCard({ item, onApplyFix, onApplyAllFixes }: CleanupCardProps) {
+  const hasFixableIssue = item.issues.some((issue) => issue.suggestedValue);
+
   return (
     <Card style={styles.card}>
       <Card.Content>
@@ -195,6 +298,13 @@ function CleanupCard({ item, onApplyFix }: CleanupCardProps) {
             )}
           </View>
         ))}
+        {hasFixableIssue && (
+          <View style={styles.cardActions}>
+            <Button mode="outlined" onPress={onApplyAllFixes} textColor={COLORS.primary}>
+              Fix All
+            </Button>
+          </View>
+        )}
       </Card.Content>
     </Card>
   );
@@ -220,6 +330,20 @@ const styles = StyleSheet.create({
   },
   headerText: { color: COLORS.textSecondary, fontSize: FONT_SIZE.sm },
   listContent: { padding: SPACING.md, gap: SPACING.sm, paddingBottom: SPACING.xxl },
+  summaryRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: SPACING.xs,
+    paddingHorizontal: SPACING.md,
+    paddingBottom: SPACING.sm,
+  },
+  summaryChip: { backgroundColor: COLORS.surfaceVariant },
+  summaryChipText: { color: COLORS.textSecondary, fontSize: FONT_SIZE.xs },
+  actionCard: { backgroundColor: COLORS.surface, marginHorizontal: SPACING.md, marginBottom: SPACING.md },
+  actionCardContent: { gap: SPACING.sm },
+  actionButton: { alignSelf: 'stretch' },
+  expiredCard: { borderColor: COLORS.error, borderWidth: 1, marginHorizontal: SPACING.md, marginBottom: SPACING.md },
+  listEmptySpacer: { height: 1 },
   card: { backgroundColor: COLORS.surface },
   contactName: {
     color: COLORS.textPrimary,
@@ -238,6 +362,7 @@ const styles = StyleSheet.create({
   issueContent: { flex: 1 },
   issueLabel: { color: COLORS.textSecondary, fontSize: FONT_SIZE.sm },
   issueSuggestion: { color: COLORS.secondary, fontSize: FONT_SIZE.xs },
+  cardActions: { marginTop: SPACING.sm, alignItems: 'flex-end' },
   emptyTitle: {
     fontSize: FONT_SIZE.xl,
     fontWeight: '700',

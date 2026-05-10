@@ -16,19 +16,63 @@
 import {
   listContacts,
   getPhonesByContactId,
+  replacePhonesByContactId,
   updateContact,
+  deleteContact,
 } from '../db/repositories/contactRepository';
 import { logAction } from '../db/repositories/auditRepository';
+import { DEFAULT_COUNTRY_CODE } from '../constants';
 import {
+  appendCountryCode,
   toTitleCase,
   hasExcessWhitespace,
   collapseWhitespace,
+  formatPhoneUS,
+  normalizePhone,
+  stripPhone,
 } from '../utils/normalization';
 import type { CleanupIssue, LocalContact } from '../types';
 
 export interface ContactIssues {
   contact: LocalContact;
   issues: CleanupIssue[];
+}
+
+interface PhoneEntry {
+  label: string | null;
+  number: string;
+}
+
+export function buildStandardizedPhoneEntries(
+  phoneEntries: PhoneEntry[],
+  countryCode = DEFAULT_COUNTRY_CODE,
+): PhoneEntry[] {
+  const seen = new Set<string>();
+  const cleaned: PhoneEntry[] = [];
+
+  for (const entry of phoneEntries) {
+    const rawNumber = entry.number.trim();
+    const digits = stripPhone(rawNumber);
+    if (!digits) continue;
+
+    let standardized = rawNumber;
+    if (digits.length === 10) {
+      standardized = appendCountryCode(rawNumber, countryCode);
+    } else if (digits.length === 11 && digits.startsWith('1')) {
+      standardized = formatPhoneUS(rawNumber);
+    }
+
+    const normalized = normalizePhone(standardized);
+    if (!normalized || seen.has(normalized)) continue;
+
+    seen.add(normalized);
+    cleaned.push({
+      label: entry.label ?? null,
+      number: standardized,
+    });
+  }
+
+  return cleaned;
 }
 
 // ---------------------------------------------------------------------------
@@ -107,6 +151,49 @@ export function scanContactForIssues(
       currentValue: null,
       suggestedValue: null,
     });
+  } else {
+    const normalizedPhones = phoneNumbers
+      .map((phone) => normalizePhone(phone))
+      .filter(Boolean);
+
+    if (normalizedPhones.length > 0 && new Set(normalizedPhones).size < normalizedPhones.length) {
+      issues.push({
+        contactId: contact.id,
+        kind: 'duplicate_numbers',
+        field: 'phoneNumbers',
+        currentValue: phoneNumbers.join(' | '),
+        suggestedValue: 'Remove duplicate phone numbers',
+      });
+    }
+
+    const hasNoCountryCode = phoneNumbers.some((phone) => stripPhone(phone).length === 10);
+    if (hasNoCountryCode) {
+      issues.push({
+        contactId: contact.id,
+        kind: 'no_country_code',
+        field: 'phoneNumbers',
+        currentValue: phoneNumbers.join(' | '),
+        suggestedValue: `Add ${DEFAULT_COUNTRY_CODE} to 10-digit numbers`,
+      });
+    }
+
+    const hasMalformedPhone = phoneNumbers.some((phone) => {
+      const digits = stripPhone(phone);
+      return (
+        (digits.length === 10 && phone !== appendCountryCode(phone, DEFAULT_COUNTRY_CODE)) ||
+        (digits.length === 11 && digits.startsWith('1') && phone !== formatPhoneUS(phone))
+      );
+    });
+
+    if (hasMalformedPhone) {
+      issues.push({
+        contactId: contact.id,
+        kind: 'malformed_phone',
+        field: 'phoneNumbers',
+        currentValue: phoneNumbers.join(' | '),
+        suggestedValue: 'Standardize phone formatting',
+      });
+    }
   }
 
   return issues;
@@ -159,11 +246,10 @@ export function applyCleanupFix(
   contact: LocalContact,
   issue: CleanupIssue,
 ): boolean {
-  if (!issue.suggestedValue) return false;
-
   switch (issue.kind) {
     case 'uncapitalized_name':
     case 'extra_whitespace': {
+      if (!issue.suggestedValue) return false;
       // Apply title case + whitespace collapse together
       const cleaned = toTitleCase(collapseWhitespace(contact.displayName));
       const parts = cleaned.split(' ');
@@ -172,6 +258,21 @@ export function applyCleanupFix(
         lastName: parts.slice(1).join(' ') || null,
       });
       logAction('cleanup_applied', contact.id, { kind: issue.kind, value: cleaned });
+      return true;
+    }
+    case 'malformed_phone':
+    case 'no_country_code':
+    case 'duplicate_numbers': {
+      const phoneEntries = getPhonesByContactId(contact.id).map((phone) => ({
+        label: phone.label,
+        number: phone.number,
+      }));
+      const standardized = buildStandardizedPhoneEntries(phoneEntries, DEFAULT_COUNTRY_CODE);
+      replacePhonesByContactId(contact.id, standardized);
+      logAction('cleanup_applied', contact.id, {
+        kind: issue.kind,
+        phoneCount: standardized.length,
+      });
       return true;
     }
     default:
@@ -194,4 +295,35 @@ export function applyAllFixesForContact(
     }
   }
   return count;
+}
+
+export function applyBulkCleanupFixes(contactIssuesList: ContactIssues[]): number {
+  let totalFixes = 0;
+
+  for (const contactIssues of contactIssuesList) {
+    if (contactIssues.issues.some((issue) => issue.kind === 'ghost_contact')) {
+      continue;
+    }
+    totalFixes += applyAllFixesForContact(contactIssues);
+  }
+
+  return totalFixes;
+}
+
+export function purgeGhostContacts(contactIssuesList: ContactIssues[]): number {
+  const ghostContacts = contactIssuesList.filter((item) =>
+    item.issues.some((issue) => issue.kind === 'ghost_contact'),
+  );
+
+  if (ghostContacts.length === 0) return 0;
+
+  for (const item of ghostContacts) {
+    deleteContact(item.contact.id);
+    logAction('cleanup_applied', item.contact.id, {
+      kind: 'ghost_contact',
+      action: 'deleted_ghost_contact',
+    });
+  }
+
+  return ghostContacts.length;
 }

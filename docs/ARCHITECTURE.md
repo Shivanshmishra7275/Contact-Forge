@@ -134,6 +134,17 @@ Scoring is **additive and capped at 100**, with an explainable reasons list:
 
 Every match carries a `reasons[]` array — no black-box decisions.
 
+## Cleanup Workflow
+
+The cleanup center performs local-only standardization and review actions:
+
+- Title-casing and whitespace collapse for display names
+- Ghost contact detection and bulk deletion after confirmation
+- Phone standardization for malformed local numbers
+- Safe country-code appending for 10-digit numbers
+- Duplicate phone cleanup inside a contact
+- Bulk review and bulk fix actions with confirmation
+
 ---
 
 ## Platform Limitations

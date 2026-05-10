@@ -57,7 +57,6 @@ export async function syncContactsToLocal(
   onProgress?: ProgressCallback,
 ): Promise<{ synced: number; errors: number }> {
   const db = getDatabase();
-  let cursor: string | undefined = undefined;
   let synced = 0;
   let errors = 0;
   let total = 0;
@@ -70,15 +69,10 @@ export async function syncContactsToLocal(
   );
 
   try {
-    // First pass — get a count estimate
-    const firstPage = await Contacts.getContactsAsync({
-      fields: [Contacts.Fields.ID],
-      pageSize: 1,
-    });
-    total = firstPage.total ?? 0;
+    // First pass — count the native contacts using the documented pageOffset API.
+    total = await countNativeContacts();
 
-    // Reset cursor for actual sync
-    cursor = undefined;
+    let pageOffset = 0;
 
     while (true) {
       const page = await Contacts.getContactsAsync({
@@ -95,10 +89,10 @@ export async function syncContactsToLocal(
           Contacts.Fields.Image,
         ],
         pageSize: SYNC_CHUNK_SIZE,
-        after: cursor,
+        pageOffset,
       });
 
-      for (const contact of page.data) {
+      for (const contact of page.data as Contacts.ExistingContact[]) {
         try {
           upsertNativeContact(contact, syncTimestamp);
           synced++;
@@ -110,7 +104,7 @@ export async function syncContactsToLocal(
       onProgress?.({ processed: synced, total });
 
       if (!page.hasNextPage) break;
-      cursor = page.cursor;
+      pageOffset += page.data.length;
     }
 
     // Update sync state on success
@@ -140,12 +134,29 @@ export async function syncContactsToLocal(
  * If the contact already exists (by native ID), its fields are updated.
  * Phone numbers and emails are replaced wholesale on update.
  */
+async function countNativeContacts(): Promise<number> {
+  let total = 0;
+  let pageOffset = 0;
+
+  while (true) {
+    const page = await Contacts.getContactsAsync({
+      fields: [Contacts.Fields.ID],
+      pageSize: SYNC_CHUNK_SIZE,
+      pageOffset,
+    });
+
+    total += page.data.length;
+    if (!page.hasNextPage) break;
+    pageOffset += page.data.length;
+  }
+
+  return total;
+}
+
 function upsertNativeContact(
-  contact: Contacts.Contact,
+  contact: Contacts.ExistingContact,
   syncTimestamp: string,
 ): void {
-  if (!contact.id) return;
-
   const existing = getContactByNativeId(contact.id);
 
   if (existing) {

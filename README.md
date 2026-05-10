@@ -18,17 +18,21 @@ We are actively developing ContactForge in phases to ensure rock-solid privacy a
 - **Phase 2:** Contact sync mechanism (mirroring native contacts to local db) is active.
 - **Phase 3:** Duplicate Detection Engine and Safe Merge flows are working.
 - **Phase 4:** Temporary Contacts with expiry dates and custom purge mechanisms are fully integrated.
-- **Phase 5:** Cleanup Center (detecting ghosts, fixing whitespace, standardizing cases) is fully functional.
+- **Phase 5:** Cleanup Center now handles name cleanup, phone standardization, duplicate-number cleanup, ghost deletion, and bulk review actions.
+
+### 🧪 Verified Build Health
+- **TypeScript:** `npx tsc --noEmit` passes.
+- **Unit tests:** `npx jest --watchAll=false` passes.
+- **Offline-only behavior:** No backend, telemetry, or network dependency has been introduced.
 
 ### 🚧 Current Gaps & What's Next
 - **Phase 6 (Export/Backup):** We need to finalize the user interface for exporting contacts (CSV/VCF formats) from `exportService.ts`.
 - **Add new contact:** The `app/contact/new.tsx` UI exists but lacks database saving logic.
-- **Bulk Actions:** Bulk-applying cleanup fixes needs to be polished.
 - **Testing:** Integration tests and CI pipeline are pending setup.
+- **No Background Sync:** Sync currently requires the app to be in the foreground.
 
 ### 🐛 Known Errors & Quirks
-- **TypeScript Error in `contactSyncService.ts`:** We currently have a few type errors related to `expo-contacts` types (`ContactResponse.total`, `Contact.id`). The code works at runtime, but type definitions differ from standard Expo implementations and need aligning.
-- **No Background Sync:** Sync currently requires the app to be in the foreground.
+- **No current blocking TypeScript errors.** The repo is currently type-clean.
 
 ---
 
@@ -118,7 +122,7 @@ ContactForge is designed from the ground up for privacy:
 - [x] **Phase 2** — Contact sync, local mirror, contact list with search
 - [x] **Phase 3** — Duplicate detection engine, merge review
 - [x] **Phase 4** — Temporary contacts, unknown workflows
-- [x] **Phase 5** — Cleanup center, name standardization, ghost cleanup
+- [x] **Phase 5** — Cleanup center, standardization actions, ghost cleanup, bulk review
 - [ ] **Phase 6** — CSV/VCF export, local safety backups UI
 - [ ] **Phase 7** — Polish, optimizations, complete test coverage, open-source readiness
 
