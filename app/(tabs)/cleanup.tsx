@@ -6,8 +6,8 @@
  */
 
 import { useCallback, useEffect, useState } from 'react';
-import { View, FlatList, StyleSheet, Alert } from 'react-native';
-import { Text, Card, Button, Chip, ActivityIndicator } from 'react-native-paper';
+import { View, FlatList, StyleSheet, Alert, ScrollView } from 'react-native';
+import { Text, Card, Button, Chip, ActivityIndicator, Divider } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import {
@@ -15,8 +15,12 @@ import {
   applyCleanupFix,
   type ContactIssues,
 } from '../../src/services/cleanupService';
+import {
+  reviewAndPurgeExpired,
+  getExpiredTemporaryContacts,
+} from '../../src/services/temporaryContactService';
 import { COLORS, SPACING, FONT_SIZE } from '../../src/constants';
-import type { CleanupIssue } from '../../src/types';
+import type { CleanupIssue, TemporaryContact } from '../../src/types';
 
 const ISSUE_LABELS: Record<string, string> = {
   missing_name: 'Missing Name',
@@ -42,6 +46,7 @@ const ISSUE_ICONS: Record<string, string> = {
 
 export default function CleanupScreen() {
   const [issueList, setIssueList] = useState<ContactIssues[]>([]);
+  const [expiredTemps, setExpiredTemps] = useState<TemporaryContact[]>([]);
   const [isScanning, setIsScanning] = useState(false);
   const [hasScanned, setHasScanned] = useState(false);
 
@@ -50,6 +55,7 @@ export default function CleanupScreen() {
     // Run synchronously — cleanup scan is fast enough for foreground
     const results = scanAllContactsForIssues();
     setIssueList(results);
+    setExpiredTemps(getExpiredTemporaryContacts());
     setIsScanning(false);
     setHasScanned(true);
   }, []);
@@ -68,6 +74,25 @@ export default function CleanupScreen() {
     [runScan],
   );
 
+  const handlePurgeExpired = useCallback(() => {
+    Alert.alert(
+      'Purge Expired Contacts',
+      `Are you sure you want to permanently delete ${expiredTemps.length} expired temporary contacts?`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { 
+          text: 'Purge', 
+          style: 'destructive',
+          onPress: () => {
+            const count = reviewAndPurgeExpired();
+            Alert.alert('Success', `Purged ${count} expired contacts.`);
+            runScan();
+          }
+        },
+      ]
+    );
+  }, [expiredTemps, runScan]);
+
   if (isScanning) {
     return (
       <View style={styles.center}>
@@ -77,12 +102,12 @@ export default function CleanupScreen() {
     );
   }
 
-  if (hasScanned && issueList.length === 0) {
+  if (hasScanned && issueList.length === 0 && expiredTemps.length === 0) {
     return (
       <View style={styles.center}>
         <MaterialCommunityIcons name="check-all" size={56} color={COLORS.success} />
         <Text style={styles.emptyTitle}>All clean!</Text>
-        <Text style={styles.emptySubtitle}>No cleanup issues found in your contacts.</Text>
+        <Text style={styles.emptySubtitle}>No cleanup issues or expired contacts found.</Text>
         <Button mode="outlined" onPress={runScan} textColor={COLORS.primary}>Re-scan</Button>
       </View>
     );
@@ -104,17 +129,31 @@ export default function CleanupScreen() {
         </Button>
       </View>
 
-      <FlatList
-        data={issueList}
-        keyExtractor={(item) => String(item.contact.id)}
-        renderItem={({ item }) => (
+      <ScrollView contentContainerStyle={styles.listContent}>
+        {expiredTemps.length > 0 && (
+          <Card style={[styles.card, { borderColor: COLORS.error, borderWidth: 1, marginBottom: SPACING.md }]}>
+            <Card.Title
+              title={`${expiredTemps.length} Expired Temporary Contacts`}
+              subtitle="These contacts have passed their expiry date."
+              titleStyle={{ color: COLORS.error, fontSize: FONT_SIZE.md }}
+              left={() => <MaterialCommunityIcons name="timer-sand-empty" color={COLORS.error} size={24} />}
+            />
+            <Card.Content>
+              <Button mode="contained" buttonColor={COLORS.error} onPress={handlePurgeExpired}>
+                Review & Purge All
+              </Button>
+            </Card.Content>
+          </Card>
+        )}
+
+        {issueList.map(item => (
           <CleanupCard
+            key={item.contact.id}
             item={item}
             onApplyFix={(issue) => handleApplyFix(item, issue)}
           />
-        )}
-        contentContainerStyle={styles.listContent}
-      />
+        ))}
+      </ScrollView>
     </SafeAreaView>
   );
 }

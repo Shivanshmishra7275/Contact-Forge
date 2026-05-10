@@ -4,7 +4,7 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import { ScrollView, StyleSheet, View, Alert } from 'react-native';
-import { Text, Button, Card, Chip, Divider, FAB } from 'react-native-paper';
+import { Text, Button, Card, Chip, Divider, Portal, Dialog, RadioButton } from 'react-native-paper';
 import { router, useLocalSearchParams } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
@@ -14,14 +14,24 @@ import {
 } from '../../src/db/repositories/contactRepository';
 import { getDuplicatesByContactId } from '../../src/db/repositories/duplicateRepository';
 import { logAction } from '../../src/db/repositories/auditRepository';
+import {
+  markContactAsTemporary,
+  unmarkContactAsTemporary,
+  getTemporaryContactEntry,
+} from '../../src/services/temporaryContactService';
 import { isoToDisplay } from '../../src/utils/normalization';
+import type { TemporaryContact } from '../../src/types';
 import { COLORS, SPACING, FONT_SIZE } from '../../src/constants';
 import type { ContactWithDetails } from '../../src/types';
 
 export default function ContactDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const [contact, setContact] = useState<ContactWithDetails | null>(null);
+  const [tempEntry, setTempEntry] = useState<TemporaryContact | null>(null);
   const [hasDuplicates, setHasDuplicates] = useState(false);
+
+  const [isTempModalVisible, setTempModalVisible] = useState(false);
+  const [selectedExpiry, setSelectedExpiry] = useState<'none' | '1day' | '1week' | '1month'>('none');
 
   const load = useCallback(() => {
     const c = getContactWithDetails(Number(id));
@@ -29,10 +39,33 @@ export default function ContactDetailScreen() {
     if (c) {
       const dupes = getDuplicatesByContactId(c.id);
       setHasDuplicates(dupes.length > 0);
+      setTempEntry(getTemporaryContactEntry(c.id));
     }
   }, [id]);
 
   useEffect(() => { load(); }, [load]);
+
+  const handleMarkTemporary = useCallback(() => {
+    if (!contact) return;
+    let expiresAt: string | null = null;
+    if (selectedExpiry !== 'none') {
+      const d = new Date();
+      if (selectedExpiry === '1day') d.setDate(d.getDate() + 1);
+      else if (selectedExpiry === '1week') d.setDate(d.getDate() + 7);
+      else if (selectedExpiry === '1month') d.setMonth(d.getMonth() + 1);
+      expiresAt = d.toISOString();
+    }
+    
+    markContactAsTemporary(contact.id, expiresAt, null);
+    setTempModalVisible(false);
+    load();
+  }, [contact, selectedExpiry, load]);
+
+  const handleUnmarkTemporary = useCallback(() => {
+    if (!contact) return;
+    unmarkContactAsTemporary(contact.id);
+    load();
+  }, [contact, load]);
 
   const handleDelete = useCallback(() => {
     if (!contact) return;
@@ -88,6 +121,30 @@ export default function ContactDetailScreen() {
             style={styles.dupeBtn}
           >
             Duplicate candidates found
+          </Button>
+        )}
+
+        {/* Temporary Contact Info */}
+        {contact.isTemporary ? (
+          <Card style={styles.card}>
+            <Card.Content>
+              <View style={styles.tempHeader}>
+                <MaterialCommunityIcons name="timer-sand" size={24} color={COLORS.warning} />
+                <Text style={styles.tempTitle}>Temporary Contact</Text>
+              </View>
+              {tempEntry?.expiresAt ? (
+                <Text style={styles.tempDesc}>Expires at: {isoToDisplay(tempEntry.expiresAt)}</Text>
+              ) : (
+                <Text style={styles.tempDesc}>No expiry date set.</Text>
+              )}
+              <Button style={{ marginTop: 8 }} mode="outlined" onPress={handleUnmarkTemporary}>
+                Remove Temporary Status
+              </Button>
+            </Card.Content>
+          </Card>
+        ) : (
+          <Button mode="text" icon="timer-sand" onPress={() => setTempModalVisible(true)}>
+            Mark as Temporary
           </Button>
         )}
 
@@ -182,6 +239,26 @@ export default function ContactDetailScreen() {
           Delete Contact
         </Button>
       </ScrollView>
+
+      {/* Temporary Setup Modal */}
+      <Portal>
+        <Dialog visible={isTempModalVisible} onDismiss={() => setTempModalVisible(false)} style={styles.dialog}>
+          <Dialog.Title>Mark as Temporary</Dialog.Title>
+          <Dialog.Content>
+            <Text style={{ marginBottom: 12 }}>Select when this contact should expire:</Text>
+            <RadioButton.Group onValueChange={v => setSelectedExpiry(v as any)} value={selectedExpiry}>
+              <RadioButton.Item label="Never (Manual cleanup)" value="none" />
+              <RadioButton.Item label="1 Day" value="1day" />
+              <RadioButton.Item label="1 Week" value="1week" />
+              <RadioButton.Item label="1 Month" value="1month" />
+            </RadioButton.Group>
+          </Dialog.Content>
+          <Dialog.Actions>
+            <Button onPress={() => setTempModalVisible(false)}>Cancel</Button>
+            <Button onPress={handleMarkTemporary} textColor={COLORS.primary}>Save</Button>
+          </Dialog.Actions>
+        </Dialog>
+      </Portal>
     </SafeAreaView>
   );
 }
@@ -225,4 +302,8 @@ const styles = StyleSheet.create({
   meta: { color: COLORS.textDisabled, fontSize: FONT_SIZE.xs, marginBottom: 2 },
   deleteBtn: { marginTop: SPACING.md, borderColor: COLORS.error },
   notFound: { color: COLORS.textSecondary, fontSize: FONT_SIZE.md },
+  tempHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: SPACING.xs },
+  tempTitle: { fontSize: FONT_SIZE.md, marginLeft: SPACING.sm, fontWeight: 'bold' },
+  tempDesc: { fontSize: FONT_SIZE.sm, color: COLORS.textSecondary, marginBottom: SPACING.xs },
+  dialog: { backgroundColor: COLORS.surface },
 });

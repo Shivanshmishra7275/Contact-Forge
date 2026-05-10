@@ -59,6 +59,10 @@ export function upsertTemporaryContact(params: {
        VALUES (?,?,?,?)`,
       [params.contactId, params.expiresAt ?? null, params.notes ?? null, ts],
     );
+    db.runSync(
+      `UPDATE contacts SET is_temporary = 1, updated_at = ? WHERE id = ?`,
+      [ts, params.contactId]
+    );
   }
 }
 
@@ -67,10 +71,17 @@ export function upsertTemporaryContact(params: {
  * Does NOT delete the contact itself.
  */
 export function removeTemporaryContactEntry(contactId: number): void {
-  getDatabase().runSync(
-    'DELETE FROM temporary_contacts WHERE contact_id = ?',
-    [contactId],
-  );
+  const db = getDatabase();
+  db.withTransactionSync(() => {
+    db.runSync(
+      'DELETE FROM temporary_contacts WHERE contact_id = ?',
+      [contactId],
+    );
+    db.runSync(
+      `UPDATE contacts SET is_temporary = 0, updated_at = ? WHERE id = ?`,
+      [now(), contactId]
+    );
+  });
 }
 
 // ---------------------------------------------------------------------------

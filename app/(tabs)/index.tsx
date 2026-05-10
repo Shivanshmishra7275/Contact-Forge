@@ -24,6 +24,7 @@ import {
 import { runDuplicateScan } from '../../src/services/duplicateService';
 import { countContacts } from '../../src/db/repositories/contactRepository';
 import { countPendingDuplicates } from '../../src/db/repositories/duplicateRepository';
+import { countExpiredTemporaryContacts } from '../../src/services/temporaryContactService';
 import { isoToDisplay } from '../../src/utils/normalization';
 import type { SyncProgress } from '../../src/services/contactSyncService';
 
@@ -38,6 +39,7 @@ export default function DashboardScreen() {
   const setGlobalLoadingMessage = useAppStore((s) => s.setGlobalLoadingMessage);
 
   const [totalContacts, setTotalContacts] = useState(0);
+  const [expiredTemps, setExpiredTemps] = useState(0);
   const [permissionGranted, setPermissionGranted] = useState<boolean | null>(null);
   const [syncProgress, setSyncProgress] = useState<SyncProgress | null>(null);
   const [isSyncing, setIsSyncing] = useState(false);
@@ -46,6 +48,7 @@ export default function DashboardScreen() {
   const refreshStats = useCallback(() => {
     setTotalContacts(countContacts());
     setPendingDuplicateCount(countPendingDuplicates());
+    setExpiredTemps(countExpiredTemporaryContacts());
   }, []);
 
   useEffect(() => {
@@ -145,6 +148,13 @@ export default function DashboardScreen() {
             label="Duplicates"
             color={COLORS.error}
             onPress={() => router.push('/(tabs)/duplicates')}
+          />
+          <StatCard
+            icon="timer-sand"
+            value={expiredTemps}
+            label="Expired"
+            color={COLORS.warning}
+            onPress={() => router.push('/(tabs)/cleanup')}
           />
         </View>
 
