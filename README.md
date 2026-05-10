@@ -346,6 +346,31 @@ npm run android
 npm run ios
 ```
 
+### Run on an Android phone
+
+1. Install the Expo Go app from the Play Store, or use a dev build if you already have one.
+2. Start the project with `npm start`.
+3. Scan the QR code from the Expo terminal using Expo Go, or open the app through your Android emulator/device connection.
+4. Make sure the phone and the development machine are on the same network, or use a tunnel if your network blocks local discovery.
+
+### Share a downloadable Android build
+
+If you want someone to install the app directly, build an internal Android APK and share the generated download link.
+
+```bash
+npx eas build --profile preview -p android
+```
+
+If this is the first EAS build for your account, run `npx eas build:configure` once first.
+
+Use the build output link to share the app. For Play Store distribution, use the `production` profile, which generates an `aab`.
+
+### Deep verification
+
+- `npm test`
+- `npx tsc --noEmit`
+- `npx expo-doctor`
+
 ## Testing
 
 ```bash
