@@ -1,12 +1,38 @@
-# ContactForge
+# 🛡️ ContactForge
 
 **Privacy-first, fully offline contact management for iOS and Android.**
 
-ContactForge helps you organize, clean, and manage your contacts entirely on-device. No backend. No analytics. No cloud sync. Ever.
+ContactForge helps you organize, clean, and manage your contacts entirely on-device. No backend. No analytics. No cloud sync. Ever. 
+
+![Project Status](https://img.shields.io/badge/Status-In_Development-blue.svg)
+![Offline First](https://img.shields.io/badge/Offline-100%25-success.svg)
 
 ---
 
-## Features
+## 🚀 Current Build Status & Real-Time Progress
+
+We are actively developing ContactForge in phases to ensure rock-solid privacy and performance. Here is our current development status:
+
+### ✅ What's Done
+- **Phase 0 & 1:** Foundation, App Shell, SQLite setup, and Navigation are fully implemented.
+- **Phase 2:** Contact sync mechanism (mirroring native contacts to local db) is active.
+- **Phase 3:** Duplicate Detection Engine and Safe Merge flows are working.
+- **Phase 4:** Temporary Contacts with expiry dates and custom purge mechanisms are fully integrated.
+- **Phase 5:** Cleanup Center (detecting ghosts, fixing whitespace, standardizing cases) is fully functional.
+
+### 🚧 Current Gaps & What's Next
+- **Phase 6 (Export/Backup):** We need to finalize the user interface for exporting contacts (CSV/VCF formats) from `exportService.ts`.
+- **Add new contact:** The `app/contact/new.tsx` UI exists but lacks database saving logic.
+- **Bulk Actions:** Bulk-applying cleanup fixes needs to be polished.
+- **Testing:** Integration tests and CI pipeline are pending setup.
+
+### 🐛 Known Errors & Quirks
+- **TypeScript Error in `contactSyncService.ts`:** We currently have a few type errors related to `expo-contacts` types (`ContactResponse.total`, `Contact.id`). The code works at runtime, but type definitions differ from standard Expo implementations and need aligning.
+- **No Background Sync:** Sync currently requires the app to be in the foreground.
+
+---
+
+## 🌟 Features
 
 - **Contact Sync** — Mirror your native contacts to a local SQLite database
 - **Duplicate Detection** — Intelligent, explainable duplicate scoring using normalized matching and fuzzy name comparison
@@ -85,29 +111,28 @@ ContactForge is designed from the ground up for privacy:
 
 ---
 
-## Roadmap
+## 🗺️ Roadmap & Phases
 
-- [x] Phase 0 — Project setup, structure, dependencies
-- [x] Phase 1 — App shell, navigation, theming, SQLite bootstrap
-- [x] Phase 2 — Contact sync, local mirror, contact list with search
-- [x] Phase 3 — Duplicate detection engine, merge review
-- [x] Phase 4 — Temporary contacts, tag system
-- [x] Phase 5 — Cleanup center, name standardization
-- [x] Phase 6 — CSV/VCF export, backup
-- [ ] Phase 7 — Advanced unknown workflows, bulk actions, write-back to device
-
----
-
-## Known Limitations
-
-- **No call log scanning** — Not available in Expo managed workflow
-- **No real-time caller ID** — Not supported on iOS for third-party apps
-- **No write-back to native contacts** — Phase 7 feature; current version manages local-only copies
-- **Background sync** — Not implemented; sync is foreground-only
+- [x] **Phase 0** — Project setup, structure, dependencies
+- [x] **Phase 1** — App shell, navigation, theming, SQLite bootstrap
+- [x] **Phase 2** — Contact sync, local mirror, contact list with search
+- [x] **Phase 3** — Duplicate detection engine, merge review
+- [x] **Phase 4** — Temporary contacts, unknown workflows
+- [x] **Phase 5** — Cleanup center, name standardization, ghost cleanup
+- [ ] **Phase 6** — CSV/VCF export, local safety backups UI
+- [ ] **Phase 7** — Polish, optimizations, complete test coverage, open-source readiness
 
 ---
 
-## Contributing
+## 🚫 Known Platform Limitations
+
+- **No call log scanning** — Not available in Expo managed workflow for privacy reasons.
+- **No real-time caller ID** — Not supported on iOS for third-party apps dynamically.
+- **No write-back to native contacts** — Currently manages local-only copies. Write-back support is out of MVP scope to prevent accidental native deletions.
+
+---
+
+## 🤝 Contributing
 
 This is an open-source project. Contributions welcome — please read the architecture docs before submitting a PR.
 
