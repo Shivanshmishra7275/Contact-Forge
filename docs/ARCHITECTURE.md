@@ -109,6 +109,7 @@ Every destructive action is recorded here.
 3. For each contact: upsert by `native_id`
 4. Replace phones/emails wholesale on update
 5. Update `sync_state` table on completion
+6. Refresh the list when contact change events or foreground resume events occur
 
 ---
 

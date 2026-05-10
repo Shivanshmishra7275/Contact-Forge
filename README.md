@@ -102,6 +102,7 @@ ContactForge is intended to feel like a control room for your address book: not 
 - Tracks sync state locally.
 - Keeps the native contact ID linked to the local record.
 - Uses repository-based persistence so domain logic stays out of UI code.
+- Refreshes the contact list when the app returns to the foreground or native contacts change.
 
 ### 3. Duplicate resolution
 - Detects exact phone and email matches.
@@ -193,7 +194,6 @@ The repository is currently type-clean and the unit suite passes. The main remai
 - Backup vault
 - Settings
 - Permission denied fallback
-
 ## Tech Stack
 
 - **Expo / React Native** for cross-platform mobile development.

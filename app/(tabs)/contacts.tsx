@@ -12,11 +12,13 @@ import {
   StyleSheet,
   TouchableOpacity,
   TextInput as RNTextInput,
+  AppState,
 } from 'react-native';
 import { Text, Chip, FAB, ActivityIndicator } from 'react-native-paper';
 import { router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import * as Contacts from 'expo-contacts';
 import { listContacts, countContacts } from '../../src/db/repositories/contactRepository';
 import { COLORS, SPACING, FONT_SIZE, PAGE_SIZE } from '../../src/constants';
 import type { LocalContact } from '../../src/types';
@@ -31,6 +33,8 @@ export default function ContactsScreen() {
   const [total, setTotal] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
   const searchTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const searchRef = useRef(search);
+  const filterRef = useRef(filter);
 
   const loadContacts = useCallback(
     (searchStr: string, f: Filter, p: number, append = false) => {
@@ -58,14 +62,47 @@ export default function ContactsScreen() {
     [],
   );
 
-  useEffect(() => {
-    loadContacts(search, filter, 0, false);
+  const refreshContacts = useCallback(() => {
     setPage(0);
+    loadContacts(searchRef.current, filterRef.current, 0, false);
+  }, [loadContacts]);
+
+  useEffect(() => {
+    searchRef.current = search;
+  }, [search]);
+
+  useEffect(() => {
+    filterRef.current = filter;
   }, [filter]);
+
+  useEffect(() => {
+    refreshContacts();
+    setPage(0);
+  }, [filter, refreshContacts]);
+
+  useEffect(() => {
+    const subscription = typeof Contacts.addContactsChangeListener === 'function'
+      ? Contacts.addContactsChangeListener(() => {
+          refreshContacts();
+        })
+      : undefined;
+
+    const appStateSubscription = AppState.addEventListener('change', (nextState) => {
+      if (nextState === 'active') {
+        refreshContacts();
+      }
+    });
+
+    return () => {
+      subscription?.remove();
+      appStateSubscription.remove();
+    };
+  }, [refreshContacts]);
 
   const handleSearch = useCallback(
     (text: string) => {
       setSearch(text);
+      searchRef.current = text;
       if (searchTimeout.current) clearTimeout(searchTimeout.current);
       searchTimeout.current = setTimeout(() => {
         setPage(0);

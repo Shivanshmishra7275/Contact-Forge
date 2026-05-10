@@ -28,3 +28,4 @@ export const getContactsAsync = jest.fn().mockResolvedValue({
   hasNextPage: false,
   total: 0,
 });
+export const addContactsChangeListener = jest.fn(() => ({ remove: jest.fn() }));
