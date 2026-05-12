@@ -4,7 +4,7 @@
 
 // App meta
 export const APP_NAME = 'ContactForge';
-export const APP_VERSION = '1.0.0';
+export const APP_VERSION = '2.0.0';
 
 // Database
 export const DB_NAME = 'contactforge.db';
@@ -58,6 +58,7 @@ export const COLORS = {
   surface: '#121722',
   surfaceElevated: '#161d2e',
   surfaceHover: '#1a2234',
+  surfaceVariant: '#1a2234',
   surfaceOverlay: '#0a0e1a88',
 
   // Brand accent colors (refined)

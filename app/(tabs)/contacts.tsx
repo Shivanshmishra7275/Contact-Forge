@@ -21,8 +21,9 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import * as Contacts from 'expo-contacts';
 import { listContacts, countContacts } from '../../src/db/repositories/contactRepository';
+import { calculateContactHealthScore } from '../../src/services/contactHealthService';
 import { COLORS, SPACING, FONT_SIZE, PAGE_SIZE } from '../../src/constants';
-import type { LocalContact } from '../../src/types';
+import type { LocalContact, ContactHealthScore } from '../../src/types';
 
 type Filter = 'all' | 'temporary' | 'ghost';
 
@@ -216,6 +217,28 @@ interface ContactRowProps {
 const ContactRow = memo(function ContactRow({ contact, onPress }: ContactRowProps) {
   const initials = getInitials(contact.displayName);
   const tags: string[] = (() => { try { return JSON.parse(contact.tags) as string[]; } catch { return []; } })();
+  const [health, setHealth] = useState<ContactHealthScore | null>(null);
+
+  useEffect(() => {
+    const h = calculateContactHealthScore(contact.id);
+    setHealth(h);
+  }, [contact.id]);
+
+  const getHealthColor = (score: number): string => {
+    if (score >= 90) return '#4caf50';
+    if (score >= 80) return '#8bc34a';
+    if (score >= 70) return '#ffc107';
+    if (score >= 50) return '#ff9800';
+    return '#f23645';
+  };
+
+  const getHealthGrade = (score: number): string => {
+    if (score >= 90) return 'A';
+    if (score >= 80) return 'B';
+    if (score >= 70) return 'C';
+    if (score >= 50) return 'D';
+    return 'F';
+  };
 
   return (
     <TouchableOpacity onPress={onPress} style={styles.row} accessibilityLabel={`Contact: ${contact.displayName}`}>
@@ -231,6 +254,21 @@ const ContactRow = memo(function ContactRow({ contact, onPress }: ContactRowProp
           <Text style={styles.tags} numberOfLines={1}>{tags.join(' · ')}</Text>
         )}
       </View>
+      
+      {/* Health Score Indicator */}
+      {health && (
+        <View
+          style={[
+            styles.healthIndicator,
+            { backgroundColor: `${getHealthColor(health.score)}30` },
+          ]}
+        >
+          <Text style={[styles.healthGrade, { color: getHealthColor(health.score) }]}>
+            {getHealthGrade(health.score)}
+          </Text>
+        </View>
+      )}
+      
       {contact.isTemporary && (
         <MaterialCommunityIcons name="clock-outline" color={COLORS.warning} size={16} />
       )}
@@ -305,6 +343,17 @@ const styles = StyleSheet.create({
   name: { color: COLORS.textPrimary, fontSize: FONT_SIZE.md, fontWeight: '500' },
   company: { color: COLORS.textSecondary, fontSize: FONT_SIZE.sm },
   tags: { color: COLORS.accent, fontSize: FONT_SIZE.xs },
+  healthIndicator: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  healthGrade: {
+    fontSize: FONT_SIZE.xs,
+    fontWeight: '700',
+  },
   loader: { padding: SPACING.lg },
   empty: { alignItems: 'center', paddingTop: SPACING.xxl, gap: SPACING.md },
   emptyText: {

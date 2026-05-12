@@ -5,11 +5,12 @@
  * All detection and fix logic is delegated to cleanupService.ts.
  */
 
-import { memo, useCallback, useEffect, useMemo, useState } from 'react';
+import { memo, useCallback, useMemo, useState } from 'react';
 import { View, FlatList, StyleSheet, Alert, InteractionManager } from 'react-native';
 import { Text, Card, Button, Chip, ActivityIndicator, Divider, IconButton } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { useFocusEffect } from '@react-navigation/native';
 import {
   scanAllContactsForIssues,
   applyCleanupFix,
@@ -40,10 +41,10 @@ const ISSUE_LABELS: Record<string, string> = {
 const ISSUE_ICONS: Record<string, string> = {
   missing_name: 'account-question',
   missing_phone: 'phone-off',
+  missing_email: 'email-off',
   uncapitalized_name: 'format-letter-case',
   extra_whitespace: 'format-clear',
   ghost_contact: 'ghost',
-  missing_email: 'email-off',
   malformed_phone: 'phone-alert',
 };
 
@@ -66,13 +67,15 @@ export default function CleanupScreen() {
     setHasScanned(true);
   }, []);
 
-  useEffect(() => {
-    const task = InteractionManager.runAfterInteractions(() => {
-      runScan();
-    });
+  useFocusEffect(
+    useCallback(() => {
+      const task = InteractionManager.runAfterInteractions(() => {
+        runScan();
+      });
 
-    return () => task.cancel();
-  }, [runScan]);
+      return () => task.cancel();
+    }, [runScan]),
+  );
 
   const fixableContacts = useMemo(
     () => issueList.filter((item) => item.issues.some((issue) => issue.suggestedValue)),

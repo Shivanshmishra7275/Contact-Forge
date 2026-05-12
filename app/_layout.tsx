@@ -1,7 +1,7 @@
 /**
  * ContactForge — Root Layout
  * 
- * Created by: T.G.S Mishra
+ * Created by: Shivansh Mishra
  * Part of ContactForge Phase 8 Premium Cinematic Upgrade
  *
  * Initializes:
@@ -21,12 +21,13 @@ import { StyleSheet } from 'react-native';
 import { getDatabase } from '../src/db';
 import { getAllSettings } from '../src/db/repositories/settingsRepository';
 import { countPendingDuplicates } from '../src/db/repositories/duplicateRepository';
+import { getSyncState } from '../src/db/repositories/syncStateRepository';
 import { useAppStore } from '../src/store/appStore';
 import { COLORS } from '../src/constants';
 import { SplashScreen } from '../src/SplashScreen';
 
 /**
- * Premium dark theme with T.G.S Mishra's ContactForge brand colours
+ * Premium dark theme with Shivansh Mishra's ContactForge brand colours
  * Carefully selected palette for accessibility and aesthetic appeal
  */
 const theme = {
@@ -48,6 +49,9 @@ const theme = {
 export default function RootLayout() {
   const setSettings = useAppStore((s) => s.setSettings);
   const setPendingDuplicateCount = useAppStore((s) => s.setPendingDuplicateCount);
+  const setSyncStatus = useAppStore((s) => s.setSyncStatus);
+  const setSyncCounts = useAppStore((s) => s.setSyncCounts);
+  const setSyncedAt = useAppStore((s) => s.setSyncedAt);
   const [showSplash, setShowSplash] = useState(true);
 
   /**
@@ -64,13 +68,16 @@ export default function RootLayout() {
       setSettings(settings);
       const dupeCount = countPendingDuplicates();
       setPendingDuplicateCount(dupeCount);
-      
-      // Log startup (development only)
-      if (__DEV__) {
-        console.log('[ContactForge] App initialized by T.G.S Mishra');
+      const syncState = getSyncState();
+      setSyncStatus(syncState.status, syncState.errorMessage ?? undefined);
+      setSyncCounts(syncState.totalNativeContacts, syncState.totalLocalContacts);
+      if (syncState.lastSyncAt) {
+        setSyncedAt(syncState.lastSyncAt);
       }
     } catch (err) {
-      console.error('[ContactForge] Bootstrap error:', err);
+      if (__DEV__) {
+        console.error('[ContactForge] Bootstrap error:', err);
+      }
     }
   }, []);
 

@@ -1,11 +1,11 @@
 /**
  * ContactForge — Premium Splash Screen
  *
- * Created by: T.G.S Mishra
+ * Created by: Shivansh Mishra
  * Part of ContactForge Phase 8 Premium Cinematic Upgrade
  *
  * Purpose:
- * Display T.G.S Mishra branding on app startup
+ * Display Shivansh Mishra branding on app startup
  * Premium cinematic experience with smooth animations
  * Sets tone for professional, offline-first contact management
  *
@@ -21,14 +21,14 @@ import React, { useEffect } from 'react';
 import { View, StyleSheet, Animated, Dimensions } from 'react-native';
 import { Text } from 'react-native-paper';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { COLORS, SPACING, FONT_SIZE } from '../constants';
+import { COLORS, SPACING, FONT_SIZE } from './constants';
 
 interface SplashScreenProps {
   onFinish: () => void;
 }
 
 /**
- * Premium splash screen component with T.G.S Mishra branding
+ * Premium splash screen component with Shivansh Mishra branding
  * Auto-dismisses after animation completes
  */
 export const SplashScreen: React.FC<SplashScreenProps> = ({ onFinish }) => {
@@ -90,13 +90,13 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({ onFinish }) => {
         </View>
 
         {/* Developer brand name */}
-        <Text style={styles.brandName}>T.G.S Mishra</Text>
+        <Text style={styles.brandName}>Shivansh Mishra</Text>
 
         {/* App name */}
         <Text style={styles.appName}>ContactForge</Text>
 
         {/* Tagline */}
-        <Text style={styles.tagline}>First Mobile App</Text>
+        <Text style={styles.tagline}>Cinematic Offline-First Release</Text>
 
         {/* Subtitle */}
         <Text style={styles.subtitle}>
@@ -112,7 +112,7 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({ onFinish }) => {
       {/* Footer text */}
       <Animated.View style={[styles.footer, { opacity: fadeAnim }]}>
         <Text style={styles.footerText}>
-          Built with ❤️ by T.G.S Mishra
+          Built with ❤️ by Shivansh Mishra
         </Text>
       </Animated.View>
     </View>

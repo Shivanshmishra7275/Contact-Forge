@@ -240,7 +240,13 @@ export interface ContactHealthScore {
   score: number; // 0-100
   fieldsPresent: number;
   hasNotes: boolean;
+  noteCount: number;
   isDuplicate: boolean;
+  duplicateCount: number;
   isRecent: boolean;
+  isTemporary: boolean;
+  isGhost: boolean;
+  relationshipCount: number;
   explanation: string;
+  suggestions: string[];
 }

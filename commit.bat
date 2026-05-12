@@ -4,7 +4,7 @@ cd C:\Users\91727\Desktop\Contact-Forge
 echo.
 echo ========================================
 echo ContactForge — Final GitHub Push
-echo Created by: T.G.S Mishra
+echo Created by: Shivansh Mishra
 echo Phase 8: Premium Cinematic Upgrade Complete
 echo ========================================
 echo.
@@ -18,10 +18,10 @@ git status
 
 echo.
 echo Committing changes...
-git commit -m "Phase 8 Complete: Premium Cinematic Upgrade with T.G.S Mishra Branding
+git commit -m "Phase 8 Complete: Premium Cinematic Upgrade with Shivansh Mishra Branding
 
 FEATURES ADDED:
-- Premium splash screen with T.G.S Mishra branding on startup
+- Premium splash screen with Shivansh Mishra branding on startup
 - Animated logo entrance (star icon) with smooth transitions
 - Enhanced README with portfolio positioning
 - Comprehensive 'Author Highlight' section in README
@@ -34,7 +34,7 @@ COMPONENTS CREATED (4 TOTAL):
 - src/QRBusinessCard.tsx (Offline QR/VCF generation - 420 lines)
 
 SCREENS ENHANCED (5 TOTAL):
-- app/(tabs)/index.tsx (Dashboard with T.G.S Mishra branding)
+- app/(tabs)/index.tsx (Dashboard with Shivansh Mishra branding)
 - app/(tabs)/settings.tsx (Settings with developer portfolio)
 - app/contact/[id].tsx (Contact detail with health scores)
 - app/_layout.tsx (Root layout with splash screen integration)
@@ -48,8 +48,8 @@ QUALITY ASSURANCE:
 - Production-ready code
 
 BRANDING HIGHLIGHTS:
-- Splash screen displays 'T.G.S Mishra' on startup
-- Dashboard features '⭐ T.G.S Mishra' header
+- Splash screen displays 'Shivansh Mishra' on startup
+- Dashboard features '⭐ Shivansh Mishra' header
 - Settings shows professional developer portfolio
 - README positioned as portfolio piece
 - GitHub links prominently featured

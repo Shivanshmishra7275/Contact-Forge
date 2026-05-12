@@ -11,12 +11,36 @@ import * as FileSystem from 'expo-file-system/legacy';
 import * as Sharing from 'expo-sharing';
 import {
   getContactWithDetails,
-  listContacts,
   getAllContactIds,
 } from '../db/repositories/contactRepository';
+import { getNotesByContactId } from '../db/repositories/noteRepository';
 import { logAction } from '../db/repositories/auditRepository';
-import { now, isoToDisplay } from '../utils/normalization';
+import { isoToDisplay } from '../utils/normalization';
 import type { ExportJob } from '../types';
+
+function formatNoteCategory(category: string): string {
+  return category.replace(/_/g, ' ');
+}
+
+function formatNotesForExport(
+  legacyNotes: string | null,
+  notes: Array<{ category: string; title: string | null; content: string }>,
+): string {
+  const chunks: string[] = [];
+  if (legacyNotes?.trim()) {
+    chunks.push(legacyNotes.trim());
+  }
+
+  if (notes.length > 0) {
+    const memory = notes.map((note) => {
+      const title = note.title ? `${note.title}: ` : '';
+      return `[${formatNoteCategory(note.category)}] ${title}${note.content}`.trim();
+    });
+    chunks.push(memory.join(' | '));
+  }
+
+  return chunks.join('\n');
+}
 
 // ---------------------------------------------------------------------------
 // CSV export
@@ -58,6 +82,11 @@ export async function exportToCSV(
     const c = getContactWithDetails(id);
     if (!c) continue;
 
+    const memoryNotes = job.includeNotes ? getNotesByContactId(id) : [];
+    const notesForExport = job.includeNotes
+      ? formatNotesForExport(c.notes, memoryNotes)
+      : '';
+
     const phones = c.phoneNumbers.map((p) => p.number).join(' | ');
     const emails = c.emails.map((e) => e.email).join(' | ');
     const tags = (() => {
@@ -72,7 +101,7 @@ export async function exportToCSV(
       c.jobTitle ?? '',
       phones,
       emails,
-      ...(job.includeNotes ? [c.notes ?? ''] : []),
+      ...(job.includeNotes ? [notesForExport] : []),
       c.birthday ? isoToDisplay(c.birthday) : '',
       tags,
     ];
@@ -132,6 +161,10 @@ export async function exportToVCF(
   for (const id of ids) {
     const c = getContactWithDetails(id);
     if (!c) continue;
+    const memoryNotes = job.includeNotes ? getNotesByContactId(id) : [];
+    const notesForExport = job.includeNotes
+      ? formatNotesForExport(c.notes, memoryNotes)
+      : null;
     cards.push(
       formatVCard(
         c.firstName,
@@ -139,7 +172,7 @@ export async function exportToVCF(
         c.company,
         c.phoneNumbers.map((p) => p.number),
         c.emails.map((e) => e.email),
-        c.notes,
+        notesForExport,
         job.includeNotes,
       ),
     );

@@ -175,6 +175,85 @@ export const CREATE_PROFILE_CARDS_TABLE = `
 `;
 
 // ---------------------------------------------------------------------------
+// Phase 9: Import Studio & Archive System Tables
+// ---------------------------------------------------------------------------
+
+export const CREATE_IMPORT_SESSIONS_TABLE = `
+  CREATE TABLE IF NOT EXISTS import_sessions (
+    id                INTEGER PRIMARY KEY AUTOINCREMENT,
+    file_path         TEXT NOT NULL UNIQUE,
+    file_type         TEXT NOT NULL,        -- 'csv' | 'vcf'
+    status            TEXT NOT NULL DEFAULT 'planning',  -- 'planning' | 'mapping' | 'validating' | 'ready' | 'committed' | 'failed'
+    created_at        TEXT NOT NULL,
+    updated_at        TEXT NOT NULL,
+    summary_json      TEXT                  -- {total_rows, valid_rows, collisions, imported_count, error}
+  )
+`;
+
+export const CREATE_IMPORT_ROWS_TABLE = `
+  CREATE TABLE IF NOT EXISTS import_rows (
+    id                    INTEGER PRIMARY KEY AUTOINCREMENT,
+    session_id            INTEGER NOT NULL,
+    row_index             INTEGER NOT NULL,
+    csv_row_json          TEXT NOT NULL,    -- Original CSV row as JSON
+    validation_status     TEXT NOT NULL DEFAULT 'valid',  -- 'valid' | 'warning' | 'error'
+    validation_errors     TEXT,              -- JSON array: ["missing_name", "invalid_phone"]
+    mapped_contact_json   TEXT,              -- Mapped to contact schema
+    collision_type        TEXT,              -- null | 'exact_match' | 'phone_overlap' | 'email_overlap' | 'name_overlap'
+    collision_details     TEXT,              -- JSON: {contact_id: int, reason: string}
+    is_imported           INTEGER DEFAULT 0, -- 1 if successfully imported
+    FOREIGN KEY (session_id) REFERENCES import_sessions(id) ON DELETE CASCADE
+  )
+`;
+
+export const CREATE_IMPORT_MAPPINGS_TABLE = `
+  CREATE TABLE IF NOT EXISTS import_mappings (
+    id                INTEGER PRIMARY KEY AUTOINCREMENT,
+    session_id        INTEGER NOT NULL,
+    csv_column        TEXT NOT NULL,
+    contact_field     TEXT NOT NULL,  -- 'display_name', 'phone', 'email', 'company', 'job_title', etc.
+    is_custom_field   INTEGER DEFAULT 0,
+    field_index       INTEGER DEFAULT 0,  -- Position for multi-value fields
+    FOREIGN KEY (session_id) REFERENCES import_sessions(id) ON DELETE CASCADE
+  )
+`;
+
+export const CREATE_CONTACT_ARCHIVE_TABLE = `
+  CREATE TABLE IF NOT EXISTS contact_archive (
+    id                    INTEGER PRIMARY KEY AUTOINCREMENT,
+    contact_id            INTEGER NOT NULL UNIQUE,
+    deleted_at            TEXT NOT NULL,    -- ISO timestamp
+    reason                TEXT,              -- 'manual' | 'cleanup' | 'merge' | 'import_collision'
+    archived_reason_json  TEXT,              -- {reason_detail, user_action, triggered_by}
+    FOREIGN KEY (contact_id) REFERENCES contacts(id) ON DELETE CASCADE
+  )
+`;
+
+export const CREATE_CONTACT_PROTECTION_TABLE = `
+  CREATE TABLE IF NOT EXISTS contact_protection (
+    id                  INTEGER PRIMARY KEY AUTOINCREMENT,
+    contact_id          INTEGER NOT NULL UNIQUE,
+    is_protected        INTEGER DEFAULT 0,      -- 1 = Cannot edit/merge
+    is_emergency        INTEGER DEFAULT 0,      -- 1 = Show prominently
+    never_merge         INTEGER DEFAULT 0,      -- 1 = Never suggest merge
+    is_favorite         INTEGER DEFAULT 0,      -- 1 = Starred
+    custom_label        TEXT,                   -- Optional custom label
+    FOREIGN KEY (contact_id) REFERENCES contacts(id) ON DELETE CASCADE
+  )
+`;
+
+export const CREATE_UNDO_HISTORY_TABLE = `
+  CREATE TABLE IF NOT EXISTS undo_history (
+    id                  INTEGER PRIMARY KEY AUTOINCREMENT,
+    action_type         TEXT NOT NULL,    -- 'archive' | 'merge' | 'delete' | 'import'
+    action_data_json    TEXT NOT NULL,    -- Full state snapshot for undo
+    contact_id          INTEGER,
+    created_at          TEXT NOT NULL,
+    expires_at          TEXT NOT NULL     -- ISO timestamp (30 days from creation)
+  )
+`;
+
+// ---------------------------------------------------------------------------
 // Indexes — critical for performance with large contact libraries
 // ---------------------------------------------------------------------------
 
@@ -242,5 +321,12 @@ export const ALL_CREATE_STATEMENTS = [
   CREATE_CONTACT_NOTES_TABLE,
   CREATE_CONTACT_RELATIONSHIPS_TABLE,
   CREATE_PROFILE_CARDS_TABLE,
+  // Phase 9: Import & Archive
+  CREATE_IMPORT_SESSIONS_TABLE,
+  CREATE_IMPORT_ROWS_TABLE,
+  CREATE_IMPORT_MAPPINGS_TABLE,
+  CREATE_CONTACT_ARCHIVE_TABLE,
+  CREATE_CONTACT_PROTECTION_TABLE,
+  CREATE_UNDO_HISTORY_TABLE,
   ...CREATE_INDEXES,
 ];

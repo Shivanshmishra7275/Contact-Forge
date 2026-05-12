@@ -144,6 +144,23 @@ export function getTemporaryContactEntry(contactId: number): TemporaryContact | 
 }
 
 /**
+ * Moves a temporary contact entry to a new contact ID.
+ * Returns true if an entry was moved.
+ */
+export function transferTemporaryContact(fromContactId: number, toContactId: number): boolean {
+  const entry = getTemporaryContactEntry(fromContactId);
+  if (!entry) return false;
+
+  upsertTemporaryContact({
+    contactId: toContactId,
+    expiresAt: entry.expiresAt,
+    notes: entry.notes,
+  });
+
+  return true;
+}
+
+/**
  * Hard-deletes the contacts row (and cascades to phone_numbers, emails,
  * and the temporary_contacts entry) for all expired temporary contacts.
  *

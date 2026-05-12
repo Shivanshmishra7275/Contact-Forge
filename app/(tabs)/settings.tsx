@@ -1,7 +1,7 @@
 /**
  * ContactForge — Settings Screen
  * 
- * Created by: T.G.S Mishra
+ * Created by: Shivansh Mishra
  * Part of ContactForge Phase 8 Premium Cinematic Upgrade
  * 
  * Features:
@@ -243,18 +243,18 @@ export default function SettingsScreen() {
         <SectionHeader title="About the Creator" icon="account-tie" />
         <Card style={styles.card}>
           <Card.Content>
-            {/* T.G.S Mishra Branding */}
+            {/* Shivansh Mishra Branding */}
             <View style={styles.developerHeader}>
               <View style={styles.developerAvatar}>
                 <MaterialCommunityIcons name="star-circle" color={COLORS.primary} size={30} />
               </View>
               <View style={styles.developerMeta}>
-                <Text style={styles.creatorBrand}>T.G.S Mishra</Text>
+                <Text style={styles.creatorBrand}>Created by</Text>
                 <Text style={styles.developerName}>Shivansh Mishra</Text>
                 <Text style={styles.developerTitle}>
-                  Software Engineer (ML, Data Science & Mobile Architecture)
+                  Technical Founder • Staff Mobile Engineer
                 </Text>
-                <Text style={styles.versionNote}>First Mobile App • ContactForge</Text>
+                <Text style={styles.versionNote}>Cinematic Offline-First Release</Text>
               </View>
             </View>
             <Divider style={[styles.divider, { marginVertical: SPACING.md }]} />
@@ -265,10 +265,10 @@ export default function SettingsScreen() {
               textColor={COLORS.primary}
               style={styles.githubButton}
             >
-              View GitHub: T.G.S Mishra
+              View GitHub: Shivansh Mishra
             </Button>
             <Text style={styles.brandMessage}>
-              ContactForge is built with passion as a portfolio piece showcasing modern mobile architecture, offline-first design, and premium user experiences.
+              ContactForge is crafted by Shivansh Mishra as a cinematic, privacy-first contact manager focused on trust, speed, and offline intelligence.
             </Text>
           </Card.Content>
         </Card>

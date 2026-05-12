@@ -12,18 +12,20 @@
  * - Professional card layout
  */
 
-import { useCallback, useState, useEffect } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { View, StyleSheet, Alert, Share } from 'react-native';
 import { Text, Button, Card, TextInput } from 'react-native-paper';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import QRCode from 'react-native-qrcode-svg';
-import { 
-  getMyProfileCard, 
-  createOrUpdateProfileCard, 
-  getProfileCardAsVCF 
-} from '../db/repositories/profileCardRepository';
-import { COLORS, SPACING, FONT_SIZE } from '../constants';
-import type { ProfileCard } from '../types';
+import * as FileSystem from 'expo-file-system/legacy';
+import * as Sharing from 'expo-sharing';
+import {
+  getMyProfileCard,
+  createOrUpdateProfileCard,
+  getProfileCardAsVCF,
+} from './db/repositories/profileCardRepository';
+import { COLORS, SPACING, FONT_SIZE } from './constants';
+import type { ProfileCard } from './types';
 
 interface QRCardProps {
   onClose: () => void;
@@ -41,13 +43,19 @@ interface QRCardProps {
 export function QRBusinessCard({ onClose }: QRCardProps) {
   const [profile, setProfile] = useState<ProfileCard | null>(null);
   const [isEditing, setIsEditing] = useState(false);
-  const [name, setName] = useState('');
-  const [title, setTitle] = useState('');
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
+  const [jobTitle, setJobTitle] = useState('');
+  const [company, setCompany] = useState('');
   const [phone, setPhone] = useState('');
   const [email, setEmail] = useState('');
-  const [company, setCompany] = useState('');
-  const [website, setWebsite] = useState('');
+  const [address, setAddress] = useState('');
   const [qrValue, setQrValue] = useState('');
+
+  const displayName = useMemo(() => {
+    if (!profile) return '';
+    return [profile.firstName, profile.lastName].filter(Boolean).join(' ') || 'My Card';
+  }, [profile]);
 
   /**
    * Load existing profile on mount
@@ -56,15 +64,14 @@ export function QRBusinessCard({ onClose }: QRCardProps) {
     const existingProfile = getMyProfileCard();
     if (existingProfile) {
       setProfile(existingProfile);
-      setName(existingProfile.displayName);
-      setTitle(existingProfile.title || '');
-      setPhone(existingProfile.phone || '');
-      setEmail(existingProfile.email || '');
-      setCompany(existingProfile.company || '');
-      setWebsite(existingProfile.website || '');
-      // Generate VCF and QR value
-      const vcf = getProfileCardAsVCF(existingProfile);
-      setQrValue(vcf);
+      setFirstName(existingProfile.firstName ?? '');
+      setLastName(existingProfile.lastName ?? '');
+      setJobTitle(existingProfile.jobTitle ?? '');
+      setCompany(existingProfile.company ?? '');
+      setPhone(existingProfile.phone ?? '');
+      setEmail(existingProfile.email ?? '');
+      setAddress(existingProfile.address ?? '');
+      setQrValue(getProfileCardAsVCF(existingProfile));
     }
   }, []);
 
@@ -75,26 +82,26 @@ export function QRBusinessCard({ onClose }: QRCardProps) {
    * - Triggers QR regeneration
    */
   const handleSaveProfile = useCallback(() => {
-    if (!name.trim()) {
-      Alert.alert('Required', 'Please enter your name');
+    if (!firstName.trim() && !lastName.trim()) {
+      Alert.alert('Required', 'Please enter at least a first name or last name');
       return;
     }
 
     const updatedProfile = createOrUpdateProfileCard({
-      displayName: name,
-      title: title || null,
-      phone: phone || null,
-      email: email || null,
-      company: company || null,
-      website: website || null,
+      firstName: firstName.trim() || null,
+      lastName: lastName.trim() || null,
+      jobTitle: jobTitle.trim() || null,
+      company: company.trim() || null,
+      phone: phone.trim() || null,
+      email: email.trim() || null,
+      address: address.trim() || null,
     });
 
     setProfile(updatedProfile);
-    const vcf = getProfileCardAsVCF(updatedProfile);
-    setQrValue(vcf);
+    setQrValue(getProfileCardAsVCF(updatedProfile));
     setIsEditing(false);
     Alert.alert('Saved', 'Profile updated successfully');
-  }, [name, title, phone, email, company, website]);
+  }, [firstName, lastName, jobTitle, company, phone, email, address]);
 
   /**
    * Share QR code
@@ -102,17 +109,28 @@ export function QRBusinessCard({ onClose }: QRCardProps) {
    * - Fully offline operation
    */
   const handleShare = useCallback(async () => {
-    if (!profile) return;
+    if (!profile || !qrValue) return;
     try {
-      await Share.share({
-        message: `Here's my contact: ${profile.displayName}\n\nVCard:\n${qrValue}`,
-        title: `${profile.displayName} - Contact Card`,
-        url: 'data:text/vcard;base64,' + Buffer.from(qrValue).toString('base64'),
-      });
-    } catch (error) {
-      Alert.alert('Share failed', 'Could not share QR code');
+      // Try file-based sharing first (if available), fallback to message-only share
+      const sharingAvailable = await Sharing.isAvailableAsync();
+      if (sharingAvailable && FileSystem.documentDirectory) {
+        const safeBase = (displayName || 'my_card').replace(/[^a-z0-9_-]+/gi, '_');
+        const fileUri = `${FileSystem.documentDirectory}${safeBase}.vcf`;
+        await FileSystem.writeAsStringAsync(fileUri, qrValue);
+        await Sharing.shareAsync(fileUri, {
+          mimeType: 'text/vcard',
+        });
+      } else {
+        // Fallback: share as message
+        await Share.share({
+          message: qrValue,
+          title: `${displayName} - Contact Card`,
+        });
+      }
+    } catch {
+      Alert.alert('Share failed', 'Could not share contact card');
     }
-  }, [profile, qrValue]);
+  }, [profile, qrValue, displayName]);
 
   if (isEditing) {
     return (
@@ -123,11 +141,10 @@ export function QRBusinessCard({ onClose }: QRCardProps) {
         </View>
 
         <View style={styles.form}>
-          {/* Name input */}
           <TextInput
-            label="Full Name *"
-            value={name}
-            onChangeText={setName}
+            label="First Name"
+            value={firstName}
+            onChangeText={setFirstName}
             mode="outlined"
             style={styles.input}
             outlineColor={COLORS.border}
@@ -135,11 +152,21 @@ export function QRBusinessCard({ onClose }: QRCardProps) {
             textColor={COLORS.textPrimary}
           />
 
-          {/* Title input */}
           <TextInput
-            label="Professional Title"
-            value={title}
-            onChangeText={setTitle}
+            label="Last Name"
+            value={lastName}
+            onChangeText={setLastName}
+            mode="outlined"
+            style={styles.input}
+            outlineColor={COLORS.border}
+            activeOutlineColor={COLORS.primary}
+            textColor={COLORS.textPrimary}
+          />
+
+          <TextInput
+            label="Job Title"
+            value={jobTitle}
+            onChangeText={setJobTitle}
             mode="outlined"
             style={styles.input}
             outlineColor={COLORS.border}
@@ -185,12 +212,10 @@ export function QRBusinessCard({ onClose }: QRCardProps) {
             textColor={COLORS.textPrimary}
           />
 
-          {/* Website input */}
           <TextInput
-            label="Website"
-            value={website}
-            onChangeText={setWebsite}
-            keyboardType="url"
+            label="Address"
+            value={address}
+            onChangeText={setAddress}
             mode="outlined"
             style={styles.input}
             outlineColor={COLORS.border}
@@ -216,7 +241,7 @@ export function QRBusinessCard({ onClose }: QRCardProps) {
     <View style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
-        <Text style={styles.title}>My Business Card</Text>
+        <Text style={styles.title}>My Card</Text>
         <Button onPress={onClose} icon="close">Close</Button>
       </View>
 
@@ -231,14 +256,14 @@ export function QRBusinessCard({ onClose }: QRCardProps) {
                   <MaterialCommunityIcons name="account" size={40} color={COLORS.primary} />
                 </View>
                 <View style={styles.profileText}>
-                  <Text style={styles.profileName}>{profile.displayName}</Text>
-                  {profile.title && <Text style={styles.profileTitle}>{profile.title}</Text>}
+                  <Text style={styles.profileName}>{displayName}</Text>
+                  {profile.jobTitle && <Text style={styles.profileTitle}>{profile.jobTitle}</Text>}
                   {profile.company && <Text style={styles.profileCompany}>{profile.company}</Text>}
                 </View>
               </View>
 
               {/* Contact info section */}
-              {(profile.phone || profile.email || profile.website) && (
+              {(profile.phone || profile.email || profile.address) && (
                 <View style={styles.contactInfo}>
                   {profile.phone && (
                     <View style={styles.infoRow}>
@@ -252,10 +277,10 @@ export function QRBusinessCard({ onClose }: QRCardProps) {
                       <Text style={styles.infoText}>{profile.email}</Text>
                     </View>
                   )}
-                  {profile.website && (
+                  {profile.address && (
                     <View style={styles.infoRow}>
-                      <MaterialCommunityIcons name="web" size={16} color={COLORS.secondary} />
-                      <Text style={styles.infoText}>{profile.website}</Text>
+                      <MaterialCommunityIcons name="map-marker" size={16} color={COLORS.secondary} />
+                      <Text style={styles.infoText}>{profile.address}</Text>
                     </View>
                   )}
                 </View>
@@ -357,7 +382,8 @@ const styles = StyleSheet.create({
     marginBottom: SPACING.md, 
     alignItems: 'center' 
   },
-  avatar: { 
+  avatar: {
+
     width: 60, 
     height: 60, 
     borderRadius: 30, 

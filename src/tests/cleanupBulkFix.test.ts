@@ -9,6 +9,7 @@ jest.mock('../db', () => ({
 jest.mock('../db/repositories/contactRepository', () => ({
   getContactById: jest.fn(),
   getPhonesByContactId: jest.fn(),
+  getEmailsByContactId: jest.fn(),
   replacePhonesByContactId: jest.fn(),
   replacePhonesByContactIdSync: jest.fn(),
   updateContact: jest.fn(),
@@ -22,12 +23,13 @@ jest.mock('../db/repositories/auditRepository', () => ({
 
 import { applyBulkCleanupFixesByContactIds } from '../services/cleanupService';
 import { getDatabase } from '../db';
-import { getContactById, getPhonesByContactId, replacePhonesByContactIdSync, updateContact } from '../db/repositories/contactRepository';
+import { getContactById, getPhonesByContactId, getEmailsByContactId, replacePhonesByContactIdSync, updateContact } from '../db/repositories/contactRepository';
 import type { LocalContact } from '../types';
 
 describe('applyBulkCleanupFixesByContactIds', () => {
   const mockDb = {
     withTransactionSync: jest.fn((fn: () => void) => fn()),
+    getAllSync: jest.fn().mockReturnValue([]),
   };
 
   beforeEach(() => {
@@ -59,6 +61,7 @@ describe('applyBulkCleanupFixesByContactIds', () => {
 
     (getContactById as jest.Mock).mockReturnValue(contact);
     (getPhonesByContactId as jest.Mock).mockReturnValue([{ label: 'mobile', number: '(555) 123-4567' }]);
+    (getEmailsByContactId as jest.Mock).mockReturnValue([]);
 
     const count = applyBulkCleanupFixesByContactIds([7]);
 

@@ -308,9 +308,22 @@ export function listContacts(params: ContactListParams = {}): LocalContact[] {
   const args: (string | number)[] = [];
 
   if (search) {
-    const pattern = `%${normalizeName(search)}%`;
-    conditions.push('(normalized_name LIKE ? OR EXISTS (SELECT 1 FROM phone_numbers WHERE contact_id = contacts.id AND normalized_number LIKE ?) OR EXISTS (SELECT 1 FROM emails WHERE contact_id = contacts.id AND normalized_email LIKE ?))');
-    args.push(pattern, `%${search.replace(/\D/g, '')}%`, `%${search.toLowerCase()}%`);
+    const normalizedPattern = `%${normalizeName(search)}%`;
+    const digitPattern = `%${search.replace(/\D/g, '')}%`;
+    const lowerPattern = `%${search.toLowerCase()}%`;
+    conditions.push(
+      `(
+        normalized_name LIKE ?
+        OR EXISTS (SELECT 1 FROM phone_numbers WHERE contact_id = contacts.id AND normalized_number LIKE ?)
+        OR EXISTS (SELECT 1 FROM emails WHERE contact_id = contacts.id AND normalized_email LIKE ?)
+        OR EXISTS (
+          SELECT 1 FROM contact_notes
+           WHERE contact_id = contacts.id
+             AND (LOWER(content) LIKE ? OR LOWER(COALESCE(title, '')) LIKE ?)
+        )
+      )`,
+    );
+    args.push(normalizedPattern, digitPattern, lowerPattern, lowerPattern, lowerPattern);
   }
   if (typeof isTemporary === 'boolean') {
     conditions.push('is_temporary = ?');
@@ -342,9 +355,22 @@ export function countContacts(params: Omit<ContactListParams, 'page' | 'pageSize
   const args: (string | number)[] = [];
 
   if (search) {
-    const pattern = `%${normalizeName(search)}%`;
-    conditions.push('(normalized_name LIKE ? OR EXISTS (SELECT 1 FROM phone_numbers WHERE contact_id = contacts.id AND normalized_number LIKE ?) OR EXISTS (SELECT 1 FROM emails WHERE contact_id = contacts.id AND normalized_email LIKE ?))');
-    args.push(pattern, `%${search.replace(/\D/g, '')}%`, `%${search.toLowerCase()}%`);
+    const normalizedPattern = `%${normalizeName(search)}%`;
+    const digitPattern = `%${search.replace(/\D/g, '')}%`;
+    const lowerPattern = `%${search.toLowerCase()}%`;
+    conditions.push(
+      `(
+        normalized_name LIKE ?
+        OR EXISTS (SELECT 1 FROM phone_numbers WHERE contact_id = contacts.id AND normalized_number LIKE ?)
+        OR EXISTS (SELECT 1 FROM emails WHERE contact_id = contacts.id AND normalized_email LIKE ?)
+        OR EXISTS (
+          SELECT 1 FROM contact_notes
+           WHERE contact_id = contacts.id
+             AND (LOWER(content) LIKE ? OR LOWER(COALESCE(title, '')) LIKE ?)
+        )
+      )`,
+    );
+    args.push(normalizedPattern, digitPattern, lowerPattern, lowerPattern, lowerPattern);
   }
   if (typeof isTemporary === 'boolean') {
     conditions.push('is_temporary = ?');

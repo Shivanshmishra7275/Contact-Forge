@@ -1,7 +1,7 @@
 /**
  * ContactForge — Dashboard Screen
  * 
- * Created by: T.G.S Mishra
+ * Created by: Shivansh Mishra
  * Part of ContactForge Phase 8 Premium Cinematic Upgrade
  *
  * Shows:
@@ -12,12 +12,13 @@
  * - Permission status warning if not granted
  */
 
-import { useCallback, useEffect, useState } from 'react';
-import { View, ScrollView, StyleSheet, Alert, InteractionManager } from 'react-native';
+import { useCallback, useState } from 'react';
+import { View, ScrollView, StyleSheet, Alert, InteractionManager, TouchableOpacity } from 'react-native';
 import { Text, Button, Card, ActivityIndicator, Divider, Chip } from 'react-native-paper';
 import { router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { useFocusEffect } from '@react-navigation/native';
 import { useAppStore } from '../../src/store/appStore';
 import { COLORS, SPACING, FONT_SIZE, APP_NAME } from '../../src/constants';
 import {
@@ -29,7 +30,8 @@ import { runDuplicateScan } from '../../src/services/duplicateService';
 import { countContacts } from '../../src/db/repositories/contactRepository';
 import { countPendingDuplicates } from '../../src/db/repositories/duplicateRepository';
 import { countExpiredTemporaryContacts } from '../../src/services/temporaryContactService';
-import { calculateAverageContactHealth } from '../../src/services/contactHealthService';
+import { countContactsWithIssues } from '../../src/services/cleanupService';
+import { calculateHealthSummary } from '../../src/services/contactHealthService';
 import { isoToDisplay } from '../../src/utils/normalization';
 import type { SyncProgress } from '../../src/services/contactSyncService';
 
@@ -46,34 +48,47 @@ export default function DashboardScreen() {
   const [totalContacts, setTotalContacts] = useState(0);
   const [expiredTemps, setExpiredTemps] = useState(0);
   const [averageHealth, setAverageHealth] = useState(0);
+  const [lowHealthCount, setLowHealthCount] = useState(0);
+  const [cleanupIssueCount, setCleanupIssueCount] = useState(0);
+  const [statsLoading, setStatsLoading] = useState(false);
   const [permissionGranted, setPermissionGranted] = useState<boolean | null>(null);
   const [syncProgress, setSyncProgress] = useState<SyncProgress | null>(null);
   const [isSyncing, setIsSyncing] = useState(false);
   const [isScanning, setIsScanning] = useState(false);
 
   const refreshStats = useCallback(() => {
-    setTotalContacts(countContacts());
-    setPendingDuplicateCount(countPendingDuplicates());
-    setExpiredTemps(countExpiredTemporaryContacts());
-    setAverageHealth(calculateAverageContactHealth());
+    setStatsLoading(true);
+    try {
+      setTotalContacts(countContacts());
+      setPendingDuplicateCount(countPendingDuplicates());
+      setExpiredTemps(countExpiredTemporaryContacts());
+      setCleanupIssueCount(countContactsWithIssues());
+      const summary = calculateHealthSummary();
+      setAverageHealth(summary.average);
+      setLowHealthCount(summary.lowCount);
+    } finally {
+      setStatsLoading(false);
+    }
   }, []);
 
-  useEffect(() => {
-    let cancelled = false;
-    const task = InteractionManager.runAfterInteractions(() => {
-      getContactsPermissionStatus().then((status) => {
-        if (!cancelled) {
-          setPermissionGranted(status === 'granted');
-        }
+  useFocusEffect(
+    useCallback(() => {
+      let cancelled = false;
+      const task = InteractionManager.runAfterInteractions(() => {
+        getContactsPermissionStatus().then((status) => {
+          if (!cancelled) {
+            setPermissionGranted(status === 'granted');
+          }
+        });
+        refreshStats();
       });
-      refreshStats();
-    });
 
-    return () => {
-      cancelled = true;
-      task.cancel();
-    };
-  }, [refreshStats]);
+      return () => {
+        cancelled = true;
+        task.cancel();
+      };
+    }, [refreshStats]),
+  );
 
   const handleSync = useCallback(async () => {
     const granted = await requestContactsPermission();
@@ -93,6 +108,7 @@ export default function DashboardScreen() {
       const ts = new Date().toISOString();
       setSyncedAt(ts);
       setSyncStatus('idle');
+      setSyncCounts(result.synced, countContacts());
       refreshStats();
       Alert.alert('Sync Complete', `Synced ${result.synced} contacts${result.errors > 0 ? ` (${result.errors} errors)` : ''}.`);
     } catch (err) {
@@ -138,8 +154,8 @@ export default function DashboardScreen() {
         <View style={styles.brandingHeader}>
           <MaterialCommunityIcons name="star-circle" size={28} color={COLORS.primary} />
           <View style={styles.brandingText}>
-            <Text style={styles.brandName}>T.G.S Mishra</Text>
-            <Text style={styles.appTagline}>{APP_NAME} • First Mobile App</Text>
+            <Text style={styles.brandName}>Shivansh Mishra</Text>
+            <Text style={styles.appTagline}>{APP_NAME} • Cinematic Offline-First</Text>
           </View>
         </View>
 
@@ -262,6 +278,45 @@ export default function DashboardScreen() {
           </Card.Content>
         </Card>
 
+        {/* Review Center */}
+        <Card style={styles.card}>
+          <Card.Title title="Review Center" titleStyle={styles.cardTitle} />
+          <Card.Content style={styles.reviewContent}>
+            <ReviewRow
+              label="Duplicate candidates"
+              count={pendingDuplicates}
+              color={COLORS.error}
+              onPress={() => router.push('/(tabs)/duplicates')}
+            />
+            <ReviewRow
+              label="Cleanup issues"
+              count={cleanupIssueCount}
+              color={COLORS.warning}
+              onPress={() => router.push('/(tabs)/cleanup')}
+            />
+            <ReviewRow
+              label="Expired temporary contacts"
+              count={expiredTemps}
+              color={COLORS.info}
+              onPress={() => router.push('/(tabs)/cleanup')}
+            />
+            <ReviewRow
+              label="Low health contacts"
+              count={lowHealthCount}
+              color={COLORS.primary}
+            />
+          </Card.Content>
+          <Card.Content style={styles.reviewFooter}>
+            {statsLoading ? (
+              <ActivityIndicator size="small" color={COLORS.primary} />
+            ) : (
+              <Button mode="text" onPress={refreshStats} textColor={COLORS.primary} compact>
+                Refresh review counts
+              </Button>
+            )}
+          </Card.Content>
+        </Card>
+
         {/* Privacy note */}
         <Card style={styles.privacyCard}>
           <Card.Content style={styles.privacyContent}>
@@ -293,6 +348,35 @@ function StatCard({ icon, value, label, color, onPress }: StatCardProps) {
         <Text style={styles.statLabel}>{label}</Text>
       </Card.Content>
     </Card>
+  );
+}
+
+interface ReviewRowProps {
+  label: string;
+  count: number;
+  color: string;
+  onPress?: () => void;
+}
+
+function ReviewRow({ label, count, color, onPress }: ReviewRowProps) {
+  const Row = onPress ? TouchableOpacity : View;
+  return (
+    <Row
+      style={styles.reviewRow}
+      onPress={onPress}
+      accessibilityRole={onPress ? 'button' : undefined}
+    >
+      <View style={styles.reviewLeft}>
+        <View style={[styles.reviewDot, { backgroundColor: color }]} />
+        <Text style={styles.reviewLabel}>{label}</Text>
+      </View>
+      <View style={styles.reviewRight}>
+        <Text style={styles.reviewCount}>{count}</Text>
+        {onPress && (
+          <MaterialCommunityIcons name="chevron-right" size={18} color={COLORS.textDisabled} />
+        )}
+      </View>
+    </Row>
   );
 }
 
@@ -361,4 +445,17 @@ const styles = StyleSheet.create({
   healthValue: { color: COLORS.primary, fontSize: FONT_SIZE.lg, fontWeight: '700', marginTop: 2 },
   healthBar: { height: 4, backgroundColor: COLORS.surfaceVariant, borderRadius: 2, overflow: 'hidden', flex: 1, minWidth: 60 },
   healthProgress: { height: 4, backgroundColor: COLORS.primary, borderRadius: 2 },
+  reviewContent: { gap: SPACING.sm },
+  reviewFooter: { paddingTop: 0, alignItems: 'flex-start' },
+  reviewRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: SPACING.xs,
+  },
+  reviewLeft: { flexDirection: 'row', alignItems: 'center', gap: SPACING.sm },
+  reviewDot: { width: 8, height: 8, borderRadius: 4 },
+  reviewLabel: { color: COLORS.textSecondary, fontSize: FONT_SIZE.sm },
+  reviewRight: { flexDirection: 'row', alignItems: 'center', gap: SPACING.xs },
+  reviewCount: { color: COLORS.textPrimary, fontSize: FONT_SIZE.sm, fontWeight: '600' },
 });

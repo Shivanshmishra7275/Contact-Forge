@@ -10,6 +10,7 @@
  * - uncapitalized_name  → display name doesn't match title case
  * - extra_whitespace    → leading/trailing/repeated whitespace in name
  * - missing_phone       → contact has no phone numbers
+ * - missing_email       → contact has no email addresses
  * - ghost_contact       → no name, phone, email, or company
  */
 
@@ -17,11 +18,13 @@ import {
   listContacts,
   getContactById,
   getPhonesByContactId,
+  getEmailsByContactId,
   replacePhonesByContactId,
   replacePhonesByContactIdSync,
   updateContact,
   deleteContact,
 } from '../db/repositories/contactRepository';
+import { getAllSettings } from '../db/repositories/settingsRepository';
 import { logAction } from '../db/repositories/auditRepository';
 import { getDatabase } from '../db';
 import { DEFAULT_COUNTRY_CODE } from '../constants';
@@ -89,6 +92,8 @@ export function buildStandardizedPhoneEntries(
 export function scanContactForIssues(
   contact: LocalContact,
   phoneNumbers: string[],
+  emails: string[],
+  countryCode = DEFAULT_COUNTRY_CODE,
 ): CleanupIssue[] {
   const issues: CleanupIssue[] = [];
 
@@ -176,14 +181,14 @@ export function scanContactForIssues(
         kind: 'no_country_code',
         field: 'phoneNumbers',
         currentValue: phoneNumbers.join(' | '),
-        suggestedValue: `Add ${DEFAULT_COUNTRY_CODE} to 10-digit numbers`,
+        suggestedValue: `Add ${countryCode} to 10-digit numbers`,
       });
     }
 
     const hasMalformedPhone = phoneNumbers.some((phone) => {
       const digits = stripPhone(phone);
       return (
-        (digits.length === 10 && phone !== appendCountryCode(phone, DEFAULT_COUNTRY_CODE)) ||
+        (digits.length === 10 && phone !== appendCountryCode(phone, countryCode)) ||
         (digits.length === 11 && digits.startsWith('1') && phone !== formatPhoneUS(phone))
       );
     });
@@ -197,6 +202,17 @@ export function scanContactForIssues(
         suggestedValue: 'Standardize phone formatting',
       });
     }
+  }
+
+  // Missing email
+  if (emails.length === 0) {
+    issues.push({
+      contactId: contact.id,
+      kind: 'missing_email',
+      field: 'emails',
+      currentValue: null,
+      suggestedValue: null,
+    });
   }
 
   return issues;
@@ -216,6 +232,7 @@ const CLEANUP_SCAN_PAGE_SIZE = 100;
 export function scanAllContactsForIssues(): ContactIssues[] {
   const results: ContactIssues[] = [];
   let page = 0;
+  const countryCode = getAllSettings().defaultCountryCode || DEFAULT_COUNTRY_CODE;
 
   while (true) {
     const batch = listContacts({ page, pageSize: CLEANUP_SCAN_PAGE_SIZE });
@@ -223,7 +240,8 @@ export function scanAllContactsForIssues(): ContactIssues[] {
 
     for (const contact of batch) {
       const phones = getPhonesByContactId(contact.id).map((p) => p.number);
-      const issues = scanContactForIssues(contact, phones);
+      const emails = getEmailsByContactId(contact.id).map((e) => e.email);
+      const issues = scanContactForIssues(contact, phones, emails, countryCode);
       if (issues.length > 0) {
         results.push({ contact, issues });
       }
@@ -232,6 +250,32 @@ export function scanAllContactsForIssues(): ContactIssues[] {
   }
 
   return results;
+}
+
+/**
+ * Returns the number of contacts that have at least one cleanup issue.
+ * Uses the same paginated scan as the full issue list.
+ */
+export function countContactsWithIssues(): number {
+  let count = 0;
+  let page = 0;
+  const countryCode = getAllSettings().defaultCountryCode || DEFAULT_COUNTRY_CODE;
+
+  while (true) {
+    const batch = listContacts({ page, pageSize: CLEANUP_SCAN_PAGE_SIZE });
+    if (batch.length === 0) break;
+
+    for (const contact of batch) {
+      const phones = getPhonesByContactId(contact.id).map((p) => p.number);
+      const emails = getEmailsByContactId(contact.id).map((e) => e.email);
+      if (scanContactForIssues(contact, phones, emails, countryCode).length > 0) {
+        count++;
+      }
+    }
+    page++;
+  }
+
+  return count;
 }
 
 // ---------------------------------------------------------------------------
@@ -249,13 +293,15 @@ export function applyCleanupFix(
   contact: LocalContact,
   issue: CleanupIssue,
 ): boolean {
-  return applyCleanupFixInternal(contact, issue, replacePhonesByContactId);
+  const countryCode = getAllSettings().defaultCountryCode || DEFAULT_COUNTRY_CODE;
+  return applyCleanupFixInternal(contact, issue, replacePhonesByContactId, countryCode);
 }
 
 function applyCleanupFixInternal(
   contact: LocalContact,
   issue: CleanupIssue,
   replacePhones: typeof replacePhonesByContactId,
+  countryCode: string,
 ): boolean {
   switch (issue.kind) {
     case 'uncapitalized_name':
@@ -278,7 +324,7 @@ function applyCleanupFixInternal(
         label: phone.label,
         number: phone.number,
       }));
-      const standardized = buildStandardizedPhoneEntries(phoneEntries, DEFAULT_COUNTRY_CODE);
+      const standardized = buildStandardizedPhoneEntries(phoneEntries, countryCode);
       replacePhones(contact.id, standardized);
       logAction('cleanup_applied', contact.id, {
         kind: issue.kind,
@@ -344,6 +390,7 @@ export function applyBulkCleanupFixesByContactIds(contactIds: number[]): number 
 
   const db = getDatabase();
   let totalFixes = 0;
+  const countryCode = getAllSettings().defaultCountryCode || DEFAULT_COUNTRY_CODE;
 
   db.withTransactionSync(() => {
     for (const contactId of contactIds) {
@@ -352,11 +399,12 @@ export function applyBulkCleanupFixesByContactIds(contactIds: number[]): number 
       if (!contact) continue;
 
       const phoneNumbers = getPhonesByContactId(contact.id).map((phone) => phone.number);
-      const issues = scanContactForIssues(contact, phoneNumbers);
+      const emails = getEmailsByContactId(contact.id).map((e) => e.email);
+      const issues = scanContactForIssues(contact, phoneNumbers, emails, countryCode);
 
       for (const issue of issues) {
         if (issue.kind === 'ghost_contact') continue;
-        if (applyCleanupFixInternal(contact, issue, replacePhonesByContactIdSync)) {
+        if (applyCleanupFixInternal(contact, issue, replacePhonesByContactIdSync, countryCode)) {
           totalFixes++;
         }
       }

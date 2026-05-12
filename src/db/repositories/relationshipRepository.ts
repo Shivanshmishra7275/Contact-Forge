@@ -120,6 +120,91 @@ export function deleteRelationshipsByContactId(contactId: number): void {
   );
 }
 
+function relationshipExists(
+  db: ReturnType<typeof getDatabase>,
+  params: {
+    contactIdFrom: number;
+    contactIdTo: number;
+    relationshipType: ContactRelationship['relationshipType'];
+    direction: ContactRelationship['direction'];
+  },
+): boolean {
+  if (params.direction === 'bidirectional') {
+    const row = db.getFirstSync<{ id: number }>(
+      `SELECT id FROM contact_relationships
+         WHERE relationship_type = ? AND direction = 'bidirectional'
+           AND ((contact_id_from = ? AND contact_id_to = ?) OR (contact_id_from = ? AND contact_id_to = ?))
+         LIMIT 1`,
+      [
+        params.relationshipType,
+        params.contactIdFrom,
+        params.contactIdTo,
+        params.contactIdTo,
+        params.contactIdFrom,
+      ],
+    );
+    return Boolean(row);
+  }
+
+  const row = db.getFirstSync<{ id: number }>(
+    `SELECT id FROM contact_relationships
+       WHERE contact_id_from = ? AND contact_id_to = ?
+         AND relationship_type = ? AND direction = ?
+       LIMIT 1`,
+    [
+      params.contactIdFrom,
+      params.contactIdTo,
+      params.relationshipType,
+      params.direction,
+    ],
+  );
+  return Boolean(row);
+}
+
+export function reassignRelationships(fromContactId: number, toContactId: number): {
+  updated: number;
+  removed: number;
+} {
+  const db = getDatabase();
+  const relationships = getRelationshipsByContactId(fromContactId);
+  let updated = 0;
+  let removed = 0;
+
+  db.withTransactionSync(() => {
+    for (const rel of relationships) {
+      const newFrom = rel.contactIdFrom === fromContactId ? toContactId : rel.contactIdFrom;
+      const newTo = rel.contactIdTo === fromContactId ? toContactId : rel.contactIdTo;
+
+      if (newFrom === newTo) {
+        db.runSync('DELETE FROM contact_relationships WHERE id = ?', [rel.id]);
+        removed++;
+        continue;
+      }
+
+      if (relationshipExists(db, {
+        contactIdFrom: newFrom,
+        contactIdTo: newTo,
+        relationshipType: rel.relationshipType,
+        direction: rel.direction,
+      })) {
+        db.runSync('DELETE FROM contact_relationships WHERE id = ?', [rel.id]);
+        removed++;
+        continue;
+      }
+
+      db.runSync(
+        `UPDATE contact_relationships
+            SET contact_id_from = ?, contact_id_to = ?
+          WHERE id = ?`,
+        [newFrom, newTo, rel.id],
+      );
+      updated++;
+    }
+  });
+
+  return { updated, removed };
+}
+
 export function getRelationshipBetween(
   contactIdA: number,
   contactIdB: number,

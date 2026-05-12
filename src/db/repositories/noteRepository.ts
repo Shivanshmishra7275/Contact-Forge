@@ -96,6 +96,15 @@ export function deleteNotesByContactId(contactId: number): void {
   db.runSync(`DELETE FROM contact_notes WHERE contact_id = ?`, [contactId]);
 }
 
+export function reassignNotes(fromContactId: number, toContactId: number): number {
+  const db = getDatabase();
+  const result = db.runSync(
+    `UPDATE contact_notes SET contact_id = ? WHERE contact_id = ?`,
+    [toContactId, fromContactId],
+  );
+  return result.changes ?? 0;
+}
+
 export function searchNotes(searchTerm: string): ContactNote[] {
   const db = getDatabase();
   const searchPattern = `%${searchTerm}%`;

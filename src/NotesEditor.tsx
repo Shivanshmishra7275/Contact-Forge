@@ -21,9 +21,9 @@ import {
   createNote,
   updateNote,
   deleteNote,
-} from '../db/repositories/noteRepository';
-import { COLORS, SPACING, FONT_SIZE } from '../constants';
-import type { ContactNote } from '../types';
+} from './db/repositories/noteRepository';
+import { COLORS, SPACING, FONT_SIZE } from './constants';
+import type { ContactNote } from './types';
 
 interface NotesEditorProps {
   contactId: number;
@@ -62,7 +62,12 @@ export function NotesEditor({ contactId, onClose }: NotesEditorProps) {
       Alert.alert('Empty note', 'Please enter note content');
       return;
     }
-    const note = createNote(contactId, newCategory, newContent);
+    const note = createNote({
+      contactId,
+      category: newCategory,
+      title: null,
+      content: newContent,
+    });
     setNotes([...notes, note]);
     setNewContent('');
     setNewCategory('where_met');
@@ -76,11 +81,11 @@ export function NotesEditor({ contactId, onClose }: NotesEditorProps) {
    * - Closes edit dialog
    */
   const handleUpdateNote = useCallback(() => {
-    if (!editingId || !editContent.trim()) {
+    if (editingId == null || !editContent.trim()) {
       Alert.alert('Invalid', 'Please enter note content');
       return;
     }
-    updateNote(editingId, editContent);
+    updateNote(editingId, { content: editContent });
     setNotes(notes.map(n => n.id === editingId ? { ...n, content: editContent, updatedAt: new Date().toISOString() } : n));
     setEditingId(null);
     setEditContent('');

@@ -6,12 +6,13 @@
  * Actions: Merge, Ignore, Mark Safe.
  */
 
-import { memo, useCallback, useEffect, useState } from 'react';
+import { memo, useCallback, useState } from 'react';
 import { View, FlatList, StyleSheet, Alert, InteractionManager } from 'react-native';
 import { Text, Card, Button, Chip, ActivityIndicator, IconButton } from 'react-native-paper';
 import { router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { useFocusEffect } from '@react-navigation/native';
 import {
   getPendingDuplicates,
   resolveDuplicateCandidate,
@@ -55,13 +56,15 @@ export default function DuplicatesScreen() {
     setIsLoading(false);
   }, []);
 
-  useEffect(() => {
-    const task = InteractionManager.runAfterInteractions(() => {
-      loadDuplicates();
-    });
+  useFocusEffect(
+    useCallback(() => {
+      const task = InteractionManager.runAfterInteractions(() => {
+        loadDuplicates();
+      });
 
-    return () => task.cancel();
-  }, [loadDuplicates]);
+      return () => task.cancel();
+    }, [loadDuplicates]),
+  );
 
   const clearSelection = useCallback(() => {
     setSelectedCandidateIds([]);

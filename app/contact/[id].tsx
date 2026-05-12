@@ -4,25 +4,30 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import { ScrollView, StyleSheet, View, Alert } from 'react-native';
-import { Text, Button, Card, Chip, Divider, Portal, Dialog, RadioButton } from 'react-native-paper';
+import { Text, Button, Card, Chip, Divider, Portal, Dialog, RadioButton, Modal } from 'react-native-paper';
 import { router, useLocalSearchParams } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import {
   getContactWithDetails,
   deleteContact,
+  getContactById,
 } from '../../src/db/repositories/contactRepository';
 import { getDuplicatesByContactId } from '../../src/db/repositories/duplicateRepository';
 import { logAction } from '../../src/db/repositories/auditRepository';
 import { getNotesByContactId } from '../../src/db/repositories/noteRepository';
-import { calculateContactHealthScore, getContactHealthGrade } from '../../src/services/contactHealthService';
+import { getRelationshipsByContactId } from '../../src/db/repositories/relationshipRepository';
+import { calculateContactHealthScore } from '../../src/services/contactHealthService';
 import {
   markContactAsTemporary,
   unmarkContactAsTemporary,
   getTemporaryContactEntry,
 } from '../../src/services/temporaryContactService';
 import { isoToDisplay } from '../../src/utils/normalization';
-import type { TemporaryContact, ContactNote } from '../../src/types';
+import { HealthScoreDisplay } from '../../src/HealthScoreDisplay';
+import { NotesEditor } from '../../src/NotesEditor';
+import { RelationshipsEditor } from '../../src/RelationshipsEditor';
+import type { TemporaryContact, ContactNote, ContactHealthScore, ContactRelationship } from '../../src/types';
 import { COLORS, SPACING, FONT_SIZE } from '../../src/constants';
 import type { ContactWithDetails } from '../../src/types';
 
@@ -32,8 +37,11 @@ export default function ContactDetailScreen() {
   const [tempEntry, setTempEntry] = useState<TemporaryContact | null>(null);
   const [hasDuplicates, setHasDuplicates] = useState(false);
   const [notes, setNotes] = useState<ContactNote[]>([]);
-  const [healthScore, setHealthScore] = useState(0);
-  const [healthGrade, setHealthGrade] = useState('C');
+  const [relationships, setRelationships] = useState<ContactRelationship[]>([]);
+  const [health, setHealth] = useState<ContactHealthScore | null>(null);
+
+  const [showNotesEditor, setShowNotesEditor] = useState(false);
+  const [showRelationshipsEditor, setShowRelationshipsEditor] = useState(false);
 
   const [isTempModalVisible, setTempModalVisible] = useState(false);
   const [selectedExpiry, setSelectedExpiry] = useState<'none' | '1day' | '1week' | '1month'>('none');
@@ -46,9 +54,9 @@ export default function ContactDetailScreen() {
       setHasDuplicates(dupes.length > 0);
       setTempEntry(getTemporaryContactEntry(c.id));
       setNotes(getNotesByContactId(c.id));
-      const score = calculateContactHealthScore(c.id);
-      setHealthScore(score.score);
-      setHealthGrade(getContactHealthGrade(score.score));
+      setRelationships(getRelationshipsByContactId(c.id));
+      const healthScore = calculateContactHealthScore(c.id);
+      setHealth(healthScore);
     }
   }, [id]);
 
@@ -119,11 +127,8 @@ export default function ContactDetailScreen() {
           {contact.company && <Text style={styles.company}>{contact.company}</Text>}
           {contact.jobTitle && <Text style={styles.jobTitle}>{contact.jobTitle}</Text>}
           
-          {/* Health Score Badge */}
-          <View style={styles.healthBadge}>
-            <MaterialCommunityIcons name="heart-pulse" size={16} color={COLORS.primary} />
-            <Text style={styles.healthScoreText}>{healthScore}% • Grade {healthGrade}</Text>
-          </View>
+          {/* Health Score Display */}
+          <HealthScoreDisplay health={health} />
         </View>
 
         {/* Duplicate warning */}
@@ -230,29 +235,79 @@ export default function ContactDetailScreen() {
           </Card>
         )}
 
-        {/* Contextual Notes (Phase 8) */}
-        {notes.length > 0 && (
-          <Card style={styles.card}>
-            <Card.Title
-              title="Memory Notes"
-              titleStyle={styles.sectionTitle}
-              left={() => <MaterialCommunityIcons name="notebook" color={COLORS.secondary} size={20} />}
-            />
-            <Card.Content>
-              {notes.map((note, i) => (
+        {/* Memory Notes */}
+        <Card style={styles.card}>
+          <Card.Title
+            title="Memory Notes"
+            titleStyle={styles.sectionTitle}
+            left={() => <MaterialCommunityIcons name="notebook" color={COLORS.secondary} size={20} />}
+            right={() => (
+              <Button
+                mode="text"
+                onPress={() => setShowNotesEditor(true)}
+                textColor={COLORS.primary}
+                compact
+              >
+                Manage
+              </Button>
+            )}
+          />
+          <Card.Content>
+            {notes.length === 0 ? (
+              <Text style={styles.emptySectionText}>No memory notes yet.</Text>
+            ) : (
+              notes.map((note, i) => (
                 <View key={note.id}>
                   {i > 0 && <Divider style={styles.divider} />}
                   <View style={styles.noteRow}>
-                    <Chip style={styles.categoryChip} size={28} textStyle={{ fontSize: FONT_SIZE.xs }}>
+                    <Chip style={styles.categoryChip} textStyle={{ fontSize: FONT_SIZE.xs }}>
                       {note.category}
                     </Chip>
                     <Text style={styles.noteText}>{note.content}</Text>
                   </View>
                 </View>
-              ))}
-            </Card.Content>
-          </Card>
-        )}
+              ))
+            )}
+          </Card.Content>
+        </Card>
+
+        {/* Relationships */}
+        <Card style={styles.card}>
+          <Card.Title
+            title="Relationships"
+            titleStyle={styles.sectionTitle}
+            left={() => <MaterialCommunityIcons name="account-multiple" color={COLORS.secondary} size={20} />}
+            right={() => (
+              <Button
+                mode="text"
+                onPress={() => setShowRelationshipsEditor(true)}
+                textColor={COLORS.primary}
+                compact
+              >
+                Manage
+              </Button>
+            )}
+          />
+          <Card.Content>
+            {relationships.length === 0 ? (
+              <Text style={styles.emptySectionText}>No relationships linked yet.</Text>
+            ) : (
+              relationships.map((rel, i) => (
+                <View key={rel.id}>
+                  {i > 0 && <Divider style={styles.divider} />}
+                  <View style={styles.relationshipRow}>
+                    <Chip style={styles.relationshipChip} textStyle={{ fontSize: FONT_SIZE.xs }}>
+                      {rel.relationshipType}
+                    </Chip>
+                    <Text style={styles.relationshipText}>
+                      {buildRelationshipLabel(contact.id, rel)}
+                    </Text>
+                  </View>
+                </View>
+              ))
+            )}
+          </Card.Content>
+        </Card>
 
         {/* Original Notes */}
         <Card style={styles.card}>
@@ -298,8 +353,58 @@ export default function ContactDetailScreen() {
           </Dialog.Actions>
         </Dialog>
       </Portal>
+
+      <Portal>
+        <Modal
+          visible={showNotesEditor}
+          onDismiss={() => setShowNotesEditor(false)}
+          contentContainerStyle={styles.modalContainer}
+        >
+          <NotesEditor
+            contactId={contact.id}
+            onClose={() => {
+              setShowNotesEditor(false);
+              load();
+            }}
+          />
+        </Modal>
+        <Modal
+          visible={showRelationshipsEditor}
+          onDismiss={() => setShowRelationshipsEditor(false)}
+          contentContainerStyle={styles.modalContainer}
+        >
+          <RelationshipsEditor
+            contactId={contact.id}
+            onClose={() => {
+              setShowRelationshipsEditor(false);
+              load();
+            }}
+          />
+        </Modal>
+      </Portal>
     </SafeAreaView>
   );
+}
+
+function buildRelationshipLabel(
+  currentContactId: number,
+  relationship: ContactRelationship,
+): string {
+  const otherId = relationship.contactIdFrom === currentContactId
+    ? relationship.contactIdTo
+    : relationship.contactIdFrom;
+  const otherContact = getContactById(otherId);
+  const otherName = otherContact?.displayName ?? 'Unknown';
+
+  let arrow = '<->';
+  if (relationship.direction === 'one_way_from') {
+    arrow = relationship.contactIdFrom === currentContactId ? '->' : '<-';
+  }
+  if (relationship.direction === 'one_way_to') {
+    arrow = relationship.contactIdFrom === currentContactId ? '<-' : '->';
+  }
+
+  return `${otherName} ${arrow}`;
 }
 
 function getInitials(name: string): string {
@@ -345,21 +450,6 @@ const styles = StyleSheet.create({
   tempTitle: { fontSize: FONT_SIZE.md, marginLeft: SPACING.sm, fontWeight: 'bold' },
   tempDesc: { fontSize: FONT_SIZE.sm, color: COLORS.textSecondary, marginBottom: SPACING.xs },
   dialog: { backgroundColor: COLORS.surface },
-  healthBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: SPACING.xs,
-    paddingHorizontal: SPACING.md,
-    paddingVertical: SPACING.xs,
-    borderRadius: 12,
-    backgroundColor: COLORS.surfaceVariant,
-    marginTop: SPACING.sm,
-  },
-  healthScoreText: {
-    color: COLORS.primary,
-    fontSize: FONT_SIZE.sm,
-    fontWeight: '600',
-  },
   noteRow: {
     flexDirection: 'row',
     gap: SPACING.sm,
@@ -376,4 +466,9 @@ const styles = StyleSheet.create({
     flex: 1,
     lineHeight: 18,
   },
+  emptySectionText: { color: COLORS.textSecondary, fontSize: FONT_SIZE.sm },
+  relationshipRow: { flexDirection: 'row', alignItems: 'center', gap: SPACING.sm, paddingVertical: SPACING.xs },
+  relationshipChip: { backgroundColor: COLORS.surfaceVariant },
+  relationshipText: { color: COLORS.textSecondary, fontSize: FONT_SIZE.sm, flex: 1 },
+  modalContainer: { flex: 1, backgroundColor: COLORS.background, padding: 0 },
 });

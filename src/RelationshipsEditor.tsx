@@ -12,18 +12,18 @@
  * - Visual relationship explorer
  */
 
-import { useCallback, useState } from 'react';
-import { View, StyleSheet, ScrollView, Alert, FlatList } from 'react-native';
-import { Text, Button, Card, Portal, Dialog, SegmentedButtons } from 'react-native-paper';
+import { useCallback, useMemo, useState } from 'react';
+import { View, StyleSheet, ScrollView, Alert, FlatList, TouchableOpacity } from 'react-native';
+import { Text, Button, Card, Portal, Dialog, SegmentedButtons, TextInput } from 'react-native-paper';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import {
   getRelationshipsByContactId,
   createRelationship,
   deleteRelationship,
-} from '../db/repositories/relationshipRepository';
-import { getContactById } from '../db/repositories/contactRepository';
-import { COLORS, SPACING, FONT_SIZE } from '../constants';
-import type { ContactRelationship, LocalContact } from '../types';
+} from './db/repositories/relationshipRepository';
+import { getContactById, listContacts } from './db/repositories/contactRepository';
+import { COLORS, SPACING, FONT_SIZE } from './constants';
+import type { ContactRelationship, LocalContact } from './types';
 
 interface RelationshipsEditorProps {
   contactId: number;
@@ -35,17 +35,18 @@ interface RelationshipsEditorProps {
  * Used for organizing contact connections
  */
 const RELATIONSHIP_TYPES = [
-  'family',
   'spouse',
   'parent',
   'child',
   'sibling',
   'colleague',
   'manager',
-  'mentor',
+  'assistant',
+  'referral',
+  'emergency_contact',
   'friend',
-  'other',
-] as const;
+  'custom',
+] as const satisfies ReadonlyArray<ContactRelationship['relationshipType']>;
 
 /**
  * RelationshipsEditor Component
@@ -63,7 +64,17 @@ export function RelationshipsEditor({ contactId, onClose }: RelationshipsEditorP
   );
   const [selectedType, setSelectedType] = useState<typeof RELATIONSHIP_TYPES[number]>('friend');
   const [selectedContactId, setSelectedContactId] = useState<number | null>(null);
-  const [bidirectional, setBidirectional] = useState(true);
+  const [direction, setDirection] = useState<ContactRelationship['direction']>('bidirectional');
+  const [contactSearch, setContactSearch] = useState('');
+
+  const candidateContacts: LocalContact[] = useMemo(() => {
+    const results = listContacts({
+      search: contactSearch.trim() ? contactSearch : undefined,
+      page: 0,
+      pageSize: 30,
+    });
+    return results.filter((c) => c.id !== contactId);
+  }, [contactId, contactSearch]);
   const [showDialog, setShowDialog] = useState(false);
 
   /**
@@ -73,23 +84,26 @@ export function RelationshipsEditor({ contactId, onClose }: RelationshipsEditorP
    * - Updates local state
    */
   const handleAddRelationship = useCallback(() => {
-    if (!selectedContactId) {
+    if (selectedContactId == null) {
       Alert.alert('Select Contact', 'Choose a contact to link');
       return;
     }
-    
-    const rel = createRelationship(
-      contactId,
-      selectedContactId,
-      selectedType,
-      bidirectional ? 'bidirectional' : 'directional'
-    );
-    
+
+    const rel = createRelationship({
+      contactIdFrom: contactId,
+      contactIdTo: selectedContactId,
+      relationshipType: selectedType,
+      direction,
+      notes: null,
+    });
+
     setRelationships([...relationships, rel]);
     setSelectedContactId(null);
     setSelectedType('friend');
+    setDirection('bidirectional');
+    setContactSearch('');
     setShowDialog(false);
-  }, [contactId, selectedContactId, selectedType, bidirectional, relationships]);
+  }, [contactId, selectedContactId, selectedType, direction, relationships]);
 
   /**
    * Remove relationship link
@@ -117,15 +131,17 @@ export function RelationshipsEditor({ contactId, onClose }: RelationshipsEditorP
    */
   const getRelationshipIcon = (type: string) => {
     switch (type) {
-      case 'family': return 'family-tree';
       case 'spouse': return 'heart';
       case 'parent': return 'account';
       case 'child': return 'baby-face';
       case 'sibling': return 'account-multiple';
       case 'colleague': return 'briefcase';
       case 'manager': return 'crown';
-      case 'mentor': return 'lightbulb';
+      case 'assistant': return 'account-tie';
+      case 'referral': return 'account-switch';
+      case 'emergency_contact': return 'alert-decagram';
       case 'friend': return 'handshake';
+      case 'custom': return 'tag';
       default: return 'link';
     }
   };
@@ -134,9 +150,20 @@ export function RelationshipsEditor({ contactId, onClose }: RelationshipsEditorP
    * Get relationship display text
    */
   const getRelationshipDisplay = (rel: ContactRelationship) => {
-    const otherContact = getContactById(rel.contactIdB);
+    const otherId = rel.contactIdFrom === contactId ? rel.contactIdTo : rel.contactIdFrom;
+    const otherContact = getContactById(otherId);
     if (!otherContact) return 'Unknown contact';
-    return `${otherContact.displayName} (${rel.type}${rel.direction === 'bidirectional' ? ' ↔' : ' →'})`;
+
+    let arrow = '';
+    if (rel.direction === 'bidirectional') {
+      arrow = '↔';
+    } else if (rel.direction === 'one_way_from') {
+      arrow = rel.contactIdFrom === contactId ? '→' : '←';
+    } else {
+      arrow = rel.contactIdFrom === contactId ? '←' : '→';
+    }
+
+    return `${otherContact.displayName} (${rel.relationshipType} ${arrow})`;
   };
 
   if (!contact) {
@@ -195,11 +222,11 @@ export function RelationshipsEditor({ contactId, onClose }: RelationshipsEditorP
                     <View style={styles.relInfo}>
                       <View style={styles.relBadge}>
                         <MaterialCommunityIcons 
-                          name={getRelationshipIcon(rel.type) as any} 
+                          name={getRelationshipIcon(rel.relationshipType) as any} 
                           size={16} 
                           color={COLORS.primary} 
                         />
-                        <Text style={styles.relType}>{rel.type}</Text>
+                        <Text style={styles.relType}>{rel.relationshipType}</Text>
                       </View>
                       <Text style={styles.relContact}>{getRelationshipDisplay(rel)}</Text>
                     </View>
@@ -238,16 +265,57 @@ export function RelationshipsEditor({ contactId, onClose }: RelationshipsEditorP
             
             <Text style={[styles.label, { marginTop: SPACING.md }]}>Link Direction</Text>
             <SegmentedButtons
-              value={bidirectional ? 'bidirectional' : 'directional'}
-              onValueChange={(value) => setBidirectional(value === 'bidirectional')}
+              value={direction}
+              onValueChange={(value) => setDirection(value as ContactRelationship['direction'])}
               buttons={[
                 { value: 'bidirectional', label: 'Mutual ↔' },
-                { value: 'directional', label: 'One-way →' },
+                { value: 'one_way_from', label: 'One-way →' },
               ]}
             />
 
             <Text style={[styles.label, { marginTop: SPACING.md }]}>Link to Contact</Text>
-            <Text style={styles.note}>Contact selector would appear here (placeholder)</Text>
+            <TextInput
+              mode="outlined"
+              placeholder="Search contacts..."
+              value={contactSearch}
+              onChangeText={setContactSearch}
+              style={styles.input}
+              outlineColor={COLORS.border}
+              activeOutlineColor={COLORS.primary}
+              textColor={COLORS.textPrimary}
+            />
+
+            <View style={{ maxHeight: 240 }}>
+              <FlatList
+                data={candidateContacts}
+                keyExtractor={(c) => c.id.toString()}
+                keyboardShouldPersistTaps="handled"
+                renderItem={({ item }) => {
+                  const isSelected = item.id === selectedContactId;
+                  return (
+                    <TouchableOpacity
+                      onPress={() => setSelectedContactId(item.id)}
+                      style={{
+                        paddingVertical: 10,
+                        paddingHorizontal: 12,
+                        borderRadius: 10,
+                        backgroundColor: isSelected ? `${COLORS.primary}20` : 'transparent',
+                        flexDirection: 'row',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                      }}
+                    >
+                      <Text style={{ color: COLORS.textPrimary }} numberOfLines={1}>
+                        {item.displayName}
+                      </Text>
+                      {isSelected && (
+                        <MaterialCommunityIcons name="check" size={18} color={COLORS.primary} />
+                      )}
+                    </TouchableOpacity>
+                  );
+                }}
+              />
+            </View>
           </Dialog.Content>
           <Dialog.Actions>
             <Button onPress={() => setShowDialog(false)}>Cancel</Button>
@@ -313,7 +381,7 @@ const styles = StyleSheet.create({
     gap: SPACING.xs, 
     paddingHorizontal: SPACING.sm, 
     paddingVertical: 4, 
-    backgroundColor: COLORS.surfaceVariant, 
+    backgroundColor: COLORS.surface, 
     borderRadius: 8, 
     alignSelf: 'flex-start', 
     marginBottom: SPACING.xs 
@@ -341,6 +409,11 @@ const styles = StyleSheet.create({
     marginBottom: SPACING.xs 
   },
   segmented: { marginBottom: SPACING.md },
+  input: {
+    backgroundColor: COLORS.surface,
+    marginTop: SPACING.sm,
+    marginBottom: SPACING.sm,
+  },
   note: { 
     color: COLORS.textDisabled, 
     fontSize: FONT_SIZE.xs, 

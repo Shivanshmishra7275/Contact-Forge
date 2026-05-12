@@ -15,11 +15,9 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import {
   getContactWithDetails,
   deleteContact,
-  getPhonesByContactId,
+  updateContact,
   insertPhoneNumber,
   insertEmail,
-  deleteEmailsByContactId,
-  deletePhonesByContactId,
 } from '../../src/db/repositories/contactRepository';
 import {
   getPendingDuplicates,
@@ -27,6 +25,9 @@ import {
   recordMerge,
 } from '../../src/db/repositories/duplicateRepository';
 import { logAction } from '../../src/db/repositories/auditRepository';
+import { getNotesByContactId, reassignNotes } from '../../src/db/repositories/noteRepository';
+import { getRelationshipsByContactId, reassignRelationships } from '../../src/db/repositories/relationshipRepository';
+import { transferTemporaryContact } from '../../src/db/repositories/temporaryContactRepository';
 import { useAppStore } from '../../src/store/appStore';
 import { COLORS, SPACING, FONT_SIZE } from '../../src/constants';
 import type { ContactWithDetails, DuplicateCandidate } from '../../src/types';
@@ -40,15 +41,75 @@ export default function MergeScreen() {
   const [contactB, setContactB] = useState<ContactWithDetails | null>(null);
   const [survivorId, setSurvivorId] = useState<'a' | 'b'>('a');
   const [isMerging, setIsMerging] = useState(false);
+  const [noteCounts, setNoteCounts] = useState({ a: 0, b: 0 });
+  const [relationshipCounts, setRelationshipCounts] = useState({ a: 0, b: 0 });
 
   useEffect(() => {
     const candidates = getPendingDuplicates();
     const c = candidates.find((x) => x.id === Number(id));
     if (!c) return;
     setCandidate(c);
-    setContactA(getContactWithDetails(c.contactIdA));
-    setContactB(getContactWithDetails(c.contactIdB));
+    const a = getContactWithDetails(c.contactIdA);
+    const b = getContactWithDetails(c.contactIdB);
+    setContactA(a);
+    setContactB(b);
+    if (a) {
+      setNoteCounts((prev) => ({ ...prev, a: getNotesByContactId(a.id).length }));
+      setRelationshipCounts((prev) => ({ ...prev, a: getRelationshipsByContactId(a.id).length }));
+    }
+    if (b) {
+      setNoteCounts((prev) => ({ ...prev, b: getNotesByContactId(b.id).length }));
+      setRelationshipCounts((prev) => ({ ...prev, b: getRelationshipsByContactId(b.id).length }));
+    }
   }, [id]);
+
+  const parseTags = useCallback((raw: string): string[] => {
+    try {
+      return JSON.parse(raw) as string[];
+    } catch {
+      return [];
+    }
+  }, []);
+
+  const mergeContactFields = useCallback((survivor: ContactWithDetails, absorbed: ContactWithDetails) => {
+    const updates: Partial<{
+      firstName: string | null;
+      lastName: string | null;
+      company: string | null;
+      jobTitle: string | null;
+      notes: string | null;
+      birthday: string | null;
+      imageUri: string | null;
+      hasThumbnail: boolean;
+      isTemporary: boolean;
+      isGhost: boolean;
+      tags: string[];
+      syncedAt: string;
+    }> = {};
+
+    if (!survivor.firstName && absorbed.firstName) updates.firstName = absorbed.firstName;
+    if (!survivor.lastName && absorbed.lastName) updates.lastName = absorbed.lastName;
+    if (!survivor.company && absorbed.company) updates.company = absorbed.company;
+    if (!survivor.jobTitle && absorbed.jobTitle) updates.jobTitle = absorbed.jobTitle;
+    if (!survivor.notes && absorbed.notes) updates.notes = absorbed.notes;
+    if (!survivor.birthday && absorbed.birthday) updates.birthday = absorbed.birthday;
+    if (!survivor.imageUri && absorbed.imageUri) {
+      updates.imageUri = absorbed.imageUri;
+      updates.hasThumbnail = absorbed.hasThumbnail;
+    }
+    if (!survivor.syncedAt && absorbed.syncedAt) updates.syncedAt = absorbed.syncedAt;
+    if (survivor.isGhost && !absorbed.isGhost) updates.isGhost = false;
+    if (!survivor.isTemporary && absorbed.isTemporary) updates.isTemporary = true;
+
+    const tagsA = parseTags(survivor.tags);
+    const tagsB = parseTags(absorbed.tags);
+    const mergedTags = Array.from(new Set([...tagsA, ...tagsB]));
+    if (mergedTags.length !== tagsA.length) updates.tags = mergedTags;
+
+    if (Object.keys(updates).length > 0) {
+      updateContact(survivor.id, updates);
+    }
+  }, [parseTags]);
 
   const handleMerge = useCallback(() => {
     if (!candidate || !contactA || !contactB) return;
@@ -84,6 +145,9 @@ export default function MergeScreen() {
           snapshotJson: snapshot,
         });
 
+        // Merge core fields and tags (only fill gaps on survivor)
+        mergeContactFields(survivor, absorbed);
+
         // Merge phones: add absorbed's phones to survivor if not duplicate
         const existingNormalized = new Set(survivor.phoneNumbers.map((p) => p.normalizedNumber));
         for (const p of absorbed.phoneNumbers) {
@@ -100,6 +164,11 @@ export default function MergeScreen() {
           }
         }
 
+        // Move notes and relationships
+        const movedNotes = reassignNotes(absorbed.id, survivor.id);
+        const relationshipResult = reassignRelationships(absorbed.id, survivor.id);
+        const movedTemporary = transferTemporaryContact(absorbed.id, survivor.id);
+
         // Delete the absorbed contact (cascade removes phones/emails)
         deleteContact(absorbed.id);
 
@@ -109,6 +178,10 @@ export default function MergeScreen() {
         logAction('contacts_merged', survivor.id, {
           survivorId: survivor.id,
           absorbedId: absorbed.id,
+          movedNotes,
+          relationshipsUpdated: relationshipResult.updated,
+          relationshipsRemoved: relationshipResult.removed,
+          movedTemporary,
         });
 
         // Refresh pending count
@@ -123,7 +196,7 @@ export default function MergeScreen() {
         setIsMerging(false);
       }
     },
-    [candidate],
+    [candidate, mergeContactFields],
   );
 
   if (!candidate || !contactA || !contactB) {
@@ -134,6 +207,13 @@ export default function MergeScreen() {
       </View>
     );
   }
+
+  const tagsA = parseTags(contactA.tags);
+  const tagsB = parseTags(contactB.tags);
+  const absorbedNotes = survivorId === 'a' ? noteCounts.b : noteCounts.a;
+  const absorbedRelationships = survivorId === 'a' ? relationshipCounts.b : relationshipCounts.a;
+  const absorbedTags = survivorId === 'a' ? tagsB.length : tagsA.length;
+  const absorbedLabel = survivorId === 'a' ? 'Contact B' : 'Contact A';
 
   return (
     <SafeAreaView style={styles.safeArea} edges={['bottom']}>
@@ -170,6 +250,16 @@ export default function MergeScreen() {
                 • {r.replace(/_/g, ' ')} (score: {candidate.score}/100)
               </Text>
             ))}
+          </Card.Content>
+        </Card>
+
+        {/* Merge impact summary */}
+        <Card style={styles.summaryCard}>
+          <Card.Content>
+            <Text style={styles.reasonsTitle}>Merge impact for {absorbedLabel}:</Text>
+            <Text style={styles.reason}>• {absorbedNotes} memory note{absorbedNotes !== 1 ? 's' : ''}</Text>
+            <Text style={styles.reason}>• {absorbedRelationships} relationship link{absorbedRelationships !== 1 ? 's' : ''}</Text>
+            <Text style={styles.reason}>• {absorbedTags} tag{absorbedTags !== 1 ? 's' : ''}</Text>
           </Card.Content>
         </Card>
 
@@ -259,6 +349,7 @@ const styles = StyleSheet.create({
   company: { color: COLORS.textSecondary, fontSize: FONT_SIZE.sm, marginBottom: SPACING.xs },
   detail: { color: COLORS.textSecondary, fontSize: FONT_SIZE.sm, paddingVertical: 2 },
   reasonsCard: { backgroundColor: COLORS.surfaceVariant },
+  summaryCard: { backgroundColor: COLORS.surface },
   reasonsTitle: { color: COLORS.textSecondary, fontSize: FONT_SIZE.sm, fontWeight: '600', marginBottom: SPACING.xs },
   reason: { color: COLORS.textSecondary, fontSize: FONT_SIZE.sm, paddingVertical: 2 },
   mergeBtn: { marginTop: SPACING.xs },
