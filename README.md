@@ -6,6 +6,8 @@ Created by **Shivansh Mishra**.
 
 Current release: **v2.0.0**.
 
+Download: [link](https://expo.dev/accounts/shivansh_98/projects/contactforge/builds/07338ef6-0b23-41f7-8dcb-03ee90097c9a)
+
 ContactForge mirrors device contacts into a local SQLite database and gives you a clean, safe workflow for review, cleanup, merge, and export. Everything stays on-device. The app remains fully usable without internet.
 
 ---
