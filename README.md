@@ -147,8 +147,7 @@ npx eas build:configure
 
 ## APK Download
 
-Direct APK link will be added after the v2 build completes. Until then, use the EAS build commands above or the EAS dashboard.
-
+Direct APK link is https://expo.dev/accounts/shivansh_98/projects/contactforge/builds/07338ef6-0b23-41f7-8dcb-03ee90097c9a
 ---
 
 ## CI and Automation
