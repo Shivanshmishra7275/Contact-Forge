@@ -49,9 +49,11 @@ Built with modern local-first architecture and designed for users who want compl
 
 <p align="center">
   <a href="#-overview">Overview</a> •
-  <a href="#-app-preview">Screenshots</a> •
+  <a href="#-built-for">Built For</a> •
+  <a href="#-app-preview">Preview</a> •
   <a href="#-core-features">Features</a> •
   <a href="#-tech-stack">Tech Stack</a> •
+  <a href="#-architecture">Architecture</a> •
   <a href="#-developer-setup">Setup</a> •
   <a href="#-engineering-roadmap-v30--beyond">Roadmap</a>
 </p>
@@ -88,38 +90,24 @@ Built with modern local-first architecture and designed for users who want compl
 
 # 📱 App Preview
 
-<p align="center">
-  <img src="assets/1000098161_2.png" alt="ContactForge Professional Mockup" width="520" />
-</p>
+> 🚧 Screenshots and live previews will be added in a future release.
 
----
+<div align="center">
 
-# 🔍 Core Features in Action
+### Upcoming UI Showcase
 
-<table>
-  <tr>
-    <td align="center"><b>Splash Screen</b></td>
-    <td align="center"><b>Dashboard</b></td>
-    <td align="center"><b>Duplicate Detection</b></td>
-  </tr>
-  <tr>
-    <td><img src="assets/1000098219.jpg" width="240" /></td>
-    <td><img src="assets/1000098221.jpg" width="240" /></td>
-    <td><img src="assets/1000098222.jpg" width="240" /></td>
-  </tr>
+🖼️ Splash Screen  
+🖥️ Dashboard  
+👯 Duplicate Detection  
+🧹 Smart Cleanup  
+📇 QR Contact Card  
+⚙️ Advanced Settings  
 
-  <tr>
-    <td align="center"><b>Smart Cleanup</b></td>
-    <td align="center"><b>My QR Card</b></td>
-    <td align="center"><b>Advanced Settings</b></td>
-  </tr>
+<br>
 
-  <tr>
-    <td><img src="assets/1000098223.jpg" width="240" /></td>
-    <td><img src="assets/1000098224.jpg" width="240" /></td>
-    <td><img src="assets/1000098225.jpg" width="240" /></td>
-  </tr>
-</table>
+<i>ContactForge focuses on a polished, cinematic, and privacy-first mobile experience.</i>
+
+</div>
 
 ---
 
@@ -137,10 +125,6 @@ Built with modern local-first architecture and designed for users who want compl
 
 # ✨ Core Features
 
-<table>
-<tr>
-<td width="50%">
-
 ## 👯 Smart Deduplication
 Advanced duplicate detection using explainable confidence scoring and fuzzy analysis.
 
@@ -156,10 +140,6 @@ Secure local exports with CSV/VCF backup management.
 ## 📇 Offline QR Cards
 Generate and share contact cards instantly without internet.
 
-</td>
-
-<td width="50%">
-
 ## 🪞 Local Contact Mirror
 Mirror device contacts into a local SQLite engine for lightning-fast processing.
 
@@ -174,10 +154,6 @@ Create auto-expiring contacts that remove clutter automatically.
 
 ## ⚙️ Automated Maintenance
 Optional local-only maintenance workflows and cleanup helpers.
-
-</td>
-</tr>
-</table>
 
 ---
 
@@ -224,15 +200,9 @@ Offline-First → Local Database → Explainable Processing → Safe User Action
 
 # 🏗️ Architecture
 
-<div align="center">
-
 ### Built using a strict offline-first modular architecture.
 
-</div>
-
-<table>
-<tr>
-<td width="45%" valign="top">
+---
 
 ## 📁 Project Structure
 
@@ -249,24 +219,18 @@ Offline-First → Local Database → Explainable Processing → Safe User Action
 └── 📂 docs/
 ```
 
-</td>
-
-<td width="55%" valign="top">
+---
 
 ## 🏛️ Core Principles
 
-- 🛡️ Zero-cloud processing
-- 🧩 Stateless UI architecture
-- 📦 Repository pattern
-- 🧹 Normalized contact pipelines
-- ⚠️ Safe execution workflows
-- 🔍 Explainable cleanup logic
-- 📱 Mobile-first performance optimization
-- 🔒 Explicit permission-driven operations
-
-</td>
-</tr>
-</table>
+- 🛡️ **Zero-cloud processing**
+- 🧩 **Stateless UI architecture**
+- 📦 **Repository pattern**
+- 🧹 **Normalized contact pipelines**
+- ⚠️ **Safe execution workflows**
+- 🔍 **Explainable cleanup logic**
+- 📱 **Mobile-first performance optimization**
+- 🔒 **Explicit permission-driven operations**
 
 ---
 
@@ -402,6 +366,7 @@ If contributing, please ensure:
 ## 🌟 Support the Project
 
 If you like ContactForge, consider:
+
 ⭐ Starring the repository  
 🍴 Forking the project  
 📢 Sharing feedback or ideas  
