@@ -205,95 +205,86 @@ ContactForge mirrors device contacts into a local SQLite database for fast searc
 
 ---
 
-## Architecture Highlights
+## 🏗️ Architecture & Core Principles
 
-ContactForge follows a modular layout focused on long-term maintainability.
+ContactForge follows a strict, offline-first modular layout focused on long-term maintainability and separation of concerns.
+
+<table style="width:100%">
+<tr>
+<td width="45%" valign="top">
+
+### 📁 Directory Structure
 
 ```bash
-app/
-  (tabs)/
-  contact/
-  merge/
-src/
-  constants/
-  db/
-    repositories/
-    schema/
-  services/
-  store/
-  tests/
-  types/
-  utils/
-docs/
+📦 ContactForge
+├── 📂 app/                # Expo Router Pages
+├── 📂 src/
+│   ├── 🗄️ db/             # SQLite Repositories
+│   ├── 🧠 store/          # Zustand State
+│   └── ⚙️ services/       # Core Logic
+└── 📂 docs/               # Architecture Specs
 ```
 
-Core principles:
-- Business logic stays outside UI components
-- Persistence is separated through repositories
-- Contact data is normalized before analysis
-- Risky actions require previews and confirmation
-- Local-only processing is non-negotiable
+</td>
 
-See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) and [docs/ACTUAL_DATABASE_SCHEMA.md](docs/ACTUAL_DATABASE_SCHEMA.md).
+<td width="55%" valign="top">
+
+### 🏛️ The 5 Pillars of ContactForge
+
+- 🛡️ **Zero-Cloud:** Local-only processing is non-negotiable.
+- 🧩 **Stateless UI:** Business logic lives strictly outside components.
+- 📦 **Repository Pattern:** Database interactions are completely abstracted.
+- 🧹 **Normalized Data:** Contacts are standardized before analysis.
+- ⚠️ **Safe Execution:** Risky actions require previews and explicit confirmation.
+
+</td>
+</tr>
+</table>
+
+> 📚 **Deep Dive:** Explore the full Architecture Documentation and the Database Schema.
 
 ---
 
-## Quick Start
+# 💻 Developer Control Panel
 
-### Prerequisites
+Everything you need to build, test, and compile ContactForge locally.
 
-- Node.js 18+
-- Expo CLI (via `npx`)
+| 🚀 Quick Start | 🧪 Quality Checks | 📦 EAS Cloud Build |
+|---|---|---|
+| **1. Prerequisites**<br>Node.js 18+ & Expo CLI | **1. Code Linting**<br>`npm run lint` | **1. Environment Check**<br>`npx expo-doctor` |
+| **2. Installation**<br>`npm install` | **2. TypeScript Check**<br>`npm run typecheck` | **2. Preview APK**<br>`npx eas build -p android --profile preview` |
+| **3. Start Server**<br>`npm start` | **3. Unit Testing**<br>`npm test` | **3. Production AAB**<br>`npx eas build -p android --profile production` |
 
-### Install
-
-```bash
-npm install
-```
-
-### Run (Development)
-
-```bash
-npm start
-npm run android
-npm run ios
-npm run web
-```
+> 💡 **Tip:** Run `npm run android` or `npm run ios` to launch the simulator directly after starting the development server.
 
 ---
 
-## Quality Checks
+# 📥 Get the App
 
-```bash
-npm run lint
-npm run typecheck
-npm test
-```
+<div align="center">
 
----
+<p>
+Install the latest privacy-first release directly to your Android device.
+</p>
 
-## Android APK Build (EAS)
+<a href="https://github.com/Shivanshmishra7275/Contact-Forge/releases">
+  <img 
+    src="https://img.shields.io/badge/Download_ContactForge_APK-000000?style=for-the-badge&logo=android&logoColor=00FF00&labelColor=111111" 
+    alt="Download APK" 
+    height="50"
+  >
+</a>
 
-```bash
-npx expo-doctor
-npx eas build --profile preview -p android
-```
+<br><br>
 
-Production AAB (Play Store):
+<p>
+<i>
+Direct APK links are published via GitHub Releases.  
+If no APK is listed for the current version, generate one instantly using the EAS preview build command above.
+</i>
+</p>
 
-```bash
-npx eas build --profile production -p android
-```
-
----
-
-## APK Download
-
-Direct APK links are only published when a GitHub Release includes them.
-
-- Releases: https://github.com/Shivanshmishra7275/Contact-Forge/releases
-- If no APK is listed, use the preview build command above.
-
+</div>
 ---
 
 ## ⚠️ Known Platform Limitations
