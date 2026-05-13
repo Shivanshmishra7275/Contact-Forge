@@ -143,30 +143,65 @@ ContactForge mirrors device contacts into a local SQLite database for fast searc
 
 ---
 
-## Local-First Privacy Promise
+<div align="center">
 
-- No backend
-- No analytics or tracking
-- No cloud sync
-- No silent uploads
+## 🛡️ Local-First Privacy Promise
 
-Your data never leaves the device unless you explicitly export and share it. Any online feature is optional and opt-in.
+*Your data never leaves the device unless you explicitly export and share it. Any online feature is strictly optional and opt-in.*
+
+<table>
+  <tr>
+    <td align="center" width="25%"><b>🚫 No Backend</b></td>
+    <td align="center" width="25%"><b>🛑 No Analytics</b></td>
+    <td align="center" width="25%"><b>☁️ No Cloud Sync</b></td>
+    <td align="center" width="25%"><b>🔇 No Silent Uploads</b></td>
+  </tr>
+  <tr>
+    <td align="center">Operates 100% offline with local architecture.</td>
+    <td align="center">Zero tracking, zero telemetry, zero harvesting.</td>
+    <td align="center">Your contacts stay yours. No server mirrors.</td>
+    <td align="center">Complete transparency over any network request.</td>
+  </tr>
+</table>
+
+</div>
 
 ---
 
-## Tech Stack
+<div align="center">
 
-- Expo
-- React Native
-- TypeScript
-- Expo Router
-- Zustand
-- Expo Contacts
-- Expo SQLite
-- React Native Paper
-- Zod
-- React Hook Form
-- Expo FileSystem
+## 💻 Tech Stack
+
+*Architected with modern, type-safe, and performant mobile technologies.*
+
+<br>
+
+**Core Frameworks**<br>
+<img src="https://img.shields.io/badge/Expo-000020?style=for-the-badge&logo=expo&logoColor=white" alt="Expo" />
+<img src="https://img.shields.io/badge/React_Native-20232A?style=for-the-badge&logo=react&logoColor=61DAFB" alt="React Native" />
+<img src="https://img.shields.io/badge/TypeScript-3178C6?style=for-the-badge&logo=typescript&logoColor=white" alt="TypeScript" />
+<img src="https://img.shields.io/badge/Expo_Router-000020?style=for-the-badge&logo=expo&logoColor=white" alt="Expo Router" />
+
+<br><br>
+
+**Data & State Management**<br>
+<img src="https://img.shields.io/badge/SQLite-003B57?style=for-the-badge&logo=sqlite&logoColor=white" alt="SQLite" />
+<img src="https://img.shields.io/badge/Zustand-764ABC?style=for-the-badge&logo=react&logoColor=white" alt="Zustand" />
+<img src="https://img.shields.io/badge/Zod-3E67B1?style=for-the-badge&logo=zod&logoColor=white" alt="Zod" />
+
+<br><br>
+
+**UI & Form Processing**<br>
+<img src="https://img.shields.io/badge/React_Native_Paper-6200EE?style=for-the-badge&logo=react&logoColor=white" alt="React Native Paper" />
+<img src="https://img.shields.io/badge/React_Hook_Form-EC5990?style=for-the-badge&logo=reacthookform&logoColor=white" alt="React Hook Form" />
+
+<br><br>
+
+**Native Device Modules**<br>
+<img src="https://img.shields.io/badge/Expo_Contacts-4630EB?style=for-the-badge&logo=expo&logoColor=white" alt="Expo Contacts" />
+<img src="https://img.shields.io/badge/Expo_FileSystem-4630EB?style=for-the-badge&logo=expo&logoColor=white" alt="Expo FileSystem" />
+
+</div>
 
 ---
 
