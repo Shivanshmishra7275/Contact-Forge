@@ -173,6 +173,10 @@ export interface AppSettings {
   autoCleanOnSync: boolean;
   duplicateScanOnSync: boolean;
   exportIncludeNotes: boolean;
+  enableBackgroundMaintenance: boolean;
+  autoPurgeExpiredTemporary: boolean;
+  backupRetentionCount: number;
+  enableOnlineFeatures: boolean;
 }
 
 // ---------------------------------------------------------------------------
@@ -185,6 +189,7 @@ export type AuditAction =
   | 'contact_deleted'
   | 'contacts_merged'
   | 'contacts_synced'
+  | 'maintenance_run'
   | 'cleanup_applied'
   | 'export_created'
   | 'backup_created';

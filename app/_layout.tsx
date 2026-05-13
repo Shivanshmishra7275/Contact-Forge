@@ -17,14 +17,19 @@ import { Stack } from 'expo-router';
 import { PaperProvider, MD3DarkTheme, configureFonts } from 'react-native-paper';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
-import { StyleSheet } from 'react-native';
+import { AppState, StyleSheet } from 'react-native';
 import { getDatabase } from '../src/db';
 import { getAllSettings } from '../src/db/repositories/settingsRepository';
 import { countPendingDuplicates } from '../src/db/repositories/duplicateRepository';
 import { getSyncState } from '../src/db/repositories/syncStateRepository';
 import { useAppStore } from '../src/store/appStore';
-import { COLORS } from '../src/constants';
+import { COLORS, MAINTENANCE_MIN_INTERVAL_MINUTES } from '../src/constants';
 import { SplashScreen } from '../src/SplashScreen';
+import { maybeRunMaintenance } from '../src/services/maintenanceService';
+import {
+  registerBackgroundMaintenance,
+  unregisterBackgroundMaintenance,
+} from '../src/services/backgroundMaintenance';
 
 /**
  * Premium dark theme with Shivansh Mishra's ContactForge brand colours
@@ -52,6 +57,7 @@ export default function RootLayout() {
   const setSyncStatus = useAppStore((s) => s.setSyncStatus);
   const setSyncCounts = useAppStore((s) => s.setSyncCounts);
   const setSyncedAt = useAppStore((s) => s.setSyncedAt);
+  const settings = useAppStore((s) => s.settings);
   const [showSplash, setShowSplash] = useState(true);
 
   /**
@@ -80,6 +86,33 @@ export default function RootLayout() {
       }
     }
   }, []);
+
+  useEffect(() => {
+    let active = true;
+    const configure = async () => {
+      if (!active) return;
+      if (settings.enableBackgroundMaintenance) {
+        await registerBackgroundMaintenance();
+      } else {
+        await unregisterBackgroundMaintenance();
+      }
+    };
+
+    configure();
+    return () => {
+      active = false;
+    };
+  }, [settings.enableBackgroundMaintenance]);
+
+  useEffect(() => {
+    const subscription = AppState.addEventListener('change', (state) => {
+      if (state === 'active' && settings.enableBackgroundMaintenance) {
+        maybeRunMaintenance('foreground', MAINTENANCE_MIN_INTERVAL_MINUTES).catch(() => undefined);
+      }
+    });
+
+    return () => subscription.remove();
+  }, [settings.enableBackgroundMaintenance]);
 
   if (showSplash) {
     return (

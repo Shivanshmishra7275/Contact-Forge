@@ -8,6 +8,7 @@ ContactForge is a **100% offline-first, privacy-centric** mobile app for advance
 - **No backend** — zero server communication
 - **No analytics** — zero telemetry or tracking
 - **No cloud sync** — all data stays on-device
+- **Optional online only** — update checks and docs links are opt-in
 - **No hallucinated APIs** — only real, supported Expo APIs
 - **No destructive actions without confirmation** — all deletes/merges require explicit user approval
 
@@ -163,7 +164,7 @@ These features are **explicitly out of scope for MVP** due to platform restricti
 - **Call log scanning** — Android requires `READ_CALL_LOG` permission (not available in Expo managed workflow)
 - **Real-time caller ID** — Apple blocks third-party caller identification
 - **Automatic call-log mining** — Not supported in Expo managed workflow
-- **Background sync** — Not implemented in MVP; foreground-only sync
+- **Background maintenance** — Best-effort only; OS may delay or skip background fetch
 
 ---
 

@@ -15,33 +15,66 @@ import {
   AppState,
   InteractionManager,
 } from 'react-native';
-import { Text, Chip, FAB, ActivityIndicator } from 'react-native-paper';
-import { router } from 'expo-router';
+import { Text, Chip, FAB, ActivityIndicator, Button } from 'react-native-paper';
+import { router, useLocalSearchParams } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import * as Contacts from 'expo-contacts';
-import { listContacts, countContacts } from '../../src/db/repositories/contactRepository';
-import { calculateContactHealthScore } from '../../src/services/contactHealthService';
+import {
+  listContacts,
+  countContacts,
+  listContactsByIds,
+  countContactsByIds,
+} from '../../src/db/repositories/contactRepository';
+import { calculateContactHealthScore, getContactsNeedingCuration } from '../../src/services/contactHealthService';
 import { COLORS, SPACING, FONT_SIZE, PAGE_SIZE } from '../../src/constants';
 import type { LocalContact, ContactHealthScore } from '../../src/types';
 
-type Filter = 'all' | 'temporary' | 'ghost';
+type Filter = 'all' | 'temporary' | 'ghost' | 'low_health';
 
 export default function ContactsScreen() {
+  const { filter: filterParam } = useLocalSearchParams<{ filter?: string }>();
+  const rawFilter = Array.isArray(filterParam) ? filterParam[0] : filterParam;
+  const initialFilter: Filter = rawFilter === 'low_health' ? 'low_health' : 'all';
+
   const [contacts, setContacts] = useState<LocalContact[]>([]);
   const [search, setSearch] = useState('');
-  const [filter, setFilter] = useState<Filter>('all');
+  const [filter, setFilter] = useState<Filter>(initialFilter);
   const [page, setPage] = useState(0);
   const [total, setTotal] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
   const searchTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
   const searchRef = useRef(search);
   const filterRef = useRef(filter);
+  const lowHealthIdsRef = useRef<number[] | null>(null);
+
+  const loadLowHealthIds = useCallback(() => {
+    const ids = getContactsNeedingCuration();
+    lowHealthIdsRef.current = ids;
+    return ids;
+  }, []);
 
   const loadContacts = useCallback(
     (searchStr: string, f: Filter, p: number, append = false) => {
       setIsLoading(true);
       try {
+        if (f === 'low_health') {
+          const ids = p === 0 || !lowHealthIdsRef.current
+            ? loadLowHealthIds()
+            : lowHealthIdsRef.current;
+
+          const rows = listContactsByIds({
+            ids,
+            search: searchStr || undefined,
+            page: p,
+            pageSize: PAGE_SIZE,
+          });
+          const count = countContactsByIds({ ids, search: searchStr || undefined });
+          setContacts((prev) => (append ? [...prev, ...rows] : rows));
+          setTotal(count);
+          return;
+        }
+
         const params = {
           search: searchStr || undefined,
           isTemporary: f === 'temporary' ? true : undefined,
@@ -61,7 +94,7 @@ export default function ContactsScreen() {
         setIsLoading(false);
       }
     },
-    [],
+    [loadLowHealthIds],
   );
 
   const refreshContacts = useCallback(() => {
@@ -76,6 +109,12 @@ export default function ContactsScreen() {
   useEffect(() => {
     filterRef.current = filter;
   }, [filter]);
+
+  useEffect(() => {
+    if (rawFilter === 'low_health') {
+      setFilter('low_health');
+    }
+  }, [rawFilter]);
 
   useEffect(() => {
     const task = InteractionManager.runAfterInteractions(() => {
@@ -132,12 +171,29 @@ export default function ContactsScreen() {
     [],
   );
 
+  const isLowHealth = filter === 'low_health';
+
   const EmptyState = () => (
     <View style={styles.empty}>
       <MaterialCommunityIcons name="account-off" size={48} color={COLORS.textDisabled} />
       <Text style={styles.emptyText}>
-        {search ? 'No contacts match your search.' : 'No contacts yet. Sync from the dashboard.'}
+        {search
+          ? 'No contacts match your search.'
+          : isLowHealth
+            ? 'No low health contacts right now.'
+            : 'No contacts yet. Sync from the dashboard.'}
       </Text>
+      {!search && (
+        <Button
+          mode="outlined"
+          onPress={() => router.push('/(tabs)')}
+          icon="sync"
+          textColor={COLORS.primary}
+          style={styles.emptyButton}
+        >
+          Sync Contacts
+        </Button>
+      )}
     </View>
   );
 
@@ -166,7 +222,7 @@ export default function ContactsScreen() {
 
       {/* Filter chips */}
       <View style={styles.filterRow}>
-        {(['all', 'temporary', 'ghost'] as Filter[]).map((f) => (
+        {(['all', 'temporary', 'ghost', 'low_health'] as Filter[]).map((f) => (
           <Chip
             key={f}
             selected={filter === f}
@@ -174,7 +230,9 @@ export default function ContactsScreen() {
             style={styles.chip}
             textStyle={{ color: filter === f ? COLORS.primary : COLORS.textSecondary, fontSize: FONT_SIZE.xs }}
           >
-            {f.charAt(0).toUpperCase() + f.slice(1)}
+            {f === 'low_health'
+              ? 'Low health'
+              : f.charAt(0).toUpperCase() + f.slice(1)}
           </Chip>
         ))}
         <Text style={styles.totalText}>{total} total</Text>
@@ -362,6 +420,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     maxWidth: 280,
   },
+  emptyButton: { marginTop: SPACING.sm },
   fab: {
     position: 'absolute',
     right: SPACING.lg,

@@ -21,29 +21,32 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { getAllSettings, saveAllSettings } from '../../src/db/repositories/settingsRepository';
 import { createFullBackup, shareFile } from '../../src/services/exportService';
+import { getMaintenanceState, runMaintenance } from '../../src/services/maintenanceService';
+import { checkForUpdates, getUpdateState } from '../../src/services/updateService';
 import { useAppStore } from '../../src/store/appStore';
-import { COLORS, SPACING, FONT_SIZE, APP_NAME, APP_VERSION } from '../../src/constants';
+import { COLORS, SPACING, FONT_SIZE, APP_NAME, APP_VERSION, DEFAULT_SETTINGS, RELEASES_URL } from '../../src/constants';
+import { isoToDisplay } from '../../src/utils/normalization';
 import type { AppSettings } from '../../src/types';
 import { QRBusinessCard } from '../../src/QRBusinessCard';
 
 export default function SettingsScreen() {
   const setStoreSettings = useAppStore((s) => s.setSettings);
-  const [settings, setSettings] = useState<AppSettings>({
-    defaultCountryCode: '+1',
-    enableAppLock: false,
-    autoCleanOnSync: false,
-    duplicateScanOnSync: true,
-    exportIncludeNotes: true,
-  });
+  const [settings, setSettings] = useState<AppSettings>({ ...DEFAULT_SETTINGS });
   const [isExporting, setIsExporting] = useState(false);
+  const [isRunningMaintenance, setIsRunningMaintenance] = useState(false);
+  const [isCheckingUpdate, setIsCheckingUpdate] = useState(false);
   const [versionTaps, setVersionTaps] = useState(0);
   const [showDevMenu, setShowDevMenu] = useState(false);
   const [showQRCard, setShowQRCard] = useState(false);
+  const [maintenanceState, setMaintenanceState] = useState(() => getMaintenanceState());
+  const [updateState, setUpdateState] = useState(() => getUpdateState());
 
   useEffect(() => {
     const s = getAllSettings();
     setSettings(s);
     setStoreSettings(s);
+    setMaintenanceState(getMaintenanceState());
+    setUpdateState(getUpdateState());
   }, []);
 
   const handleSave = useCallback(() => {
@@ -90,6 +93,59 @@ export default function SettingsScreen() {
     }
   }, [settings.exportIncludeNotes]);
 
+  const handleRunMaintenance = useCallback(async () => {
+    setIsRunningMaintenance(true);
+    try {
+      const summary = await runMaintenance('manual');
+      setMaintenanceState(getMaintenanceState());
+      const prunedText = summary.backupsPruned > 0
+        ? `\nBackups pruned: ${summary.backupsPruned}`
+        : '';
+      Alert.alert(
+        'Maintenance complete',
+        `Cleanup issues: ${summary.cleanupIssues}\nExpired temporary: ${summary.expiredTemporary}${prunedText}`,
+      );
+    } catch (err) {
+      Alert.alert('Maintenance failed', err instanceof Error ? err.message : String(err));
+    } finally {
+      setIsRunningMaintenance(false);
+    }
+  }, []);
+
+  const handleCheckUpdates = useCallback(async () => {
+    if (!settings.enableOnlineFeatures) {
+      Alert.alert('Offline mode', 'Enable optional online features to check for updates.');
+      return;
+    }
+    setIsCheckingUpdate(true);
+    try {
+      const result = await checkForUpdates();
+      setUpdateState(getUpdateState());
+      if (result.isUpdateAvailable) {
+        Alert.alert(
+          'Update available',
+          `Latest version: ${result.latestVersion ?? 'Unknown'}\nCurrent version: ${result.currentVersion}`,
+          [
+            { text: 'Later', style: 'cancel' },
+            { text: 'Open Release', onPress: () => Linking.openURL(result.releaseUrl) },
+          ],
+        );
+      } else {
+        Alert.alert('Up to date', `You are on the latest version (${result.currentVersion}).`);
+      }
+    } catch (err) {
+      Alert.alert('Update check failed', err instanceof Error ? err.message : String(err));
+    } finally {
+      setIsCheckingUpdate(false);
+    }
+  }, [settings.enableOnlineFeatures]);
+
+  const handleOpenReleases = useCallback(() => {
+    Linking.openURL(RELEASES_URL).catch(() => {
+      Alert.alert('Link unavailable', 'Unable to open releases right now.');
+    });
+  }, []);
+
   const handleOpenGithub = useCallback(() => {
     Linking.openURL('https://github.com/Shivanshmishra7275').catch(() => {
       Alert.alert('Link unavailable', 'Unable to open the GitHub profile right now.');
@@ -108,6 +164,11 @@ export default function SettingsScreen() {
   const update = useCallback(<K extends keyof AppSettings>(key: K, value: AppSettings[K]) => {
     setSettings((s) => ({ ...s, [key]: value }));
   }, []);
+
+  const handleRetentionChange = useCallback((value: string) => {
+    const parsed = Number.parseInt(value.replace(/\D/g, ''), 10);
+    update('backupRetentionCount', Number.isFinite(parsed) ? parsed : 0);
+  }, [update]);
 
   return (
     <SafeAreaView style={styles.safeArea} edges={['top']}>
@@ -197,6 +258,115 @@ export default function SettingsScreen() {
           </Card.Content>
         </Card>
 
+        {/* Maintenance */}
+        <SectionHeader title="Maintenance & Automation" icon="sync" />
+        <Card style={styles.card}>
+          <Card.Content>
+            <SettingRow label="Background maintenance (best-effort)">
+              <Switch
+                value={settings.enableBackgroundMaintenance}
+                onValueChange={(v) => update('enableBackgroundMaintenance', v)}
+                color={COLORS.primary}
+              />
+            </SettingRow>
+            <Divider style={styles.divider} />
+            <SettingRow label="Auto purge expired temporary contacts">
+              <Switch
+                value={settings.autoPurgeExpiredTemporary}
+                onValueChange={(v) => update('autoPurgeExpiredTemporary', v)}
+                color={COLORS.primary}
+              />
+            </SettingRow>
+            <Divider style={styles.divider} />
+            <SettingRow label="Backup retention (count)">
+              <TextInput
+                value={String(settings.backupRetentionCount)}
+                onChangeText={handleRetentionChange}
+                style={styles.smallInput}
+                mode="outlined"
+                dense
+                keyboardType="number-pad"
+                outlineColor={COLORS.border}
+                activeOutlineColor={COLORS.primary}
+                textColor={COLORS.textPrimary}
+              />
+            </SettingRow>
+            <Divider style={styles.divider} />
+            <View style={styles.maintenanceMeta}>
+              <Text style={styles.maintenanceLabel}>Last maintenance</Text>
+              <Text style={styles.maintenanceValue}>
+                {maintenanceState.lastRunAt ? isoToDisplay(maintenanceState.lastRunAt) : 'Never'}
+              </Text>
+              {maintenanceState.lastSummary && (
+                <Text style={styles.maintenanceNote}>
+                  Cleanup issues: {maintenanceState.lastSummary.cleanupIssues} •
+                  Pending duplicates: {maintenanceState.lastSummary.pendingDuplicates}
+                </Text>
+              )}
+            </View>
+            <Button
+              mode="outlined"
+              onPress={handleRunMaintenance}
+              loading={isRunningMaintenance}
+              disabled={isRunningMaintenance}
+              icon="broom"
+              textColor={COLORS.primary}
+              style={styles.maintenanceButton}
+            >
+              Run Maintenance Now
+            </Button>
+          </Card.Content>
+        </Card>
+
+        {/* Optional online */}
+        <SectionHeader title="Optional Online" icon="cloud-outline" />
+        <Card style={styles.card}>
+          <Card.Content>
+            <SettingRow label="Enable optional online features">
+              <Switch
+                value={settings.enableOnlineFeatures}
+                onValueChange={(v) => update('enableOnlineFeatures', v)}
+                color={COLORS.primary}
+              />
+            </SettingRow>
+            <Divider style={styles.divider} />
+            <Text style={styles.cardDesc}>
+              When enabled, ContactForge can check for release updates and open docs or community links.
+              No contact data is ever uploaded.
+            </Text>
+            <Button
+              mode="outlined"
+              onPress={handleCheckUpdates}
+              loading={isCheckingUpdate}
+              disabled={isCheckingUpdate}
+              icon="cloud-check"
+              textColor={COLORS.primary}
+              style={styles.maintenanceButton}
+            >
+              Check for Updates
+            </Button>
+            <Button
+              mode="text"
+              onPress={handleOpenReleases}
+              icon="open-in-new"
+              textColor={COLORS.secondary}
+              style={styles.releasesLink}
+            >
+              Open Releases Page
+            </Button>
+            {updateState.lastCheckedAt && (
+              <Text style={styles.maintenanceNote}>
+                Last checked: {isoToDisplay(updateState.lastCheckedAt)}
+              </Text>
+            )}
+            {updateState.lastResult?.latestVersion && (
+              <Text style={styles.maintenanceNote}>
+                Latest version: {updateState.lastResult.latestVersion}
+              </Text>
+            )}
+          </Card.Content>
+        </Card>
+
         {/* QR Business Card */}
         <SectionHeader title="My QR Card" icon="qrcode" />
         <Card style={styles.card}>
@@ -232,8 +402,8 @@ export default function SettingsScreen() {
             <View style={styles.privacyRow}>
               <MaterialCommunityIcons name="wifi-off" color={COLORS.textSecondary} size={20} />
               <Text style={styles.privacyText}>
-                The app operates 100% offline. No internet connection is required
-                or used for any feature.
+                The app operates offline by default. Optional online features are
+                opt-in and limited to update checks or docs links.
               </Text>
             </View>
           </Card.Content>
@@ -249,12 +419,11 @@ export default function SettingsScreen() {
                 <MaterialCommunityIcons name="star-circle" color={COLORS.primary} size={30} />
               </View>
               <View style={styles.developerMeta}>
-                <Text style={styles.creatorBrand}>Created by</Text>
-                <Text style={styles.developerName}>Shivansh Mishra</Text>
+                <Text style={styles.creatorBrand}>Crafted by Shivansh Mishra</Text>
                 <Text style={styles.developerTitle}>
-                  Technical Founder • Staff Mobile Engineer
+                  Privacy-first, offline-first contact manager
                 </Text>
-                <Text style={styles.versionNote}>Cinematic Offline-First Release</Text>
+                <Text style={styles.versionNote}>V3 release</Text>
               </View>
             </View>
             <Divider style={[styles.divider, { marginVertical: SPACING.md }]} />
@@ -268,7 +437,7 @@ export default function SettingsScreen() {
               View GitHub: Shivansh Mishra
             </Button>
             <Text style={styles.brandMessage}>
-              ContactForge is crafted by Shivansh Mishra as a cinematic, privacy-first contact manager focused on trust, speed, and offline intelligence.
+              Crafted by Shivansh Mishra with a focus on trust, speed, and offline-first workflows.
             </Text>
           </Card.Content>
         </Card>
@@ -378,6 +547,12 @@ const styles = StyleSheet.create({
   exportButtons: { flexDirection: 'row', gap: SPACING.sm, paddingTop: SPACING.sm },
   exportBtn: { flex: 1 },
   backupLink: { marginTop: SPACING.sm },
+  maintenanceMeta: { paddingVertical: SPACING.sm },
+  maintenanceLabel: { color: COLORS.textSecondary, fontSize: FONT_SIZE.xs },
+  maintenanceValue: { color: COLORS.textPrimary, fontSize: FONT_SIZE.md, marginTop: SPACING.xs },
+  maintenanceNote: { color: COLORS.textSecondary, fontSize: FONT_SIZE.xs, marginTop: SPACING.xs },
+  maintenanceButton: { marginTop: SPACING.sm, alignSelf: 'flex-start' },
+  releasesLink: { alignSelf: 'flex-start' },
   privacyRow: {
     flexDirection: 'row',
     gap: SPACING.sm,
@@ -401,7 +576,6 @@ const styles = StyleSheet.create({
     borderColor: COLORS.border,
   },
   developerMeta: { flex: 1 },
-  developerName: { color: COLORS.textPrimary, fontSize: FONT_SIZE.lg, fontWeight: '700' },
   developerTitle: { color: COLORS.textSecondary, fontSize: FONT_SIZE.sm, lineHeight: 20, marginTop: 2 },
   githubButton: { alignSelf: 'flex-start' },
   saveBtn: { marginTop: SPACING.lg },
@@ -432,7 +606,7 @@ const styles = StyleSheet.create({
     color: COLORS.primary,
     fontSize: FONT_SIZE.md,
     fontWeight: '800',
-    letterSpacing: 0.5,
+    letterSpacing: 0.3,
   },
   versionNote: {
     color: COLORS.secondary,

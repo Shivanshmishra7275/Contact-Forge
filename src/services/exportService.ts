@@ -228,3 +228,42 @@ export async function createFullBackup(
   logAction('backup_created', null, { format, count: result.rowCount });
   return result;
 }
+
+// ---------------------------------------------------------------------------
+// Backup retention helpers
+// ---------------------------------------------------------------------------
+
+const BACKUP_PREFIX = 'contactforge-backup-';
+
+async function listBackupFiles(): Promise<string[]> {
+  const root = FileSystem.documentDirectory;
+  if (!root) return [];
+  const entries = await FileSystem.readDirectoryAsync(root);
+  return entries.filter((name) => name.startsWith(BACKUP_PREFIX));
+}
+
+export async function pruneOldBackups(retentionCount: number): Promise<number> {
+  if (!Number.isFinite(retentionCount) || retentionCount <= 0) return 0;
+
+  const root = FileSystem.documentDirectory;
+  if (!root) return 0;
+
+  const backups = await listBackupFiles();
+  if (backups.length <= retentionCount) return 0;
+
+  // Filenames include ISO timestamps, so lexicographic sort == chronological.
+  const sorted = backups.slice().sort();
+  const toDelete = sorted.slice(0, sorted.length - retentionCount);
+
+  let deleted = 0;
+  for (const file of toDelete) {
+    try {
+      await FileSystem.deleteAsync(`${root}${file}`, { idempotent: true });
+      deleted++;
+    } catch {
+      // Ignore individual file deletion errors to avoid blocking maintenance.
+    }
+  }
+
+  return deleted;
+}

@@ -393,8 +393,101 @@ export function countContacts(params: Omit<ContactListParams, 'page' | 'pageSize
   return row?.count ?? 0;
 }
 
+export function listContactsByIds(params: {
+  ids: number[];
+  search?: string;
+  page?: number;
+  pageSize?: number;
+}): LocalContact[] {
+  const { ids, search, page = 0, pageSize = PAGE_SIZE } = params;
+  if (ids.length === 0) return [];
+
+  const conditions: string[] = [];
+  const args: (string | number)[] = [];
+
+  const idPlaceholders = ids.map(() => '?').join(', ');
+  conditions.push(`id IN (${idPlaceholders})`);
+  args.push(...ids);
+
+  if (search) {
+    const normalizedPattern = `%${normalizeName(search)}%`;
+    const digitPattern = `%${search.replace(/\D/g, '')}%`;
+    const lowerPattern = `%${search.toLowerCase()}%`;
+    conditions.push(
+      `(
+        normalized_name LIKE ?
+        OR EXISTS (SELECT 1 FROM phone_numbers WHERE contact_id = contacts.id AND normalized_number LIKE ?)
+        OR EXISTS (SELECT 1 FROM emails WHERE contact_id = contacts.id AND normalized_email LIKE ?)
+        OR EXISTS (
+          SELECT 1 FROM contact_notes
+           WHERE contact_id = contacts.id
+             AND (LOWER(content) LIKE ? OR LOWER(COALESCE(title, '')) LIKE ?)
+        )
+      )`,
+    );
+    args.push(normalizedPattern, digitPattern, lowerPattern, lowerPattern, lowerPattern);
+  }
+
+  const where = conditions.length ? `WHERE ${conditions.join(' AND ')}` : '';
+  const offset = page * pageSize;
+
+  return getDatabase()
+    .getAllSync<Record<string, unknown>>(
+      `SELECT * FROM contacts ${where} ORDER BY normalized_name ASC LIMIT ? OFFSET ?`,
+      [...args, pageSize, offset],
+    )
+    .map(rowToContact);
+}
+
+export function countContactsByIds(params: { ids: number[]; search?: string }): number {
+  const { ids, search } = params;
+  if (ids.length === 0) return 0;
+
+  const conditions: string[] = [];
+  const args: (string | number)[] = [];
+
+  const idPlaceholders = ids.map(() => '?').join(', ');
+  conditions.push(`id IN (${idPlaceholders})`);
+  args.push(...ids);
+
+  if (search) {
+    const normalizedPattern = `%${normalizeName(search)}%`;
+    const digitPattern = `%${search.replace(/\D/g, '')}%`;
+    const lowerPattern = `%${search.toLowerCase()}%`;
+    conditions.push(
+      `(
+        normalized_name LIKE ?
+        OR EXISTS (SELECT 1 FROM phone_numbers WHERE contact_id = contacts.id AND normalized_number LIKE ?)
+        OR EXISTS (SELECT 1 FROM emails WHERE contact_id = contacts.id AND normalized_email LIKE ?)
+        OR EXISTS (
+          SELECT 1 FROM contact_notes
+           WHERE contact_id = contacts.id
+             AND (LOWER(content) LIKE ? OR LOWER(COALESCE(title, '')) LIKE ?)
+        )
+      )`,
+    );
+    args.push(normalizedPattern, digitPattern, lowerPattern, lowerPattern, lowerPattern);
+  }
+
+  const where = conditions.length ? `WHERE ${conditions.join(' AND ')}` : '';
+  const row = getDatabase().getFirstSync<{ count: number }>(
+    `SELECT COUNT(*) as count FROM contacts ${where}`,
+    args,
+  );
+  return row?.count ?? 0;
+}
+
 export function getAllContactIds(): number[] {
   return getDatabase()
     .getAllSync<{ id: number }>('SELECT id FROM contacts ORDER BY id', [])
     .map((r) => r.id);
+}
+
+export function listNativeContactIds(): Array<{ id: number; nativeId: string }> {
+  return getDatabase()
+    .getAllSync<{ id: number; native_id: string }>(
+      'SELECT id, native_id FROM contacts WHERE native_id IS NOT NULL',
+      [],
+    )
+    .map((row) => ({ id: row.id, nativeId: row.native_id }));
 }

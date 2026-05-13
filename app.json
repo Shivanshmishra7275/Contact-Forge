@@ -2,7 +2,7 @@
   "expo": {
     "name": "ContactForge",
     "slug": "contactforge",
-    "version": "2.0.0",
+    "version": "3.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "dark",
@@ -14,21 +14,21 @@
       "backgroundColor": "#1a1a2e"
     },
     "ios": {
-      "buildNumber": "2",
+      "buildNumber": "3",
       "supportsTablet": false,
       "infoPlist": {
-        "NSContactsUsageDescription": "ContactForge needs access to your contacts to help you organize, clean, and manage them locally on your device. No data is ever sent to any server."
+        "NSContactsUsageDescription": "ContactForge needs access to your contacts to help you organize, clean, and manage them locally on your device. No data is ever sent to any server.",
+        "UIBackgroundModes": ["fetch"]
       }
     },
     "android": {
-      "versionCode": 2,
+      "versionCode": 3,
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#1a1a2e"
       },
       "permissions": [
-        "android.permission.READ_CONTACTS",
-        "android.permission.WRITE_CONTACTS"
+        "android.permission.READ_CONTACTS"
       ],
       "package": "com.shivanshmishra.contactforge"
     },

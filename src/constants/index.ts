@@ -4,7 +4,12 @@
 
 // App meta
 export const APP_NAME = 'ContactForge';
-export const APP_VERSION = '2.0.0';
+export const APP_VERSION = '3.0.0';
+export const REPO_OWNER = 'Shivanshmishra7275';
+export const REPO_NAME = 'Contact-Forge';
+export const REPO_URL = `https://github.com/${REPO_OWNER}/${REPO_NAME}`;
+export const RELEASES_URL = `${REPO_URL}/releases`;
+export const RELEASES_API_URL = `https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/releases/latest`;
 
 // Database
 export const DB_NAME = 'contactforge.db';
@@ -37,7 +42,13 @@ export const DEFAULT_SETTINGS = {
   autoCleanOnSync: false,
   duplicateScanOnSync: true,
   exportIncludeNotes: true,
+  enableBackgroundMaintenance: true,
+  autoPurgeExpiredTemporary: false,
+  backupRetentionCount: 20,
+  enableOnlineFeatures: false,
 } as const;
+
+export const MAINTENANCE_MIN_INTERVAL_MINUTES = 60;
 
 // Contact tags
 export const CONTACT_TAGS = [

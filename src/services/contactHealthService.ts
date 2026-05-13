@@ -94,10 +94,25 @@ export function calculateContactHealthScore(contactId: number): ContactHealthSco
   };
 }
 
-export function getContactsNeedingCuration(): number[] {
-  // Return contacts with health score < 40
-  // This is simplified; in production, you'd query all and batch-score
-  return [];
+export function getContactsNeedingCuration(threshold = 60): number[] {
+  try {
+    const ids = getAllContactIds();
+    if (ids.length === 0) return [];
+
+    const scored: Array<{ id: number; score: number }> = [];
+    for (const id of ids) {
+      const health = calculateContactHealthScore(id);
+      if (!health) continue;
+      if (health.score < threshold) {
+        scored.push({ id, score: health.score });
+      }
+    }
+
+    scored.sort((a, b) => a.score - b.score);
+    return scored.map((entry) => entry.id);
+  } catch {
+    return [];
+  }
 }
 
 export function calculateHealthSummary(threshold = 60): {

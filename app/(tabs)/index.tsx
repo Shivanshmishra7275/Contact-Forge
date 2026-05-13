@@ -12,9 +12,9 @@
  * - Permission status warning if not granted
  */
 
-import { useCallback, useState } from 'react';
-import { View, ScrollView, StyleSheet, Alert, InteractionManager, TouchableOpacity } from 'react-native';
-import { Text, Button, Card, ActivityIndicator, Divider, Chip } from 'react-native-paper';
+import { useCallback, useEffect, useMemo, useRef, useState, type ComponentProps } from 'react';
+import { View, ScrollView, StyleSheet, Alert, InteractionManager, TouchableOpacity, Animated, Easing } from 'react-native';
+import { Text, Button, Card, ActivityIndicator, Chip, ProgressBar } from 'react-native-paper';
 import { router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
@@ -27,13 +27,16 @@ import {
   syncContactsToLocal,
 } from '../../src/services/contactSyncService';
 import { runDuplicateScan } from '../../src/services/duplicateService';
+import { applyBulkCleanupFixes, scanAllContactsForIssues } from '../../src/services/cleanupService';
+import { getMaintenanceState } from '../../src/services/maintenanceService';
 import { countContacts } from '../../src/db/repositories/contactRepository';
 import { countPendingDuplicates } from '../../src/db/repositories/duplicateRepository';
 import { countExpiredTemporaryContacts } from '../../src/services/temporaryContactService';
 import { countContactsWithIssues } from '../../src/services/cleanupService';
 import { calculateHealthSummary } from '../../src/services/contactHealthService';
 import { isoToDisplay } from '../../src/utils/normalization';
-import type { SyncProgress } from '../../src/services/contactSyncService';
+import type { SyncProgress, SyncResult } from '../../src/services/contactSyncService';
+import type { SyncState } from '../../src/types';
 
 export default function DashboardScreen() {
   const sync = useAppStore((s) => s.sync);
@@ -44,6 +47,7 @@ export default function DashboardScreen() {
   const setPendingDuplicateCount = useAppStore((s) => s.setPendingDuplicateCount);
   const setGlobalLoading = useAppStore((s) => s.setGlobalLoading);
   const setGlobalLoadingMessage = useAppStore((s) => s.setGlobalLoadingMessage);
+  const settings = useAppStore((s) => s.settings);
 
   const [totalContacts, setTotalContacts] = useState(0);
   const [expiredTemps, setExpiredTemps] = useState(0);
@@ -55,6 +59,28 @@ export default function DashboardScreen() {
   const [syncProgress, setSyncProgress] = useState<SyncProgress | null>(null);
   const [isSyncing, setIsSyncing] = useState(false);
   const [isScanning, setIsScanning] = useState(false);
+  const [maintenanceState, setMaintenanceState] = useState(() => getMaintenanceState());
+  const entranceValues = useRef([...Array(7)].map(() => new Animated.Value(0))).current;
+
+  const animatedTotal = useCountUp(totalContacts);
+  const animatedDuplicates = useCountUp(pendingDuplicates);
+  const animatedExpired = useCountUp(expiredTemps);
+  const needsAttentionCount = pendingDuplicates + cleanupIssueCount + expiredTemps + lowHealthCount;
+
+  const syncBadge = useMemo(
+    () => buildSyncBadge({
+      status: sync.status,
+      lastSyncAt: sync.lastSyncAt,
+      errorMessage: sync.errorMessage,
+      isSyncing,
+      permissionGranted,
+    }),
+    [sync.status, sync.lastSyncAt, sync.errorMessage, isSyncing, permissionGranted],
+  );
+
+  const progressValue = syncProgress
+    ? Math.min(1, syncProgress.processed / Math.max(1, syncProgress.total))
+    : 0;
 
   const refreshStats = useCallback(() => {
     setStatsLoading(true);
@@ -66,6 +92,7 @@ export default function DashboardScreen() {
       const summary = calculateHealthSummary();
       setAverageHealth(summary.average);
       setLowHealthCount(summary.lowCount);
+      setMaintenanceState(getMaintenanceState());
     } finally {
       setStatsLoading(false);
     }
@@ -74,6 +101,7 @@ export default function DashboardScreen() {
   useFocusEffect(
     useCallback(() => {
       let cancelled = false;
+      entranceValues.forEach((value) => value.setValue(0));
       const task = InteractionManager.runAfterInteractions(() => {
         getContactsPermissionStatus().then((status) => {
           if (!cancelled) {
@@ -81,13 +109,24 @@ export default function DashboardScreen() {
           }
         });
         refreshStats();
+        Animated.stagger(
+          70,
+          entranceValues.map((value) => (
+            Animated.timing(value, {
+              toValue: 1,
+              duration: 200,
+              easing: Easing.out(Easing.cubic),
+              useNativeDriver: true,
+            })
+          )),
+        ).start();
       });
 
       return () => {
         cancelled = true;
         task.cancel();
       };
-    }, [refreshStats]),
+    }, [entranceValues, refreshStats]),
   );
 
   const handleSync = useCallback(async () => {
@@ -102,6 +141,7 @@ export default function DashboardScreen() {
     setSyncProgress(null);
 
     try {
+      const postSyncNotes: string[] = [];
       const result = await syncContactsToLocal((progress) => {
         setSyncProgress(progress);
       });
@@ -110,16 +150,40 @@ export default function DashboardScreen() {
       setSyncStatus('idle');
       setSyncCounts(result.synced, countContacts());
       refreshStats();
-      Alert.alert('Sync Complete', `Synced ${result.synced} contacts${result.errors > 0 ? ` (${result.errors} errors)` : ''}.`);
+
+      if (settings.autoCleanOnSync) {
+        setGlobalLoading(true);
+        setGlobalLoadingMessage('Auto-cleaning contact issues…');
+        const issues = scanAllContactsForIssues();
+        const applied = applyBulkCleanupFixes(issues);
+        postSyncNotes.push(`Auto-cleaned ${applied} fixes.`);
+      }
+
+      if (settings.duplicateScanOnSync) {
+        setGlobalLoading(true);
+        setGlobalLoadingMessage('Scanning for duplicates…');
+        const scanResult = await runDuplicateScan();
+        setPendingDuplicateCount(countPendingDuplicates());
+        postSyncNotes.push(`Duplicate scan found ${scanResult.found}.`);
+      }
+
+      const repairSummary = buildRepairSummary(result);
+      const countSummary = buildSyncCountSummary(result);
+      const postSyncSummary = postSyncNotes.length > 0 ? `\n${postSyncNotes.join('\n')}` : '';
+      Alert.alert(
+        'Sync Complete',
+        `Synced ${result.synced} contacts${result.errors > 0 ? ` (${result.errors} errors)` : ''}.\n${countSummary}${repairSummary}${postSyncSummary}`,
+      );
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Unknown error';
       setSyncStatus('error', msg);
       Alert.alert('Sync Failed', msg);
     } finally {
+      setGlobalLoading(false);
       setIsSyncing(false);
       setSyncProgress(null);
     }
-  }, [refreshStats]);
+  }, [refreshStats, settings.autoCleanOnSync, settings.duplicateScanOnSync]);
 
   const handleScanDuplicates = useCallback(async () => {
     if (totalContacts === 0) {
@@ -149,20 +213,10 @@ export default function DashboardScreen() {
   return (
     <SafeAreaView style={styles.safeArea} edges={['top']}>
       <ScrollView style={styles.scroll} contentContainerStyle={styles.content}>
-        {/* Header */}
-        {/* Branding Header */}
-        <View style={styles.brandingHeader}>
-          <MaterialCommunityIcons name="star-circle" size={28} color={COLORS.primary} />
-          <View style={styles.brandingText}>
-            <Text style={styles.brandName}>Shivansh Mishra</Text>
-            <Text style={styles.appTagline}>{APP_NAME} • Cinematic Offline-First</Text>
-          </View>
-        </View>
-
         {/* Dashboard Header */}
         <View style={styles.header}>
-          <Text style={styles.appName}>{APP_NAME}</Text>
-          <Text style={styles.tagline}>Privacy-first contact management</Text>
+          <Text style={styles.appName}>Home</Text>
+          <Text style={styles.tagline}>{APP_NAME} keeps your address book clean and trusted.</Text>
         </View>
 
         {/* Permission warning */}
@@ -177,157 +231,330 @@ export default function DashboardScreen() {
           </Card>
         )}
 
-        {/* Stats row */}
-        <View style={styles.statsRow}>
+        <Animated.View style={[styles.statsRow, getEntranceStyle(entranceValues[0])]}>
           <StatCard
             icon="account-group"
-            value={totalContacts}
+            value={animatedTotal}
             label="Contacts"
             color={COLORS.primary}
           />
           <StatCard
             icon="content-copy"
-            value={pendingDuplicates}
+            value={animatedDuplicates}
             label="Duplicates"
             color={COLORS.error}
             onPress={() => router.push('/(tabs)/duplicates')}
           />
           <StatCard
             icon="timer-sand"
-            value={expiredTemps}
+            value={animatedExpired}
             label="Expired"
             color={COLORS.warning}
             onPress={() => router.push('/(tabs)/cleanup')}
           />
-        </View>
+        </Animated.View>
 
-        {/* Health Overview Card */}
-        <Card style={styles.healthCard}>
-          <Card.Content style={styles.healthContent}>
-            <View style={styles.healthLeft}>
-              <MaterialCommunityIcons name="heart-pulse" size={28} color={COLORS.primary} />
-              <View>
-                <Text style={styles.healthLabel}>Library Health</Text>
-                <Text style={styles.healthValue}>{Math.round(averageHealth)}%</Text>
+        <Animated.View style={getEntranceStyle(entranceValues[1])}>
+          <Card style={styles.healthCard}>
+            <Card.Content style={styles.healthContent}>
+              <View style={styles.healthLeft}>
+                <MaterialCommunityIcons name="heart-pulse" size={28} color={COLORS.primary} />
+                <View>
+                  <Text style={styles.healthLabel}>Library Health</Text>
+                  <Text style={styles.healthValue}>{Math.round(averageHealth)}%</Text>
+                </View>
               </View>
-            </View>
-            <View style={styles.healthBar}>
-              <View style={[styles.healthProgress, { width: `${averageHealth}%` }]} />
-            </View>
-          </Card.Content>
-        </Card>
+              <View style={styles.healthBar}>
+                <View style={[styles.healthProgress, { width: `${averageHealth}%` }]} />
+              </View>
+            </Card.Content>
+          </Card>
+        </Animated.View>
 
-        {/* Sync status */}
-        <Card style={styles.card}>
-          <Card.Title title="Last Sync" titleStyle={styles.cardTitle} />
-          <Card.Content>
-            <Text style={styles.syncTime}>
-              {sync.lastSyncAt
-                ? isoToDisplay(sync.lastSyncAt)
-                : 'Never synced'}
-            </Text>
-            {sync.status === 'error' && (
-              <Text style={styles.errorText}>{sync.errorMessage}</Text>
-            )}
-            {isSyncing && syncProgress && (
-              <View style={styles.progressRow}>
-                <ActivityIndicator size="small" color={COLORS.primary} />
-                <Text style={styles.progressText}>
-                  {syncProgress.processed} / {syncProgress.total}
+        <Animated.View style={getEntranceStyle(entranceValues[2])}>
+          <Card style={styles.card}>
+            <Card.Title
+              title="Sync status"
+              titleStyle={styles.cardTitle}
+              right={() => (
+                <Chip style={[styles.statusChip, { backgroundColor: syncBadge.tone + '22' }]} textStyle={{ color: syncBadge.tone }}>
+                  {syncBadge.label}
+                </Chip>
+              )}
+            />
+            <Card.Content>
+              <Text style={styles.syncTime}>
+                {sync.lastSyncAt ? isoToDisplay(sync.lastSyncAt) : 'Never synced'}
+              </Text>
+              <Text style={styles.syncMeta}>
+                Device: {sync.totalNativeContacts} • Local: {sync.totalLocalContacts}
+              </Text>
+              <Text style={styles.syncHelper}>{syncBadge.helper}</Text>
+              {sync.status === 'error' && (
+                <Text style={styles.errorText}>{sync.errorMessage}</Text>
+              )}
+              {isSyncing && syncProgress && (
+                <View style={styles.progressRow}>
+                  <ActivityIndicator size="small" color={COLORS.primary} />
+                  <Text style={styles.progressText}>
+                    {syncProgress.processed} / {syncProgress.total}
+                  </Text>
+                </View>
+              )}
+              {isSyncing && syncProgress && (
+                <ProgressBar progress={progressValue} color={COLORS.primary} style={styles.progressBar} />
+              )}
+            </Card.Content>
+          </Card>
+        </Animated.View>
+
+        <Animated.View style={getEntranceStyle(entranceValues[3])}>
+          <Card style={styles.card}>
+            <Card.Title title="Maintenance" titleStyle={styles.cardTitle} />
+            <Card.Content>
+              <Text style={styles.syncTime}>
+                {maintenanceState.lastRunAt
+                  ? isoToDisplay(maintenanceState.lastRunAt)
+                  : 'Not run yet'}
+              </Text>
+              {maintenanceState.lastSummary && (
+                <Text style={styles.maintenanceText}>
+                  Cleanup issues: {maintenanceState.lastSummary.cleanupIssues} •
+                  Pending duplicates: {maintenanceState.lastSummary.pendingDuplicates}
                 </Text>
-              </View>
-            )}
-          </Card.Content>
-        </Card>
+              )}
+            </Card.Content>
+          </Card>
+        </Animated.View>
 
-        {/* Quick actions */}
-        <Card style={styles.card}>
-          <Card.Title title="Quick Actions" titleStyle={styles.cardTitle} />
-          <Card.Content style={styles.actionsContent}>
-            <Button
-              mode="contained"
-              onPress={handleSync}
-              loading={isSyncing}
-              disabled={isSyncing || isScanning}
-              icon="sync"
-              style={styles.actionBtn}
-              buttonColor={COLORS.primary}
-            >
-              {isSyncing ? 'Syncing…' : 'Sync Contacts'}
-            </Button>
-            <Button
-              mode="outlined"
-              onPress={handleScanDuplicates}
-              loading={isScanning}
-              disabled={isSyncing || isScanning}
-              icon="magnify"
-              style={styles.actionBtn}
-              textColor={COLORS.primary}
-            >
-              Scan Duplicates
-            </Button>
-            <Button
-              mode="outlined"
-              onPress={() => router.push('/(tabs)/contacts')}
-              icon="account-group"
-              style={styles.actionBtn}
-              textColor={COLORS.secondary}
-            >
-              Browse Contacts
-            </Button>
-          </Card.Content>
-        </Card>
+        <Animated.View style={getEntranceStyle(entranceValues[4])}>
+          <Card style={styles.card}>
+            <Card.Title title="Quick actions" titleStyle={styles.cardTitle} />
+            <Card.Content style={styles.actionsContent}>
+              <QuickActionButton
+                mode="contained"
+                onPress={handleSync}
+                loading={isSyncing}
+                disabled={isSyncing || isScanning}
+                icon="sync"
+                buttonColor={COLORS.primary}
+                containerStyle={styles.actionBtn}
+              >
+                {isSyncing ? 'Syncing…' : 'Sync contacts'}
+              </QuickActionButton>
+              <QuickActionButton
+                mode="outlined"
+                onPress={handleScanDuplicates}
+                loading={isScanning}
+                disabled={isSyncing || isScanning}
+                icon="magnify"
+                textColor={COLORS.primary}
+                containerStyle={styles.actionBtn}
+              >
+                Scan duplicates
+              </QuickActionButton>
+              <QuickActionButton
+                mode="outlined"
+                onPress={() => router.push('/(tabs)/contacts')}
+                icon="account-group"
+                textColor={COLORS.secondary}
+                containerStyle={styles.actionBtn}
+              >
+                Browse contacts
+              </QuickActionButton>
+            </Card.Content>
+          </Card>
+        </Animated.View>
 
-        {/* Review Center */}
-        <Card style={styles.card}>
-          <Card.Title title="Review Center" titleStyle={styles.cardTitle} />
-          <Card.Content style={styles.reviewContent}>
-            <ReviewRow
-              label="Duplicate candidates"
-              count={pendingDuplicates}
-              color={COLORS.error}
-              onPress={() => router.push('/(tabs)/duplicates')}
+        <Animated.View style={getEntranceStyle(entranceValues[5])}>
+          <Card style={styles.card}>
+            <Card.Title
+              title="Needs attention"
+              titleStyle={styles.cardTitle}
+              right={() => (
+                <Chip style={styles.needsChip} textStyle={styles.needsChipText}>
+                  {needsAttentionCount}
+                </Chip>
+              )}
             />
-            <ReviewRow
-              label="Cleanup issues"
-              count={cleanupIssueCount}
-              color={COLORS.warning}
-              onPress={() => router.push('/(tabs)/cleanup')}
-            />
-            <ReviewRow
-              label="Expired temporary contacts"
-              count={expiredTemps}
-              color={COLORS.info}
-              onPress={() => router.push('/(tabs)/cleanup')}
-            />
-            <ReviewRow
-              label="Low health contacts"
-              count={lowHealthCount}
-              color={COLORS.primary}
-            />
-          </Card.Content>
-          <Card.Content style={styles.reviewFooter}>
-            {statsLoading ? (
-              <ActivityIndicator size="small" color={COLORS.primary} />
-            ) : (
-              <Button mode="text" onPress={refreshStats} textColor={COLORS.primary} compact>
-                Refresh review counts
-              </Button>
-            )}
-          </Card.Content>
-        </Card>
+            <Card.Content style={styles.reviewContent}>
+              <Text style={styles.reviewHint}>Start where the risk is highest and work down the list.</Text>
+              <ReviewRow
+                label="Duplicate candidates"
+                count={pendingDuplicates}
+                color={COLORS.error}
+                onPress={() => router.push('/(tabs)/duplicates')}
+              />
+              <ReviewRow
+                label="Cleanup issues"
+                count={cleanupIssueCount}
+                color={COLORS.warning}
+                onPress={() => router.push('/(tabs)/cleanup')}
+              />
+              <ReviewRow
+                label="Expired temporary contacts"
+                count={expiredTemps}
+                color={COLORS.info}
+                onPress={() => router.push('/(tabs)/cleanup')}
+              />
+              <ReviewRow
+                label="Low health contacts"
+                count={lowHealthCount}
+                color={COLORS.primary}
+                onPress={() => router.push({ pathname: '/(tabs)/contacts', params: { filter: 'low_health' } })}
+              />
+            </Card.Content>
+            <Card.Content style={styles.reviewFooter}>
+              {statsLoading ? (
+                <ActivityIndicator size="small" color={COLORS.primary} />
+              ) : (
+                <Button mode="text" onPress={refreshStats} textColor={COLORS.primary} compact>
+                  Refresh counts
+                </Button>
+              )}
+            </Card.Content>
+          </Card>
+        </Animated.View>
 
-        {/* Privacy note */}
-        <Card style={styles.privacyCard}>
-          <Card.Content style={styles.privacyContent}>
-            <MaterialCommunityIcons name="shield-check" color={COLORS.success} size={18} />
-            <Text style={styles.privacyText}>
-              100% offline. No data ever leaves your device.
-            </Text>
-          </Card.Content>
-        </Card>
+        <Animated.View style={getEntranceStyle(entranceValues[6])}>
+          <Card style={styles.privacyCard}>
+            <Card.Content style={styles.privacyContent}>
+              <MaterialCommunityIcons name="shield-check" color={COLORS.success} size={18} />
+              <Text style={styles.privacyText}>
+                Offline by default. Optional online checks never upload contact data.
+              </Text>
+            </Card.Content>
+          </Card>
+        </Animated.View>
       </ScrollView>
     </SafeAreaView>
+  );
+}
+
+function buildSyncBadge(params: {
+  status: SyncState['status'];
+  lastSyncAt: string | null;
+  errorMessage: string | null;
+  isSyncing: boolean;
+  permissionGranted: boolean | null;
+}): { label: string; helper: string; tone: string } {
+  if (params.isSyncing) {
+    return { label: 'Syncing', helper: 'Refreshing your local mirror.', tone: COLORS.primary };
+  }
+  if (params.permissionGranted === false) {
+    return { label: 'Permission needed', helper: 'Allow contacts access to sync.', tone: COLORS.warning };
+  }
+  if (params.status === 'error') {
+    return { label: 'Sync error', helper: 'Tap Sync to retry.', tone: COLORS.error };
+  }
+  if (!params.lastSyncAt) {
+    return { label: 'Not synced', helper: 'Run a sync to build your local library.', tone: COLORS.warning };
+  }
+
+  const lastMs = Date.parse(params.lastSyncAt);
+  const hours = Number.isNaN(lastMs) ? 99 : (Date.now() - lastMs) / (60 * 60 * 1000);
+  if (hours > 24) {
+    return { label: 'Sync recommended', helper: 'Last sync is over 24 hours old.', tone: COLORS.warning };
+  }
+  return { label: 'Up to date', helper: 'Local mirror is current.', tone: COLORS.success };
+}
+
+function getEntranceStyle(value: Animated.Value): { opacity: Animated.Value; transform: { translateY: Animated.AnimatedInterpolation<number> }[] } {
+  return {
+    opacity: value,
+    transform: [
+      {
+        translateY: value.interpolate({
+          inputRange: [0, 1],
+          outputRange: [12, 0],
+        }),
+      },
+    ],
+  };
+}
+
+function useCountUp(value: number, duration = 200): number {
+  const animated = useRef(new Animated.Value(value)).current;
+  const [display, setDisplay] = useState(value);
+
+  useEffect(() => {
+    const id = animated.addListener(({ value: next }) => {
+      setDisplay(Math.round(next));
+    });
+    return () => animated.removeListener(id);
+  }, [animated]);
+
+  useEffect(() => {
+    Animated.timing(animated, {
+      toValue: value,
+      duration,
+      easing: Easing.out(Easing.cubic),
+      useNativeDriver: false,
+    }).start();
+  }, [animated, duration, value]);
+
+  return display;
+}
+
+function buildRepairSummary(result: SyncResult): string {
+  if (!result.repairs || result.repairs.groups === 0) return '';
+
+  const { groups, mergedContacts, removedContacts } = result.repairs;
+  const mergedLabel = mergedContacts === 1 ? 'entry' : 'entries';
+  const groupLabel = groups === 1 ? 'group' : 'groups';
+  const removedLabel = removedContacts === 1 ? 'record' : 'records';
+  return ` Repaired ${mergedContacts} duplicate ${mergedLabel} across ${groups} ${groupLabel} (${removedContacts} ${removedLabel} removed).`;
+}
+
+function buildSyncCountSummary(result: SyncResult): string {
+  return [
+    `Added: ${result.added}`,
+    `Updated: ${result.updated}`,
+    `Unchanged: ${result.unchanged}`,
+    `Removed: ${result.removed}`,
+  ].join(' • ');
+}
+
+type QuickActionButtonProps = ComponentProps<typeof Button> & {
+  containerStyle?: object;
+};
+
+function QuickActionButton({ containerStyle, onPressIn, onPressOut, ...props }: QuickActionButtonProps) {
+  const scale = useRef(new Animated.Value(1)).current;
+
+  const handlePressIn = useCallback(() => {
+    Animated.timing(scale, {
+      toValue: 0.98,
+      duration: 120,
+      easing: Easing.out(Easing.quad),
+      useNativeDriver: true,
+    }).start();
+  }, [scale]);
+
+  const handlePressOut = useCallback(() => {
+    Animated.timing(scale, {
+      toValue: 1,
+      duration: 160,
+      easing: Easing.out(Easing.quad),
+      useNativeDriver: true,
+    }).start();
+  }, [scale]);
+
+  return (
+    <Animated.View style={[containerStyle, { transform: [{ scale }] }]}
+    >
+      <Button
+        {...props}
+        onPressIn={(event) => {
+          handlePressIn();
+          onPressIn?.(event);
+        }}
+        onPressOut={(event) => {
+          handlePressOut();
+          onPressOut?.(event);
+        }}
+      />
+    </Animated.View>
   );
 }
 
@@ -384,28 +611,6 @@ const styles = StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: COLORS.background },
   scroll: { flex: 1 },
   content: { padding: SPACING.md, paddingBottom: SPACING.xxl },
-  brandingHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: SPACING.sm,
-    paddingHorizontal: SPACING.xs,
-    paddingVertical: SPACING.md,
-    backgroundColor: COLORS.surfaceVariant,
-    borderRadius: 12,
-    marginBottom: SPACING.lg,
-  },
-  brandingText: { flex: 1 },
-  brandName: {
-    color: COLORS.primary,
-    fontSize: FONT_SIZE.sm,
-    fontWeight: '800',
-    letterSpacing: 0.5,
-  },
-  appTagline: {
-    color: COLORS.textDisabled,
-    fontSize: FONT_SIZE.xs,
-    marginTop: 2,
-  },
   header: { marginBottom: SPACING.lg },
   appName: {
     fontSize: FONT_SIZE.title,
@@ -429,10 +634,15 @@ const styles = StyleSheet.create({
   statLabel: { fontSize: FONT_SIZE.xs, color: COLORS.textSecondary, marginTop: 2 },
   card: { backgroundColor: COLORS.surface, marginBottom: SPACING.md },
   cardTitle: { color: COLORS.textPrimary, fontSize: FONT_SIZE.md },
+  statusChip: { alignSelf: 'center' },
   syncTime: { color: COLORS.textSecondary, fontSize: FONT_SIZE.sm },
+  syncMeta: { color: COLORS.textSecondary, fontSize: FONT_SIZE.xs, marginTop: 4 },
+  syncHelper: { color: COLORS.textDisabled, fontSize: FONT_SIZE.xs, marginTop: 4 },
+  maintenanceText: { color: COLORS.textSecondary, fontSize: FONT_SIZE.xs, marginTop: 4 },
   errorText: { color: COLORS.error, fontSize: FONT_SIZE.sm, marginTop: 4 },
   progressRow: { flexDirection: 'row', alignItems: 'center', gap: SPACING.sm, marginTop: 4 },
   progressText: { color: COLORS.textSecondary, fontSize: FONT_SIZE.sm },
+  progressBar: { marginTop: SPACING.sm, height: 4, borderRadius: 4 },
   actionsContent: { gap: SPACING.sm },
   actionBtn: { marginBottom: 0 },
   privacyCard: { backgroundColor: COLORS.surfaceVariant },
@@ -446,7 +656,10 @@ const styles = StyleSheet.create({
   healthBar: { height: 4, backgroundColor: COLORS.surfaceVariant, borderRadius: 2, overflow: 'hidden', flex: 1, minWidth: 60 },
   healthProgress: { height: 4, backgroundColor: COLORS.primary, borderRadius: 2 },
   reviewContent: { gap: SPACING.sm },
+  reviewHint: { color: COLORS.textSecondary, fontSize: FONT_SIZE.xs },
   reviewFooter: { paddingTop: 0, alignItems: 'flex-start' },
+  needsChip: { alignSelf: 'center', backgroundColor: COLORS.surfaceVariant },
+  needsChipText: { color: COLORS.textPrimary, fontSize: FONT_SIZE.xs },
   reviewRow: {
     flexDirection: 'row',
     alignItems: 'center',

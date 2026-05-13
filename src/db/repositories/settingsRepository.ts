@@ -21,6 +21,21 @@ export function setSetting(key: keyof AppSettings, value: string): void {
   );
 }
 
+export function getRawSetting(key: string): string | null {
+  const row = getDatabase().getFirstSync<{ value: string }>(
+    'SELECT value FROM settings WHERE key = ?',
+    [key],
+  );
+  return row?.value ?? null;
+}
+
+export function setRawSetting(key: string, value: string): void {
+  getDatabase().runSync(
+    'INSERT OR REPLACE INTO settings (key, value) VALUES (?,?)',
+    [key, value],
+  );
+}
+
 export function getAllSettings(): AppSettings {
   const db = getDatabase();
   const rows = db.getAllSync<{ key: string; value: string }>(
@@ -33,12 +48,21 @@ export function getAllSettings(): AppSettings {
     map[row.key] = row.value;
   }
 
+  const backupRetentionRaw = Number.parseInt(
+    map.backupRetentionCount ?? String(DEFAULT_SETTINGS.backupRetentionCount),
+    10,
+  );
+
   return {
     defaultCountryCode: map.defaultCountryCode ?? DEFAULT_SETTINGS.defaultCountryCode,
     enableAppLock: (map.enableAppLock ?? String(DEFAULT_SETTINGS.enableAppLock)) === 'true',
     autoCleanOnSync: (map.autoCleanOnSync ?? String(DEFAULT_SETTINGS.autoCleanOnSync)) === 'true',
     duplicateScanOnSync: (map.duplicateScanOnSync ?? String(DEFAULT_SETTINGS.duplicateScanOnSync)) === 'true',
     exportIncludeNotes: (map.exportIncludeNotes ?? String(DEFAULT_SETTINGS.exportIncludeNotes)) === 'true',
+    enableBackgroundMaintenance: (map.enableBackgroundMaintenance ?? String(DEFAULT_SETTINGS.enableBackgroundMaintenance)) === 'true',
+    autoPurgeExpiredTemporary: (map.autoPurgeExpiredTemporary ?? String(DEFAULT_SETTINGS.autoPurgeExpiredTemporary)) === 'true',
+    backupRetentionCount: Number.isFinite(backupRetentionRaw) ? backupRetentionRaw : DEFAULT_SETTINGS.backupRetentionCount,
+    enableOnlineFeatures: (map.enableOnlineFeatures ?? String(DEFAULT_SETTINGS.enableOnlineFeatures)) === 'true',
   };
 }
 
