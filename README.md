@@ -1,339 +1,419 @@
 <div align="center">
 
-# ContactForge
-
-[![Typing SVG](https://readme-typing-svg.demolab.com?font=Fira+Code&weight=600&size=24&pause=1200&color=4B5563&center=true&vCenter=true&width=1000&lines=ContactForge+-+Privacy-First+Offline+Contact+Management;Clean+duplicates.+Organize+messy+contacts.+Export+safely.;Built+with+Expo%2C+React+Native%2C+TypeScript+and+SQLite;Crafted+by+Shivansh+Mishra)](https://github.com/DenverCoder1/readme-typing-svg)
-
-![Expo](https://img.shields.io/badge/Expo-Managed%20Workflow-000020?style=for-the-badge&logo=expo&logoColor=white)
-![React Native](https://img.shields.io/badge/React%20Native-Mobile%20App-20232A?style=for-the-badge&logo=react&logoColor=61DAFB)
-![TypeScript](https://img.shields.io/badge/TypeScript-Strict-3178C6?style=for-the-badge&logo=typescript&logoColor=white)
-![SQLite](https://img.shields.io/badge/SQLite-Local%20Database-003B57?style=for-the-badge&logo=sqlite&logoColor=white)
-![Offline First](https://img.shields.io/badge/Architecture-Offline%20First-111827?style=for-the-badge)
-![Privacy First](https://img.shields.io/badge/Privacy-Local%20Only-065F46?style=for-the-badge)
-![Open Source](https://img.shields.io/badge/Open%20Source-Community%20Ready-6D28D9?style=for-the-badge)
-
-**A privacy-first, offline mobile app for cleaning, organizing, deduplicating, and safely managing real-world contact libraries.**
-
-Crafted by **Shivansh Mishra**
-
-</div>
-
----
-
-## 📖 Overview
-
-> **ContactForge is a privacy-first contact management app built for people who want full control over their address book.**
-
-ContactForge mirrors device contacts into a local SQLite database for fast search and explainable cleanup workflows. Local-only edits do not write back to the device contact book. Everything stays on-device and works without internet.
+<img src="https://capsule-render.vercel.app/api?type=waving&height=240&color=0:111827,100:000000&text=ContactForge&fontSize=56&fontColor=ffffff&animation=fadeIn&fontAlignY=38&desc=Privacy-First%20Offline%20Contact%20Management&descAlignY=60" width="100%" />
 
 <br>
 
-<table align="center">
-  <tr>
-    <td align="center" width="33%">
-      <h2>🛡️</h2>
-      <b>Privacy First</b>
-      <br><br>
-      Built for absolute control. Zero reliance on cloud services, analytics, or hidden remote processing.
-    </td>
-    <td align="center" width="33%">
-      <h2>⚡</h2>
-      <b>SQLite Powered</b>
-      <br><br>
-      Mirrors device contacts into a local, highly-optimized database for lightning-fast search and cleanup.
-    </td>
-    <td align="center" width="33%">
-      <h2>📴</h2>
-      <b>100% Offline</b>
-      <br><br>
-      No backend. No syncing. Everything stays on your device and works flawlessly without an internet connection.
-    </td>
-  </tr>
-</table>
+[![Typing SVG](https://readme-typing-svg.demolab.com?font=Fira+Code&weight=600&size=24&pause=1200&color=9CA3AF&center=true&vCenter=true&width=1000&lines=Offline-First+Architecture;Zero+Cloud+Processing;Advanced+Contact+Cleanup+Engine;Built+with+Expo+%2B+React+Native+%2B+SQLite;Crafted+by+Shivansh+Mishra)](https://github.com/DenverCoder1/readme-typing-svg)
 
+<br><br>
 
----
+<img src="https://img.shields.io/badge/Expo-Managed_Workflow-000020?style=for-the-badge&logo=expo&logoColor=white" />
+<img src="https://img.shields.io/badge/React_Native-Mobile_App-20232A?style=for-the-badge&logo=react&logoColor=61DAFB" />
+<img src="https://img.shields.io/badge/TypeScript-Strict-3178C6?style=for-the-badge&logo=typescript&logoColor=white" />
+<img src="https://img.shields.io/badge/SQLite-Local_Database-003B57?style=for-the-badge&logo=sqlite&logoColor=white" />
 
-<div align="center">
-  <h3>🚀 Ready to experience privacy-first management?</h3>
-  <br>
-  <a href="https://expo.dev/accounts/shivansh_98/projects/contactforge/builds/07338ef6-0b23-41f7-8dcb-03ee90097c9a">
-    <img src="https://img.shields.io/badge/Download_ContactForge_V2.0-000000?style=for-the-badge&logo=android&logoColor=00FF00&labelColor=111111" alt="Download APK" height="50">
-  </a>
-  <br>
-  <p><i>100% Offline. Zero Data Harvesting.</i></p>
-</div>
+<br><br>
 
----
+<img src="https://img.shields.io/github/stars/Shivanshmishra7275/Contact-Forge?style=flat-square" />
+<img src="https://img.shields.io/github/forks/Shivanshmishra7275/Contact-Forge?style=flat-square" />
+<img src="https://img.shields.io/github/issues/Shivanshmishra7275/Contact-Forge?style=flat-square" />
+<img src="https://img.shields.io/github/license/Shivanshmishra7275/Contact-Forge?style=flat-square" />
 
-## 💡 Why ContactForge?
+<br><br>
 
-<div align="center">
-  <table>
-    <tr>
-      <td align="center" width="50%">
-        <h3>🌪️ The Problem</h3>
-        <p>Real-world contact lists become messy over time. Duplicates appear after imports, names get inconsistent, and temporary contacts pile up.</p>
-      </td>
-      <td align="center" width="50%">
-        <h3>🛡️ The Solution</h3>
-        <p><b>ContactForge</b> solves the chaos with a local-first workflow that is completely <i>safe, explainable, and review-driven.</i></p>
-      </td>
-    </tr>
-  </table>
-</div>
+<img src="https://img.shields.io/badge/Architecture-Offline_First-111827?style=flat-square" />
+<img src="https://img.shields.io/badge/Privacy-Local_Only-065F46?style=flat-square" />
+<img src="https://img.shields.io/badge/Open_Source-Community_Ready-6D28D9?style=flat-square" />
+<img src="https://img.shields.io/badge/License-MIT-black?style=flat-square" />
 
----
+<br><br>
 
-## ✨ Key Features
+### 🛡️ A privacy-first mobile app for cleaning, organizing, deduplicating, and safely managing real-world contact libraries.
 
-<table>
-  <tr>
-    <td width="50%">
-      <h3>🪞 Local Contact Mirror</h3>
-      <p>Lightning-fast search and smooth pagination, processed entirely on-device.</p>
-    </td>
-    <td width="50%">
-      <h3>👯‍♀️ Smart Deduplication</h3>
-      <p>Advanced duplicate detection with clear confidence scores and reason lists.</p>
-    </td>
-  </tr>
-  <tr>
-    <td>
-      <h3>🛡️ Safe Merge Reviews</h3>
-      <p>Preview changes safely before executing merges to prevent data loss.</p>
-    </td>
-    <td>
-      <h3>🧹 The Cleanup Center</h3>
-      <p>One-tap formatting fixes and automated data-quality standardization.</p>
-    </td>
-  </tr>
-  <tr>
-    <td>
-      <h3>❤️ Contact Health Score</h3>
-      <p>Explainable metrics and smart suggestions to keep your address book pristine.</p>
-    </td>
-    <td>
-      <h3>⏳ Temporary Workflows</h3>
-      <p>Create auto-expiring temporary contacts so your list doesn't get cluttered over time.</p>
-    </td>
-  </tr>
-  <tr>
-    <td>
-      <h3>📇 Offline QR Card</h3>
-      <p>Instantly share your personal business card without needing an internet connection.</p>
-    </td>
-    <td>
-      <h3>📦 Export & Backup Vault</h3>
-      <p>Securely export to CSV/VCF and manage versions in a dedicated local backup vault.</p>
-    </td>
-  </tr>
-  <tr>
-    <td>
-      <h3>🧠 Deep Context Mapping</h3>
-      <p>Add rich local notes and build visual relationship maps between contacts.</p>
-    </td>
-    <td>
-      <h3>⚙️ Automated Maintenance</h3>
-      <p>Opt-in best-effort background cleanup and discrete, optional update checks.</p>
-    </td>
-  </tr>
-</table>
-
-
----
-
-<div align="center">
-
-## 🛡️ Local-First Privacy Promise
-
-*Your data never leaves the device unless you explicitly export and share it. Any online feature is strictly optional and opt-in.*
-
-<table>
-  <tr>
-    <td align="center" width="25%"><b>🚫 No Backend</b></td>
-    <td align="center" width="25%"><b>🛑 No Analytics</b></td>
-    <td align="center" width="25%"><b>☁️ No Cloud Sync</b></td>
-    <td align="center" width="25%"><b>🔇 No Silent Uploads</b></td>
-  </tr>
-  <tr>
-    <td align="center">Operates 100% offline with local architecture.</td>
-    <td align="center">Zero tracking, zero telemetry, zero harvesting.</td>
-    <td align="center">Your contacts stay yours. No server mirrors.</td>
-    <td align="center">Complete transparency over any network request.</td>
-  </tr>
-</table>
-
-</div>
-
----
-
-<div align="center">
-
-## 💻 Tech Stack
-
-*Architected with modern, type-safe, and performant mobile technologies.*
+<p>
+Built with modern local-first architecture and designed for users who want complete ownership of their personal data.
+</p>
 
 <br>
 
-**Core Frameworks**<br>
-<img src="https://img.shields.io/badge/Expo-000020?style=for-the-badge&logo=expo&logoColor=white" alt="Expo" />
-<img src="https://img.shields.io/badge/React_Native-20232A?style=for-the-badge&logo=react&logoColor=61DAFB" alt="React Native" />
-<img src="https://img.shields.io/badge/TypeScript-3178C6?style=for-the-badge&logo=typescript&logoColor=white" alt="TypeScript" />
-<img src="https://img.shields.io/badge/Expo_Router-000020?style=for-the-badge&logo=expo&logoColor=white" alt="Expo Router" />
+<a href="https://github.com/Shivanshmishra7275/Contact-Forge/releases">
+  <img src="https://img.shields.io/badge/⬇_Download_Latest_APK-000000?style=for-the-badge&logo=android&logoColor=00FF00&labelColor=111111" height="54">
+</a>
 
 <br><br>
 
-**Data & State Management**<br>
-<img src="https://img.shields.io/badge/SQLite-003B57?style=for-the-badge&logo=sqlite&logoColor=white" alt="SQLite" />
-<img src="https://img.shields.io/badge/Zustand-764ABC?style=for-the-badge&logo=react&logoColor=white" alt="Zustand" />
-<img src="https://img.shields.io/badge/Zod-3E67B1?style=for-the-badge&logo=zod&logoColor=white" alt="Zod" />
+<i>100% Offline • Zero Telemetry • No Tracking • No Cloud</i>
 
 <br><br>
 
-**UI & Form Processing**<br>
-<img src="https://img.shields.io/badge/React_Native_Paper-6200EE?style=for-the-badge&logo=react&logoColor=white" alt="React Native Paper" />
-<img src="https://img.shields.io/badge/React_Hook_Form-EC5990?style=for-the-badge&logo=reacthookform&logoColor=white" alt="React Hook Form" />
-
-<br><br>
-
-**Native Device Modules**<br>
-<img src="https://img.shields.io/badge/Expo_Contacts-4630EB?style=for-the-badge&logo=expo&logoColor=white" alt="Expo Contacts" />
-<img src="https://img.shields.io/badge/Expo_FileSystem-4630EB?style=for-the-badge&logo=expo&logoColor=white" alt="Expo FileSystem" />
+<p align="center">
+  <a href="#-overview">Overview</a> •
+  <a href="#-app-preview">Screenshots</a> •
+  <a href="#-core-features">Features</a> •
+  <a href="#-tech-stack">Tech Stack</a> •
+  <a href="#-developer-setup">Setup</a> •
+  <a href="#-engineering-roadmap-v30--beyond">Roadmap</a>
+</p>
 
 </div>
 
 ---
 
-## 🏗️ Architecture & Core Principles
+# 📖 Overview
 
-ContactForge follows a strict, offline-first modular layout focused on long-term maintainability and separation of concerns.
+> ContactForge mirrors device contacts into a local SQLite database for fast search, intelligent cleanup workflows, safe deduplication, and explainable contact management — entirely offline.
 
-<table style="width:100%">
+<br>
+
+<div align="center">
+
+| 🛡️ Privacy First | ⚡ Fast Local Database | 📴 Fully Offline |
+|---|---|---|
+| No cloud processing, analytics, or telemetry. | SQLite-powered architecture for blazing-fast search. | Works completely without internet access. |
+
+</div>
+
+---
+
+# 🎯 Built For
+
+- Users with messy real-world contact books
+- Privacy-conscious professionals
+- Offline-first mobile enthusiasts
+- Power users managing large contact datasets
+- Developers interested in local-first architecture
+
+---
+
+# 📱 App Preview
+
+<p align="center">
+  <img src="assets/1000098161_2.png" alt="ContactForge Professional Mockup" width="520" />
+</p>
+
+---
+
+# 🔍 Core Features in Action
+
+<table>
+  <tr>
+    <td align="center"><b>Splash Screen</b></td>
+    <td align="center"><b>Dashboard</b></td>
+    <td align="center"><b>Duplicate Detection</b></td>
+  </tr>
+  <tr>
+    <td><img src="assets/1000098219.jpg" width="240" /></td>
+    <td><img src="assets/1000098221.jpg" width="240" /></td>
+    <td><img src="assets/1000098222.jpg" width="240" /></td>
+  </tr>
+
+  <tr>
+    <td align="center"><b>Smart Cleanup</b></td>
+    <td align="center"><b>My QR Card</b></td>
+    <td align="center"><b>Advanced Settings</b></td>
+  </tr>
+
+  <tr>
+    <td><img src="assets/1000098223.jpg" width="240" /></td>
+    <td><img src="assets/1000098224.jpg" width="240" /></td>
+    <td><img src="assets/1000098225.jpg" width="240" /></td>
+  </tr>
+</table>
+
+---
+
+# 🌪️ Why ContactForge?
+
+<div align="center">
+
+| The Problem | The Solution |
+|---|---|
+| Real-world contact books become messy after years of imports, duplicate syncs, inconsistent naming, and temporary numbers. | ContactForge provides safe, explainable, review-driven cleanup workflows powered entirely on-device. |
+
+</div>
+
+---
+
+# ✨ Core Features
+
+<table>
+<tr>
+<td width="50%">
+
+## 👯 Smart Deduplication
+Advanced duplicate detection using explainable confidence scoring and fuzzy analysis.
+
+## 🛡️ Safe Merge Reviews
+Preview all merge operations before execution to prevent accidental data loss.
+
+## ❤️ Contact Health Score
+Measure contact quality with explainable scoring and actionable suggestions.
+
+## 📦 Export & Backup Vault
+Secure local exports with CSV/VCF backup management.
+
+## 📇 Offline QR Cards
+Generate and share contact cards instantly without internet.
+
+</td>
+
+<td width="50%">
+
+## 🪞 Local Contact Mirror
+Mirror device contacts into a local SQLite engine for lightning-fast processing.
+
+## 🧹 Cleanup Center
+One-tap cleanup utilities for formatting and normalization.
+
+## 🧠 Deep Context Mapping
+Rich notes, relationships, and local metadata support.
+
+## ⏳ Temporary Contacts
+Create auto-expiring contacts that remove clutter automatically.
+
+## ⚙️ Automated Maintenance
+Optional local-only maintenance workflows and cleanup helpers.
+
+</td>
+</tr>
+</table>
+
+---
+
+# 🛡️ Local-First Privacy Promise
+
+<div align="center">
+
+## Your data never leaves the device unless YOU explicitly export it.
+
+</div>
+
+| 🚫 No Backend | 🛑 No Analytics | ☁️ No Cloud Sync | 🔇 No Silent Uploads |
+|---|---|---|---|
+| Fully local architecture | Zero telemetry or tracking | Contacts remain on-device | Transparent network behavior |
+
+---
+
+# 💻 Tech Stack
+
+<div align="center">
+
+## Core Stack
+
+<img src="https://skillicons.dev/icons?i=ts,react,nodejs" />
+
+<br><br>
+
+<img src="https://img.shields.io/badge/Expo_Router-000020?style=for-the-badge&logo=expo&logoColor=white" />
+<img src="https://img.shields.io/badge/Zustand-State_Management-764ABC?style=for-the-badge" />
+<img src="https://img.shields.io/badge/Zod-Validation-3E67B1?style=for-the-badge" />
+<img src="https://img.shields.io/badge/SQLite-Offline_DB-003B57?style=for-the-badge&logo=sqlite&logoColor=white" />
+
+<br><br>
+
+### 🧱 Architecture Philosophy
+
+```txt
+Offline-First → Local Database → Explainable Processing → Safe User Actions
+```
+
+</div>
+
+---
+
+# 🏗️ Architecture
+
+<div align="center">
+
+### Built using a strict offline-first modular architecture.
+
+</div>
+
+<table>
 <tr>
 <td width="45%" valign="top">
 
-### 📁 Directory Structure
+## 📁 Project Structure
 
 ```bash
 📦 ContactForge
-├── 📂 app/                # Expo Router Pages
+├── 📂 app/
 ├── 📂 src/
-│   ├── 🗄️ db/             # SQLite Repositories
-│   ├── 🧠 store/          # Zustand State
-│   └── ⚙️ services/       # Core Logic
-└── 📂 docs/               # Architecture Specs
+│   ├── 🗄️ db/
+│   ├── 🧠 store/
+│   ├── ⚙️ services/
+│   ├── 🧩 components/
+│   ├── 🛠️ utils/
+│   └── 🎨 theme/
+└── 📂 docs/
 ```
 
 </td>
 
 <td width="55%" valign="top">
 
-### 🏛️ The 5 Pillars of ContactForge
+## 🏛️ Core Principles
 
-- 🛡️ **Zero-Cloud:** Local-only processing is non-negotiable.
-- 🧩 **Stateless UI:** Business logic lives strictly outside components.
-- 📦 **Repository Pattern:** Database interactions are completely abstracted.
-- 🧹 **Normalized Data:** Contacts are standardized before analysis.
-- ⚠️ **Safe Execution:** Risky actions require previews and explicit confirmation.
+- 🛡️ Zero-cloud processing
+- 🧩 Stateless UI architecture
+- 📦 Repository pattern
+- 🧹 Normalized contact pipelines
+- ⚠️ Safe execution workflows
+- 🔍 Explainable cleanup logic
+- 📱 Mobile-first performance optimization
+- 🔒 Explicit permission-driven operations
 
 </td>
 </tr>
 </table>
 
-> 📚 **Deep Dive:** Explore the full Architecture Documentation and the Database Schema.
+---
+
+# 💻 Developer Setup
+
+## 🚀 Quick Start
+
+```bash
+# Clone repository
+git clone https://github.com/Shivanshmishra7275/Contact-Forge.git
+
+# Enter project
+cd Contact-Forge
+
+# Install dependencies
+npm install
+
+# Start development server
+npm start
+```
 
 ---
 
-# 💻 Developer Control Panel
+## 📱 Run on Device
 
-Everything you need to build, test, and compile ContactForge locally.
+```bash
+# Android emulator
+npm run android
 
-| 🚀 Quick Start | 🧪 Quality Checks | 📦 EAS Cloud Build |
-|---|---|---|
-| **1. Prerequisites**<br>Node.js 18+ & Expo CLI | **1. Code Linting**<br>`npm run lint` | **1. Environment Check**<br>`npx expo-doctor` |
-| **2. Installation**<br>`npm install` | **2. TypeScript Check**<br>`npm run typecheck` | **2. Preview APK**<br>`npx eas build -p android --profile preview` |
-| **3. Start Server**<br>`npm start` | **3. Unit Testing**<br>`npm test` | **3. Production AAB**<br>`npx eas build -p android --profile production` |
-
-> 💡 **Tip:** Run `npm run android` or `npm run ios` to launch the simulator directly after starting the development server.
+# iOS simulator
+npm run ios
+```
 
 ---
 
-# 📥 Get the App
+## 🧪 Quality Checks
 
-<div align="center">
+```bash
+# ESLint
+npm run lint
 
-<p>
-Install the latest privacy-first release directly to your Android device.
-</p>
+# TypeScript validation
+npm run typecheck
 
-<a href="https://github.com/Shivanshmishra7275/Contact-Forge/releases">
-  <img 
-    src="https://img.shields.io/badge/Download_ContactForge_APK-000000?style=for-the-badge&logo=android&logoColor=00FF00&labelColor=111111" 
-    alt="Download APK" 
-    height="50"
-  >
-</a>
+# Unit tests
+npm test
+```
 
-<br><br>
-
-<p>
-<i>
-Direct APK links are published via GitHub Releases.  
-If no APK is listed for the current version, generate one instantly using the EAS preview build command above.
-</i>
-</p>
-
-</div>
 ---
 
-## ⚠️ Known Platform Limitations
+## 📦 EAS Build
 
-> **Transparency Note:** ContactForge is engineered for maximum privacy and stability. Due to our strict adherence to the Expo Managed Workflow and local-first principles, there are a few native constraints:
+```bash
+# Environment validation
+npx expo-doctor
+
+# Preview APK
+npx eas build -p android --profile preview
+
+# Production build
+npx eas build -p android --profile production
+```
+
+---
+
+# ⚠️ Known Platform Limitations
 
 | Feature Constraint | Platform | Technical Reason |
-| :--- | :---: | :--- |
-| 🚫 **Call Log Access** | Cross-Platform | Intentionally unsupported in Expo managed workflow to maintain strict data privacy compliance. |
-| 📞 **Live Caller ID** | iOS | Real-time caller ID injection is restricted by strict iOS system sandboxing. |
-| 🔋 **Background Tasks** | Cross-Platform | OS-governed; continuous execution is not guaranteed in order to preserve user battery life. |
+|---|---|---|
+| 🚫 Call Log Access | Cross-Platform | Intentionally unsupported in Expo managed workflow to maintain strict privacy compliance |
+| 📞 Live Caller ID | iOS | Restricted by iOS sandboxing limitations |
+| 🔋 Persistent Background Tasks | Cross-Platform | Operating system battery optimization policies |
 
 ---
 
-## 🚀 Engineering Roadmap (V3.0 & Beyond)
+# 🚀 Engineering Roadmap (V3.0 & Beyond)
 
-We are continuously evolving the ContactForge architecture. Here is what is on the horizon:
+We are continuously evolving the ContactForge architecture.
 
-- [x] **Phase 1:** Core Offline Mirror & Basic Duplicate Detection *(Completed)*
-- [x] **Phase 2:** Cinematic UI, Advanced Fuzzy Logic & Health Scores *(Completed)*
-- [ ] 🔄 **Import Studio:** CSV/VCF imports with visual field mapping & collision review.
-- [ ] 🗄️ **Cold Storage:** Contact archive and restore workflows to keep the active database fast.
-- [ ] 🎯 **Smart Filters:** Advanced dynamic lists (e.g., "Temporary contacts expiring soon").
-- [ ] ✨ **Guided Cleanup:** Local-only, algorithm-assisted review center enhancements.
+## ✅ Completed
+
+- [x] Core offline mirror engine
+- [x] Duplicate detection workflows
+- [x] Health score system
+- [x] Cinematic mobile UI
+- [x] Local backup/export system
 
 ---
 
-<br>
+## 🔄 In Progress
+
+- [ ] Import Studio with CSV/VCF visual mapping
+- [ ] Smart merge conflict resolution
+- [ ] Advanced fuzzy relationship analysis
+- [ ] Guided cleanup review assistant
+- [ ] Dynamic smart filter system
+
+---
+
+## 🔮 Future Vision
+
+- [ ] Cold-storage archive workflows
+- [ ] AI-assisted offline categorization
+- [ ] Visual relationship graphs
+- [ ] Encrypted local vault mode
+- [ ] Cross-device offline transfer tools
+
+---
+
+# 🤝 Contributing
+
+Contributions, issues, and feature requests are welcome.
+
+If contributing, please ensure:
+- Logic remains modular
+- Features stay offline-first
+- Code is highly testable
+- Type safety is maintained
+- Privacy principles are respected
+
+---
+
+# 📄 License
 
 <div align="center">
 
-## 🤝 Contributing
-
-Contributions, issues, and feature requests are welcome! <br>
-If you are contributing, please keep all logic modular, highly testable, and strictly **offline-first**.
-
-<br>
-
-## 📄 License
-
 <a href="./LICENSE">
-  <img src="https://img.shields.io/badge/License-MIT-111111?style=for-the-badge&logo=opensourceinitiative&logoColor=white" alt="License: MIT">
+  <img src="https://img.shields.io/badge/License-MIT-111111?style=for-the-badge&logo=opensourceinitiative&logoColor=white" alt="MIT License">
 </a>
 
 <br><br>
+
+## 🌟 Support the Project
+
+If you like ContactForge, consider:
+⭐ Starring the repository  
+🍴 Forking the project  
+📢 Sharing feedback or ideas  
+
+<br>
 <hr>
 <br>
 
-<h3>Architected with 🖤 by <a href="https://github.com/Shivanshmishra7275">Shivansh Mishra</a></h3>
-<p><i>B.Tech • Cloud Computing & Machine Learning</i></p>
+## Architected with 🖤 by <a href="https://github.com/Shivanshmishra7275">Shivansh Mishra</a>
+
+### B.Tech • Cloud Computing & Machine Learning
+
+<i>Building privacy-first mobile systems with modern local-first architecture.</i>
 
 </div>
