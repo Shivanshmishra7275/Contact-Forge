@@ -296,34 +296,53 @@ Direct APK links are only published when a GitHub Release includes them.
 
 ---
 
-## Known Platform Limitations
+## ⚠️ Known Platform Limitations
 
-- Call log access is not supported in Expo managed workflow
-- Real-time caller ID is not supported on iOS
-- Background tasks are OS-governed and not guaranteed to run continuously
+> **Transparency Note:** ContactForge is engineered for maximum privacy and stability. Due to our strict adherence to the Expo Managed Workflow and local-first principles, there are a few native constraints:
 
----
-
-## Roadmap
-
-- Import studio (CSV and VCF) with field mapping and collision review
-- Contact archive and restore workflows
-- Smart lists and advanced filters
-- Review center enhancements and guided cleanup
-- Optional update feed (opt-in)
+| Feature Constraint | Platform | Technical Reason |
+| :--- | :---: | :--- |
+| 🚫 **Call Log Access** | Cross-Platform | Intentionally unsupported in Expo managed workflow to maintain strict data privacy compliance. |
+| 📞 **Live Caller ID** | iOS | Real-time caller ID injection is restricted by strict iOS system sandboxing. |
+| 🔋 **Background Tasks** | Cross-Platform | OS-governed; continuous execution is not guaranteed in order to preserve user battery life. |
 
 ---
 
-## Contributing
+## 🚀 Engineering Roadmap (V3.0 & Beyond)
 
-Contributions are welcome. Please keep logic modular, testable, and offline-first.
+We are continuously evolving the ContactForge architecture. Here is what is on the horizon:
+
+- [x] **Phase 1:** Core Offline Mirror & Basic Duplicate Detection *(Completed)*
+- [x] **Phase 2:** Cinematic UI, Advanced Fuzzy Logic & Health Scores *(Completed)*
+- [ ] 🔄 **Import Studio:** CSV/VCF imports with visual field mapping & collision review.
+- [ ] 🗄️ **Cold Storage:** Contact archive and restore workflows to keep the active database fast.
+- [ ] 🎯 **Smart Filters:** Advanced dynamic lists (e.g., "Temporary contacts expiring soon").
+- [ ] ✨ **Guided Cleanup:** Local-only, algorithm-assisted review center enhancements.
 
 ---
 
-## License
+<br>
 
-MIT (see LICENSE)
+<div align="center">
 
----
+## 🤝 Contributing
 
-Crafted by **Shivansh Mishra**
+Contributions, issues, and feature requests are welcome! <br>
+If you are contributing, please keep all logic modular, highly testable, and strictly **offline-first**.
+
+<br>
+
+## 📄 License
+
+<a href="./LICENSE">
+  <img src="https://img.shields.io/badge/License-MIT-111111?style=for-the-badge&logo=opensourceinitiative&logoColor=white" alt="License: MIT">
+</a>
+
+<br><br>
+<hr>
+<br>
+
+<h3>Architected with 🖤 by <a href="https://github.com/Shivanshmishra7275">Shivansh Mishra</a></h3>
+<p><i>B.Tech • Cloud Computing & Machine Learning</i></p>
+
+</div>
