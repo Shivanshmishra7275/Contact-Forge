@@ -20,11 +20,37 @@ Crafted by **Shivansh Mishra**
 
 ---
 
-## Overview
+## 📖 Overview
+
+> **ContactForge is a privacy-first contact management app built for people who want full control over their address book.**
 
 ContactForge mirrors device contacts into a local SQLite database for fast search and explainable cleanup workflows. Local-only edits do not write back to the device contact book. Everything stays on-device and works without internet.
 
-ContactForge is a privacy-first contact management app built for people who want full control over their address book without relying on cloud services, analytics, or hidden remote processing.
+<br>
+
+<table align="center">
+  <tr>
+    <td align="center" width="33%">
+      <h2>🛡️</h2>
+      <b>Privacy First</b>
+      <br><br>
+      Built for absolute control. Zero reliance on cloud services, analytics, or hidden remote processing.
+    </td>
+    <td align="center" width="33%">
+      <h2>⚡</h2>
+      <b>SQLite Powered</b>
+      <br><br>
+      Mirrors device contacts into a local, highly-optimized database for lightning-fast search and cleanup.
+    </td>
+    <td align="center" width="33%">
+      <h2>📴</h2>
+      <b>100% Offline</b>
+      <br><br>
+      No backend. No syncing. Everything stays on your device and works flawlessly without an internet connection.
+    </td>
+  </tr>
+</table>
+
 
 ---
 
@@ -40,25 +66,80 @@ ContactForge is a privacy-first contact management app built for people who want
 
 ---
 
-## Why ContactForge
+## 💡 Why ContactForge?
 
-Real-world contact lists become messy over time: duplicates appear after imports, names get inconsistent, and temporary contacts pile up. ContactForge solves that with a local-first workflow that is safe, explainable, and review-driven.
+<div align="center">
+  <table>
+    <tr>
+      <td align="center" width="50%">
+        <h3>🌪️ The Problem</h3>
+        <p>Real-world contact lists become messy over time. Duplicates appear after imports, names get inconsistent, and temporary contacts pile up.</p>
+      </td>
+      <td align="center" width="50%">
+        <h3>🛡️ The Solution</h3>
+        <p><b>ContactForge</b> solves the chaos with a local-first workflow that is completely <i>safe, explainable, and review-driven.</i></p>
+      </td>
+    </tr>
+  </table>
+</div>
 
 ---
 
-## Key Features
+## ✨ Key Features
 
-- Local contact mirror with fast search and pagination
-- Duplicate detection with confidence scores and reason lists
-- Merge review with safe previews
-- Cleanup center for formatting and data-quality fixes
-- Temporary contact workflows with expiry
-- Notes and relationship mapping
-- Contact Health Score with explainable suggestions
-- CSV and VCF export plus local backup vault
-- Offline QR business card
-- Best-effort background maintenance (opt-in)
-- Optional update checks (opt-in)
+<table>
+  <tr>
+    <td width="50%">
+      <h3>🪞 Local Contact Mirror</h3>
+      <p>Lightning-fast search and smooth pagination, processed entirely on-device.</p>
+    </td>
+    <td width="50%">
+      <h3>👯‍♀️ Smart Deduplication</h3>
+      <p>Advanced duplicate detection with clear confidence scores and reason lists.</p>
+    </td>
+  </tr>
+  <tr>
+    <td>
+      <h3>🛡️ Safe Merge Reviews</h3>
+      <p>Preview changes safely before executing merges to prevent data loss.</p>
+    </td>
+    <td>
+      <h3>🧹 The Cleanup Center</h3>
+      <p>One-tap formatting fixes and automated data-quality standardization.</p>
+    </td>
+  </tr>
+  <tr>
+    <td>
+      <h3>❤️ Contact Health Score</h3>
+      <p>Explainable metrics and smart suggestions to keep your address book pristine.</p>
+    </td>
+    <td>
+      <h3>⏳ Temporary Workflows</h3>
+      <p>Create auto-expiring temporary contacts so your list doesn't get cluttered over time.</p>
+    </td>
+  </tr>
+  <tr>
+    <td>
+      <h3>📇 Offline QR Card</h3>
+      <p>Instantly share your personal business card without needing an internet connection.</p>
+    </td>
+    <td>
+      <h3>📦 Export & Backup Vault</h3>
+      <p>Securely export to CSV/VCF and manage versions in a dedicated local backup vault.</p>
+    </td>
+  </tr>
+  <tr>
+    <td>
+      <h3>🧠 Deep Context Mapping</h3>
+      <p>Add rich local notes and build visual relationship maps between contacts.</p>
+    </td>
+    <td>
+      <h3>⚙️ Automated Maintenance</h3>
+      <p>Opt-in best-effort background cleanup and discrete, optional update checks.</p>
+    </td>
+  </tr>
+</table>
+
 
 ---
 
@@ -119,8 +200,6 @@ Core principles:
 - Local-only processing is non-negotiable
 
 See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) and [docs/ACTUAL_DATABASE_SCHEMA.md](docs/ACTUAL_DATABASE_SCHEMA.md).
-
----
 
 ---
 
