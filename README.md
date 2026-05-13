@@ -110,41 +110,6 @@ See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) and [docs/ACTUAL_DATABASE_SCHEM
 
 ---
 
-## Screenshots
-# &
-## 📱 App Preview
-
-<p align="center">
-  <img src="assets/1000098161_2.png" alt="ContactForge Professional Mockup" width="500" />
-</p>
-
----
-
-### 🔍 Core Features in Action
-
-<table>
-  <tr>
-    <td align="center"><b>Splash Screen</b></td>
-    <td align="center"><b>Dashboard</b></td>
-    <td align="center"><b>Duplicate Detection</b></td>
-  </tr>
-  <tr>
-    <td><img src="assets/1000098219.jpg" width="280" /></td>
-    <td><img src="assets/1000098221.jpg" width="280" /></td>
-    <td><img src="assets/1000098222.jpg" width="280" /></td>
-  </tr>
-  <tr>
-    <td align="center"><b>Smart Cleanup</b></td>
-    <td align="center"><b>My QR Card</b></td>
-    <td align="center"><b>Advanced Settings</b></td>
-  </tr>
-  <tr>
-    <td><img src="assets/1000098223.jpg" width="280" /></td>
-    <td><img src="assets/1000098224.jpg" width="280" /></td>
-    <td><img src="assets/1000098225.jpg" width="280" /></td>
-  </tr>
-</table>
-
 ---
 
 ## Quick Start
