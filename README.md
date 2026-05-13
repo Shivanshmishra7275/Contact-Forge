@@ -28,6 +28,18 @@ ContactForge is a privacy-first contact management app built for people who want
 
 ---
 
+<div align="center">
+  <h3>🚀 Ready to experience privacy-first management?</h3>
+  <br>
+  <a href="https://expo.dev/accounts/shivansh_98/projects/contactforge/builds/07338ef6-0b23-41f7-8dcb-03ee90097c9a">
+    <img src="https://img.shields.io/badge/Download_ContactForge_V2.0-000000?style=for-the-badge&logo=android&logoColor=00FF00&labelColor=111111" alt="Download APK" height="50">
+  </a>
+  <br>
+  <p><i>100% Offline. Zero Data Harvesting.</i></p>
+</div>
+
+---
+
 ## Why ContactForge
 
 Real-world contact lists become messy over time: duplicates appear after imports, names get inconsistent, and temporary contacts pile up. ContactForge solves that with a local-first workflow that is safe, explainable, and review-driven.
