@@ -285,7 +285,7 @@ npm test
 
 ```bash
 # Environment validation
-npx expo-doctor
+npx expo doctor
 
 # Preview APK
 npx eas build -p android --profile preview
@@ -293,6 +293,22 @@ npx eas build -p android --profile preview
 # Production build
 npx eas build -p android --profile production
 ```
+
+---
+
+# 🔁 CI/CD
+
+ContactForge uses GitHub Actions for automated lint, typecheck, and test runs on every push and pull request.
+
+**Optional EAS automation**
+- The manual `EAS Build (Android)` workflow can be triggered from GitHub Actions.
+- Required secret: `EXPO_TOKEN` (create it in your Expo account and add it in repo Settings > Secrets and variables > Actions).
+
+**Branch protection (recommended)**
+- Require PRs before merge
+- Require status checks: `CI`
+- Require at least one approval
+- Require linear history
 
 ---
 

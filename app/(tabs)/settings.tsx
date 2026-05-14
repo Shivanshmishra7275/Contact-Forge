@@ -25,6 +25,7 @@ import { getMaintenanceState, runMaintenance } from '../../src/services/maintena
 import { checkForUpdates, getUpdateState } from '../../src/services/updateService';
 import { useAppStore } from '../../src/store/appStore';
 import { COLORS, SPACING, FONT_SIZE, APP_NAME, APP_VERSION, DEFAULT_SETTINGS, RELEASES_URL } from '../../src/constants';
+import { EXPORT_WARNING_DIALOG } from '../../src/constants/legalContent';
 import { isoToDisplay } from '../../src/utils/normalization';
 import type { AppSettings } from '../../src/types';
 import { QRBusinessCard } from '../../src/QRBusinessCard';
@@ -55,7 +56,14 @@ export default function SettingsScreen() {
     Alert.alert('Saved', 'Settings saved successfully.');
   }, [settings]);
 
-  const handleExportCSV = useCallback(async () => {
+  const confirmExport = useCallback((onConfirm: () => void) => {
+    Alert.alert(EXPORT_WARNING_DIALOG.title, EXPORT_WARNING_DIALOG.message, [
+      { text: 'Cancel', style: 'cancel' },
+      { text: 'Continue', onPress: onConfirm },
+    ]);
+  }, []);
+
+  const runExportCSV = useCallback(async () => {
     setIsExporting(true);
     try {
       const result = await createFullBackup('csv', settings.exportIncludeNotes);
@@ -74,7 +82,13 @@ export default function SettingsScreen() {
     }
   }, [settings.exportIncludeNotes]);
 
-  const handleExportVCF = useCallback(async () => {
+  const handleExportCSV = useCallback(() => {
+    confirmExport(() => {
+      void runExportCSV();
+    });
+  }, [confirmExport, runExportCSV]);
+
+  const runExportVCF = useCallback(async () => {
     setIsExporting(true);
     try {
       const result = await createFullBackup('vcf', settings.exportIncludeNotes);
@@ -92,6 +106,12 @@ export default function SettingsScreen() {
       setIsExporting(false);
     }
   }, [settings.exportIncludeNotes]);
+
+  const handleExportVCF = useCallback(() => {
+    confirmExport(() => {
+      void runExportVCF();
+    });
+  }, [confirmExport, runExportVCF]);
 
   const handleRunMaintenance = useCallback(async () => {
     setIsRunningMaintenance(true);
@@ -409,6 +429,52 @@ export default function SettingsScreen() {
           </Card.Content>
         </Card>
 
+        {/* Legal & Permissions */}
+        <SectionHeader title="Legal & Permissions" icon="file-document-outline" />
+        <Card style={styles.card}>
+          <Card.Content>
+            <Text style={styles.cardDesc}>
+              Review privacy, terms, export safety, and permission rationale in one place.
+            </Text>
+            <Button
+              mode="text"
+              onPress={() => router.push('/legal/privacy')}
+              icon="shield-lock"
+              textColor={COLORS.primary}
+              style={styles.legalLink}
+            >
+              Privacy & Data Handling
+            </Button>
+            <Button
+              mode="text"
+              onPress={() => router.push('/legal/terms')}
+              icon="file-document"
+              textColor={COLORS.primary}
+              style={styles.legalLink}
+            >
+              Terms & Conditions
+            </Button>
+            <Button
+              mode="text"
+              onPress={() => router.push('/legal/export-warning')}
+              icon="alert-circle-outline"
+              textColor={COLORS.secondary}
+              style={styles.legalLink}
+            >
+              Export Warning
+            </Button>
+            <Button
+              mode="text"
+              onPress={() => router.push('/legal/permissions')}
+              icon="lock-open-variant"
+              textColor={COLORS.primary}
+              style={styles.legalLink}
+            >
+              Permissions Rationale
+            </Button>
+          </Card.Content>
+        </Card>
+
         {/* Developer */}
         <SectionHeader title="About the Creator" icon="account-tie" />
         <Card style={styles.card}>
@@ -553,6 +619,7 @@ const styles = StyleSheet.create({
   maintenanceNote: { color: COLORS.textSecondary, fontSize: FONT_SIZE.xs, marginTop: SPACING.xs },
   maintenanceButton: { marginTop: SPACING.sm, alignSelf: 'flex-start' },
   releasesLink: { alignSelf: 'flex-start' },
+  legalLink: { alignSelf: 'flex-start' },
   privacyRow: {
     flexDirection: 'row',
     gap: SPACING.sm,

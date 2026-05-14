@@ -141,6 +141,10 @@ export default function RootLayout() {
             <Stack.Screen name="contact/new" options={{ title: 'New Contact' }} />
             <Stack.Screen name="merge/[id]" options={{ title: 'Merge Contacts' }} />
             <Stack.Screen name="backups" options={{ title: 'Backup Vault' }} />
+            <Stack.Screen name="legal/terms" options={{ title: 'Terms & Conditions' }} />
+            <Stack.Screen name="legal/privacy" options={{ title: 'Privacy & Data' }} />
+            <Stack.Screen name="legal/export-warning" options={{ title: 'Export Warning' }} />
+            <Stack.Screen name="legal/permissions" options={{ title: 'Permissions' }} />
             <Stack.Screen name="permission-denied" options={{ title: 'Contacts Access', headerShown: false }} />
           </Stack>
         </PaperProvider>

@@ -175,6 +175,16 @@ export function ContactListScreen({ navigation }): JSX.Element {
    - One feature = one commit (or logically related commits)
    - Use `git rebase -i` to clean up commit history before submitting PR
 
+### Branch Protection (Recommended)
+
+For maintainers, enable these protections on `main` to keep quality high:
+
+- Require pull requests before merging
+- Require status checks to pass: `CI`
+- Require at least one approving review
+- Require linear history (rebase merges)
+- Block force-pushes to `main`
+
 ### Breaking Changes
 
 - **Avoid Breaking Changes**: Never introduce breaking changes to public APIs without discussion
