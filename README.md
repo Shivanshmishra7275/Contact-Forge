@@ -29,10 +29,10 @@
 
 <br><br>
 
-### 🛡️ A privacy-first mobile app for cleaning, organizing, deduplicating, and safely managing real-world contact libraries.
+### 🛡️ A privacy-first mobile app for cleaning, organizing, deduplicating, and safely managing real-world contact libraries
 
 <p>
-Built with modern local-first architecture and designed for users who want complete ownership of their personal data.
+ContactForge is designed for people who want complete ownership of their contacts, with fast on-device processing, transparent cleanup workflows, and zero dependence on cloud services.
 </p>
 
 <br>
@@ -49,12 +49,15 @@ Built with modern local-first architecture and designed for users who want compl
 
 <p align="center">
   <a href="#-overview">Overview</a> •
+  <a href="#-why-contactforge">Why ContactForge</a> •
   <a href="#-built-for">Built For</a> •
   <a href="#-app-preview">Preview</a> •
   <a href="#-core-features">Features</a> •
+  <a href="#-privacy-promise">Privacy</a> •
   <a href="#-tech-stack">Tech Stack</a> •
   <a href="#-architecture">Architecture</a> •
   <a href="#-developer-setup">Setup</a> •
+  <a href="#-known-platform-limitations">Limitations</a> •
   <a href="#-engineering-roadmap-v30--beyond">Roadmap</a>
 </p>
 
@@ -64,110 +67,113 @@ Built with modern local-first architecture and designed for users who want compl
 
 # 📖 Overview
 
-> ContactForge mirrors device contacts into a local SQLite database for fast search, intelligent cleanup workflows, safe deduplication, and explainable contact management — entirely offline.
-
-<br>
+> ContactForge mirrors device contacts into a local SQLite database for fast search, explainable cleanup, duplicate review, safe merges, and offline export workflows — without sending personal data to any backend.
 
 <div align="center">
 
 | 🛡️ Privacy First | ⚡ Fast Local Database | 📴 Fully Offline |
 |---|---|---|
-| No cloud processing, analytics, or telemetry. | SQLite-powered architecture for blazing-fast search. | Works completely without internet access. |
+| No analytics, no silent uploads, no cloud processing. | SQLite-backed mirror for fast search and local workflows. | Core features are designed to work without internet access. |
 
 </div>
+
+ContactForge is built as a serious local-first utility rather than a thin contact viewer. It focuses on real-world contact problems such as duplicates, inconsistent formatting, incomplete records, temporary contacts, and cleanup workflows that users can review before anything destructive happens.
 
 ---
 
 # 🎯 Built For
 
-- Users with messy real-world contact books
-- Privacy-conscious professionals
-- Offline-first mobile enthusiasts
-- Power users managing large contact datasets
-- Developers interested in local-first architecture
+- People with large or messy real-world contact libraries
+- Privacy-conscious users who do not want cloud processing
+- Mobile users who need offline reliability
+- Power users who want better cleanup and organization tools
+- Developers interested in Expo, SQLite, and local-first mobile architecture
 
 ---
 
 # 📱 App Preview
 
-> 🚧 Screenshots and live previews will be added in a future release.
+> The interface is designed with a dark, utility-focused mobile aesthetic centered on clarity, speed, and safety.
 
 <div align="center">
 
-### Upcoming UI Showcase
-
-🖼️ Splash Screen  
-🖥️ Dashboard  
-👯 Duplicate Detection  
-🧹 Smart Cleanup  
-📇 QR Contact Card  
-⚙️ Advanced Settings  
+### Current Experience
+Dashboard • Contact List • Duplicate Review • Cleanup Center • Settings • Backup Flows
 
 <br>
 
-<i>ContactForge focuses on a polished, cinematic, and privacy-first mobile experience.</i>
+### Planned Showcase
+QR Contact Exchange • Merge Preview • Temporary Contact Queue • Import Review Studio
+
+<br>
+
+<i>ContactForge aims for a clean, modern, privacy-first mobile experience with calm UI and utility-focused workflows.</i>
 
 </div>
 
 ---
 
-# 🌪️ Why ContactForge?
+# 🌪️ Why ContactForge
 
 <div align="center">
 
-| The Problem | The Solution |
+| The Problem | The ContactForge Approach |
 |---|---|
-| Real-world contact books become messy after years of imports, duplicate syncs, inconsistent naming, and temporary numbers. | ContactForge provides safe, explainable, review-driven cleanup workflows powered entirely on-device. |
+| Real contact books become messy over time because of imports, sync conflicts, inconsistent naming, duplicate numbers, and forgotten temporary contacts. | ContactForge gives users an on-device review system for cleanup, deduplication, normalization, export, and long-term contact maintenance. |
 
 </div>
+
+Most contact apps stop at simple viewing and editing. ContactForge is designed to go further by combining local mirroring, explainable duplicate detection, review-first merge flows, cleanup actions, and backup-aware workflows in a privacy-focused mobile experience.
 
 ---
 
 # ✨ Core Features
 
 ## 👯 Smart Deduplication
-Advanced duplicate detection using explainable confidence scoring and fuzzy analysis.
+Detect duplicate contacts using overlapping phone numbers, email matches, normalized values, and explainable scoring signals.
 
 ## 🛡️ Safe Merge Reviews
-Preview all merge operations before execution to prevent accidental data loss.
-
-## ❤️ Contact Health Score
-Measure contact quality with explainable scoring and actionable suggestions.
-
-## 📦 Export & Backup Vault
-Secure local exports with CSV/VCF backup management.
-
-## 📇 Offline QR Cards
-Generate and share contact cards instantly without internet.
-
-## 🪞 Local Contact Mirror
-Mirror device contacts into a local SQLite engine for lightning-fast processing.
+Review merge candidates before applying changes, with preview-driven flows and backup-aware behavior for risky actions.
 
 ## 🧹 Cleanup Center
-One-tap cleanup utilities for formatting and normalization.
+Standardize messy contacts with whitespace cleanup, capitalization fixes, safer normalization, and missing-field identification.
 
-## 🧠 Deep Context Mapping
-Rich notes, relationships, and local metadata support.
+## 🪞 Local Contact Mirror
+Mirror device contacts into a local SQLite layer for fast search, filtering, analysis, and cleanup workflows.
+
+## 📇 Offline QR Contact Cards
+Generate and import contact-sharing payloads through local-only QR-based workflows without requiring internet access.
+
+## 📦 Export & Backup Vault
+Create local CSV and VCF exports, timestamped backups, and safety snapshots before major contact actions.
 
 ## ⏳ Temporary Contacts
-Create auto-expiring contacts that remove clutter automatically.
+Manage short-lived or incomplete contacts without polluting the long-term contact library.
 
-## ⚙️ Automated Maintenance
-Optional local-only maintenance workflows and cleanup helpers.
+## 🔎 Fast Local Search
+Search by name, normalized phone number, email, or tag using on-device indexed data access.
+
+## 🧠 Explainable Contact Intelligence
+Use transparent rule-based logic for cleanup and duplicate review instead of hidden black-box decisions.
+
+## ⚙️ Privacy-Aware Settings
+Review permissions, exports, warnings, legal information, and storage behavior directly inside the app.
 
 ---
 
-# 🛡️ Local-First Privacy Promise
+# 🛡️ Privacy Promise
 
 <div align="center">
 
-## Your data never leaves the device unless YOU explicitly export it.
+## Your data stays on your device unless you explicitly choose to export it.
 
 </div>
 
 | 🚫 No Backend | 🛑 No Analytics | ☁️ No Cloud Sync | 🔇 No Silent Uploads |
 |---|---|---|---|
-| Fully local architecture | Zero telemetry or tracking | Contacts remain on-device | Transparent network behavior |
+| No server dependency for core workflows | No telemetry or tracking layer | No automatic cloud contact sync | No hidden contact uploads |
+
+ContactForge is intentionally built around local processing. That means contact cleanup, duplicate analysis, export preparation, and review workflows are designed to happen on-device with user-controlled actions.
 
 ---
 
