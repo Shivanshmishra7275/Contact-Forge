@@ -67,6 +67,16 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
+        name="import"
+        options={{
+          title: 'Import Studio',
+          tabBarLabel: 'Import',
+          tabBarIcon: ({ color, size }) => (
+            <MaterialCommunityIcons name="file-import" color={color} size={size} />
+          ),
+        }}
+      />
+      <Tabs.Screen
         name="settings"
         options={{
           title: 'Settings',

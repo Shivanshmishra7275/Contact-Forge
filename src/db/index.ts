@@ -71,6 +71,12 @@ export function closeDatabase(): void {
 export function resetDatabaseForTesting(): void {
   if (_db) {
     _db.execSync(`
+      DROP TABLE IF EXISTS undo_history;
+      DROP TABLE IF EXISTS contact_protection;
+      DROP TABLE IF EXISTS contact_archive;
+      DROP TABLE IF EXISTS import_mappings;
+      DROP TABLE IF EXISTS import_rows;
+      DROP TABLE IF EXISTS import_sessions;
       DROP TABLE IF EXISTS audit_logs;
       DROP TABLE IF EXISTS sync_state;
       DROP TABLE IF EXISTS settings;
