@@ -9,6 +9,8 @@ module.exports = [
       'dist/**',
       'web-build/**',
       'coverage/**',
+      'contactforge-cloud-web/**',
+      '**/.next/**',
     ],
   },
   {
