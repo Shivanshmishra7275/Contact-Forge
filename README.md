@@ -159,6 +159,9 @@ Use transparent rule-based logic for cleanup and duplicate review instead of hid
 ## ⚙️ Privacy-Aware Settings
 Review permissions, exports, warnings, legal information, and storage behavior directly inside the app.
 
+## 🏗️ Import Studio
+Perform 100% offline imports from CSV and VCF files with local column mapping, data validation, and truncation protection for large datasets.
+
 ---
 
 # 🛡️ Privacy Promise
@@ -191,6 +194,7 @@ ContactForge is intentionally built around local processing. That means contact 
 <img src="https://img.shields.io/badge/Zustand-State_Management-764ABC?style=for-the-badge" />
 <img src="https://img.shields.io/badge/Zod-Validation-3E67B1?style=for-the-badge" />
 <img src="https://img.shields.io/badge/SQLite-Offline_DB-003B57?style=for-the-badge&logo=sqlite&logoColor=white" />
+<img src="https://img.shields.io/badge/Expo_Document_Picker-File_Import-000020?style=for-the-badge&logo=expo&logoColor=white" />
 
 <br><br>
 
@@ -339,12 +343,13 @@ We are continuously evolving the ContactForge architecture.
 - [x] Health score system
 - [x] Cinematic mobile UI
 - [x] Local backup/export system
+- [x] Import Studio with CSV/VCF visual mapping
+- [x] ContactForge Cloud Landing Page (Waitlist & Beta)
 
 ---
 
 ## 🔄 In Progress
 
-- [ ] Import Studio with CSV/VCF visual mapping
 - [ ] Smart merge conflict resolution
 - [ ] Advanced fuzzy relationship analysis
 - [ ] Guided cleanup review assistant
