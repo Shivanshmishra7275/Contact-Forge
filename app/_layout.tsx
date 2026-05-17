@@ -51,6 +51,8 @@ const theme = {
   },
 };
 
+import { UndoSnackbar } from '../src/features/undo/components/UndoSnackbar';
+
 export default function RootLayout() {
   const setSettings = useAppStore((s) => s.setSettings);
   const setPendingDuplicateCount = useAppStore((s) => s.setPendingDuplicateCount);
@@ -147,6 +149,7 @@ export default function RootLayout() {
             <Stack.Screen name="legal/permissions" options={{ title: 'Permissions' }} />
             <Stack.Screen name="permission-denied" options={{ title: 'Contacts Access', headerShown: false }} />
           </Stack>
+          <UndoSnackbar />
         </PaperProvider>
       </SafeAreaProvider>
     </GestureHandlerRootView>
