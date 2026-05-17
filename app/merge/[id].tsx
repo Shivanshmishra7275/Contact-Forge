@@ -1,22 +1,22 @@
 /**
- * ContactForge — Merge Review Screen
+ * ContactForge — Smart Merge Review Screen
  *
  * Shows a field-level preview of what a merge would produce.
- * The user selects the survivor contact and confirms before any data changes.
+ * The user can resolve conflicts field-by-field.
  * A full snapshot is saved to merge_history before the merge executes.
  */
 
 import { useCallback, useEffect, useState } from 'react';
 import { ScrollView, StyleSheet, View, Alert } from 'react-native';
-import { Text, Button, Card, RadioButton, Divider } from 'react-native-paper';
+import { Text, Button, Card } from 'react-native-paper';
 import { router, useLocalSearchParams } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
 import {
   getContactWithDetails,
   deleteContact,
   updateContact,
-  insertPhoneNumber,
+  replacePhonesByContactIdSync,
+  deleteEmailsByContactId,
   insertEmail,
 } from '../../src/db/repositories/contactRepository';
 import {
@@ -24,119 +24,87 @@ import {
   resolveDuplicateCandidate,
   recordMerge,
 } from '../../src/db/repositories/duplicateRepository';
+import { recordUndoAction } from '../../src/db/repositories/undoRepository';
+import type { UndoMergePayload } from '../../src/features/undo/types';
 import { logAction } from '../../src/db/repositories/auditRepository';
-import { getNotesByContactId, reassignNotes } from '../../src/db/repositories/noteRepository';
-import { getRelationshipsByContactId, reassignRelationships } from '../../src/db/repositories/relationshipRepository';
+import { reassignNotes } from '../../src/db/repositories/noteRepository';
+import { reassignRelationships } from '../../src/db/repositories/relationshipRepository';
 import { transferTemporaryContact } from '../../src/db/repositories/temporaryContactRepository';
 import { useAppStore } from '../../src/store/appStore';
 import { COLORS, SPACING, FONT_SIZE } from '../../src/constants';
 import type { ContactWithDetails, DuplicateCandidate } from '../../src/types';
+import { buildMergeComparison } from '../../src/features/merge/utils/buildMergeComparison';
+import type { MergeComparisonModel, FieldSource, FieldComparison } from '../../src/features/merge/types';
+import { ConflictFieldRow } from '../../src/features/merge/components/ConflictFieldRow';
 
-export default function MergeScreen() {
+import { useUndoStore } from '../../src/store/undoStore';
+
+export default function SmartMergeScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const setPendingDuplicateCount = useAppStore((s) => s.setPendingDuplicateCount);
 
   const [candidate, setCandidate] = useState<DuplicateCandidate | null>(null);
-  const [contactA, setContactA] = useState<ContactWithDetails | null>(null);
-  const [contactB, setContactB] = useState<ContactWithDetails | null>(null);
-  const [survivorId, setSurvivorId] = useState<'a' | 'b'>('a');
+  const [comparison, setComparison] = useState<MergeComparisonModel | null>(null);
   const [isMerging, setIsMerging] = useState(false);
-  const [noteCounts, setNoteCounts] = useState({ a: 0, b: 0 });
-  const [relationshipCounts, setRelationshipCounts] = useState({ a: 0, b: 0 });
 
   useEffect(() => {
     const candidates = getPendingDuplicates();
     const c = candidates.find((x) => x.id === Number(id));
     if (!c) return;
     setCandidate(c);
+    
     const a = getContactWithDetails(c.contactIdA);
     const b = getContactWithDetails(c.contactIdB);
-    setContactA(a);
-    setContactB(b);
-    if (a) {
-      setNoteCounts((prev) => ({ ...prev, a: getNotesByContactId(a.id).length }));
-      setRelationshipCounts((prev) => ({ ...prev, a: getRelationshipsByContactId(a.id).length }));
-    }
-    if (b) {
-      setNoteCounts((prev) => ({ ...prev, b: getNotesByContactId(b.id).length }));
-      setRelationshipCounts((prev) => ({ ...prev, b: getRelationshipsByContactId(b.id).length }));
+    
+    if (a && b) {
+      setComparison(buildMergeComparison(a, b));
     }
   }, [id]);
 
-  const parseTags = useCallback((raw: string): string[] => {
-    try {
-      return JSON.parse(raw) as string[];
-    } catch {
-      return [];
-    }
+  const handleSourceChange = useCallback((fieldKey: string, source: FieldSource) => {
+    setComparison((prev) => {
+      if (!prev) return prev;
+      const newFields = prev.fields.map(f => {
+        if (f.key === fieldKey) {
+          const resolved = source === 'a' ? f.valueA : source === 'b' ? f.valueB : f.resolvedValue;
+          return {
+            ...f,
+            selectedSource: source,
+            resolvedValue: resolved as any,
+          } as FieldComparison;
+        }
+        return f;
+      });
+      return { ...prev, fields: newFields };
+    });
   }, []);
 
-  const mergeContactFields = useCallback((survivor: ContactWithDetails, absorbed: ContactWithDetails) => {
-    const updates: Partial<{
-      firstName: string | null;
-      lastName: string | null;
-      company: string | null;
-      jobTitle: string | null;
-      notes: string | null;
-      birthday: string | null;
-      imageUri: string | null;
-      hasThumbnail: boolean;
-      isTemporary: boolean;
-      isGhost: boolean;
-      tags: string[];
-      syncedAt: string;
-    }> = {};
-
-    if (!survivor.firstName && absorbed.firstName) updates.firstName = absorbed.firstName;
-    if (!survivor.lastName && absorbed.lastName) updates.lastName = absorbed.lastName;
-    if (!survivor.company && absorbed.company) updates.company = absorbed.company;
-    if (!survivor.jobTitle && absorbed.jobTitle) updates.jobTitle = absorbed.jobTitle;
-    if (!survivor.notes && absorbed.notes) updates.notes = absorbed.notes;
-    if (!survivor.birthday && absorbed.birthday) updates.birthday = absorbed.birthday;
-    if (!survivor.imageUri && absorbed.imageUri) {
-      updates.imageUri = absorbed.imageUri;
-      updates.hasThumbnail = absorbed.hasThumbnail;
-    }
-    if (!survivor.syncedAt && absorbed.syncedAt) updates.syncedAt = absorbed.syncedAt;
-    if (survivor.isGhost && !absorbed.isGhost) updates.isGhost = false;
-    if (!survivor.isTemporary && absorbed.isTemporary) updates.isTemporary = true;
-
-    const tagsA = parseTags(survivor.tags);
-    const tagsB = parseTags(absorbed.tags);
-    const mergedTags = Array.from(new Set([...tagsA, ...tagsB]));
-    if (mergedTags.length !== tagsA.length) updates.tags = mergedTags;
-
-    if (Object.keys(updates).length > 0) {
-      updateContact(survivor.id, updates);
-    }
-  }, [parseTags]);
-
   const handleMerge = useCallback(() => {
-    if (!candidate || !contactA || !contactB) return;
-
-    const survivor = survivorId === 'a' ? contactA : contactB;
-    const absorbed = survivorId === 'a' ? contactB : contactA;
+    if (!candidate || !comparison) return;
 
     Alert.alert(
       'Confirm Merge',
-      `"${absorbed.displayName}" will be deleted and its data merged into "${survivor.displayName}". A backup snapshot will be saved. This action can be reviewed in audit logs.`,
+      `This will merge these two contacts exactly as previewed above. A backup snapshot will be saved.`,
       [
         { text: 'Cancel', style: 'cancel' },
         {
           text: 'Merge',
           style: 'destructive',
-          onPress: () => executeMerge(survivor, absorbed),
+          onPress: () => executeSmartMerge(comparison),
         },
       ],
     );
-  }, [candidate, contactA, contactB, survivorId]);
+  }, [candidate, comparison]);
 
-  const executeMerge = useCallback(
-    (survivor: ContactWithDetails, absorbed: ContactWithDetails) => {
+  const executeSmartMerge = useCallback(
+    (model: MergeComparisonModel) => {
       if (!candidate) return;
       setIsMerging(true);
 
       try {
+        const survivor = model.contactA;
+        const absorbed = model.contactB;
+
         // Save snapshot before merge
         const snapshot = JSON.stringify({ survivor, absorbed });
         recordMerge({
@@ -145,34 +113,72 @@ export default function MergeScreen() {
           snapshotJson: snapshot,
         });
 
-        // Merge core fields and tags (only fill gaps on survivor)
-        mergeContactFields(survivor, absorbed);
+        // Save to centralized Undo Engine queue
+        const undoPayload: UndoMergePayload = {
+          survivorPreMerge: survivor,
+          absorbedPreMerge: absorbed,
+        };
+        recordUndoAction({
+          actionType: 'merge',
+          actionDataJson: JSON.stringify(undoPayload),
+          contactId: survivor.id,
+        });
+        useUndoStore.getState().setUndoableAction(`Contacts merged into "${survivor.displayName}".`);
 
-        // Merge phones: add absorbed's phones to survivor if not duplicate
-        const existingNormalized = new Set(survivor.phoneNumbers.map((p) => p.normalizedNumber));
-        for (const p of absorbed.phoneNumbers) {
-          if (!existingNormalized.has(p.normalizedNumber)) {
-            insertPhoneNumber({ contactId: survivor.id, label: p.label ?? undefined, number: p.number });
+        // Build the updates based on resolved fields
+        const scalarUpdates: any = {};
+        const tagsField = model.fields.find(f => f.key === 'tags');
+        const phonesField = model.fields.find(f => f.key === 'phoneNumbers');
+        const emailsField = model.fields.find(f => f.key === 'emails');
+
+        for (const f of model.fields) {
+          if (f.type === 'scalar') {
+            scalarUpdates[f.key] = f.resolvedValue;
           }
         }
-
-        // Merge emails
-        const existingEmails = new Set(survivor.emails.map((e) => e.normalizedEmail));
-        for (const e of absorbed.emails) {
-          if (!existingEmails.has(e.normalizedEmail)) {
-            insertEmail({ contactId: survivor.id, label: e.label ?? undefined, email: e.email });
-          }
+        
+        if (tagsField) {
+          scalarUpdates.tags = tagsField.resolvedValue;
         }
 
-        // Move notes and relationships
+        // 1. Update Survivor Scalar Fields
+        updateContact(survivor.id, scalarUpdates);
+
+        // 2. Update Phones & Emails (merged arrays)
+        if (phonesField && Array.isArray(phonesField.resolvedValue)) {
+            // Deduplicate phones based on normalized number
+            const uniquePhones = new Map();
+            for (const p of phonesField.resolvedValue) {
+                if (!uniquePhones.has(p.normalizedNumber)) {
+                    uniquePhones.set(p.normalizedNumber, p);
+                }
+            }
+            replacePhonesByContactIdSync(survivor.id, Array.from(uniquePhones.values()));
+        }
+
+        if (emailsField && Array.isArray(emailsField.resolvedValue)) {
+            // Deduplicate emails based on normalized email
+            const uniqueEmails = new Map();
+            for (const e of emailsField.resolvedValue) {
+                if (!uniqueEmails.has(e.normalizedEmail)) {
+                    uniqueEmails.set(e.normalizedEmail, e);
+                }
+            }
+            deleteEmailsByContactId(survivor.id);
+            for (const e of uniqueEmails.values()) {
+                insertEmail({ contactId: survivor.id, label: e.label ?? undefined, email: e.email });
+            }
+        }
+
+        // 3. Move notes and relationships
         const movedNotes = reassignNotes(absorbed.id, survivor.id);
         const relationshipResult = reassignRelationships(absorbed.id, survivor.id);
         const movedTemporary = transferTemporaryContact(absorbed.id, survivor.id);
 
-        // Delete the absorbed contact (cascade removes phones/emails)
+        // 4. Delete the absorbed contact (cascade removes its original phones/emails)
         deleteContact(absorbed.id);
 
-        // Resolve the duplicate candidate
+        // 5. Resolve duplicate candidate
         resolveDuplicateCandidate(candidate.id, 'merged');
 
         logAction('contacts_merged', survivor.id, {
@@ -188,7 +194,7 @@ export default function MergeScreen() {
         const newCount = getPendingDuplicates().length;
         setPendingDuplicateCount(newCount);
 
-        Alert.alert('Merged', `Contacts merged successfully into "${survivor.displayName}".`);
+        Alert.alert('Merged', `Contacts successfully reconciled and merged.`);
         router.replace('/(tabs)/duplicates');
       } catch (err) {
         Alert.alert('Merge Failed', err instanceof Error ? err.message : String(err));
@@ -196,55 +202,55 @@ export default function MergeScreen() {
         setIsMerging(false);
       }
     },
-    [candidate, mergeContactFields],
+    [candidate, setPendingDuplicateCount],
   );
 
-  if (!candidate || !contactA || !contactB) {
+  if (!candidate || !comparison) {
     return (
       <View style={styles.center}>
-        <Text style={styles.notFound}>Duplicate candidate not found.</Text>
+        <Text style={styles.notFound}>Duplicate candidate not found or loading...</Text>
         <Button onPress={() => router.back()} textColor={COLORS.primary}>Go Back</Button>
       </View>
     );
   }
 
-  const tagsA = parseTags(contactA.tags);
-  const tagsB = parseTags(contactB.tags);
-  const absorbedNotes = survivorId === 'a' ? noteCounts.b : noteCounts.a;
-  const absorbedRelationships = survivorId === 'a' ? relationshipCounts.b : relationshipCounts.a;
-  const absorbedTags = survivorId === 'a' ? tagsB.length : tagsA.length;
-  const absorbedLabel = survivorId === 'a' ? 'Contact B' : 'Contact A';
+  const conflictsCount = comparison.fields.filter(f => f.state === 'conflict').length;
+  const matchCount = comparison.fields.filter(f => f.state === 'match').length;
 
   return (
     <SafeAreaView style={styles.safeArea} edges={['bottom']}>
       <ScrollView style={styles.scroll} contentContainerStyle={styles.content}>
-        <Text style={styles.subtitle}>
-          Choose which contact to keep. The other will be deleted after its data is merged in.
-        </Text>
+        <View style={styles.header}>
+            <Text style={styles.title}>Resolve Merge</Text>
+            <Text style={styles.subtitle}>
+              Review each conflicting field. Matching fields have been auto-resolved. Contact B will be safely absorbed into Contact A.
+            </Text>
+        </View>
 
-        {/* Survivor selection */}
-        <RadioButton.Group
-          value={survivorId}
-          onValueChange={(v) => setSurvivorId(v as 'a' | 'b')}
-        >
-          <ContactPreviewCard
-            contact={contactA}
-            value="a"
-            label="Contact A"
-            selected={survivorId === 'a'}
-          />
-          <ContactPreviewCard
-            contact={contactB}
-            value="b"
-            label="Contact B"
-            selected={survivorId === 'b'}
-          />
-        </RadioButton.Group>
+        <View style={styles.statsRow}>
+          <View style={styles.statBox}>
+             <Text style={styles.statValue}>{matchCount}</Text>
+             <Text style={styles.statLabel}>Matches</Text>
+          </View>
+          <View style={[styles.statBox, conflictsCount > 0 && styles.statBoxAlert]}>
+             <Text style={[styles.statValue, conflictsCount > 0 && { color: COLORS.error }]}>{conflictsCount}</Text>
+             <Text style={[styles.statLabel, conflictsCount > 0 && { color: COLORS.error }]}>Conflicts</Text>
+          </View>
+        </View>
 
-        {/* Merge reasons */}
-        <Card style={styles.reasonsCard}>
+        <View style={styles.fieldsContainer}>
+            {comparison.fields.map((field) => (
+                <ConflictFieldRow 
+                  key={field.key} 
+                  field={field} 
+                  onSourceSelected={(src) => handleSourceChange(field.key, src)} 
+                />
+            ))}
+        </View>
+
+        <Card style={styles.summaryCard}>
           <Card.Content>
-            <Text style={styles.reasonsTitle}>Why flagged as duplicate:</Text>
+            <Text style={styles.summaryTitle}>Why flagged as duplicate:</Text>
             {candidate.reasons.map((r) => (
               <Text key={r} style={styles.reason}>
                 • {r.replace(/_/g, ' ')} (score: {candidate.score}/100)
@@ -253,67 +259,30 @@ export default function MergeScreen() {
           </Card.Content>
         </Card>
 
-        {/* Merge impact summary */}
-        <Card style={styles.summaryCard}>
-          <Card.Content>
-            <Text style={styles.reasonsTitle}>Merge impact for {absorbedLabel}:</Text>
-            <Text style={styles.reason}>• {absorbedNotes} memory note{absorbedNotes !== 1 ? 's' : ''}</Text>
-            <Text style={styles.reason}>• {absorbedRelationships} relationship link{absorbedRelationships !== 1 ? 's' : ''}</Text>
-            <Text style={styles.reason}>• {absorbedTags} tag{absorbedTags !== 1 ? 's' : ''}</Text>
-          </Card.Content>
-        </Card>
-
-        {/* Action buttons */}
-        <Button
-          mode="contained"
-          onPress={handleMerge}
-          loading={isMerging}
-          disabled={isMerging}
-          icon="merge"
-          buttonColor={COLORS.primary}
-          style={styles.mergeBtn}
-        >
-          Merge Contacts
-        </Button>
-        <Button
-          mode="text"
-          onPress={() => router.back()}
-          textColor={COLORS.textSecondary}
-        >
-          Cancel
-        </Button>
       </ScrollView>
+
+      {/* Sticky Bottom Bar */}
+      <View style={styles.bottomBar}>
+        <Button
+            mode="contained"
+            onPress={handleMerge}
+            loading={isMerging}
+            disabled={isMerging}
+            icon="merge"
+            buttonColor={COLORS.primary}
+            style={styles.mergeBtn}
+          >
+            Confirm Merge
+        </Button>
+        <Button
+            mode="text"
+            onPress={() => router.back()}
+            textColor={COLORS.textSecondary}
+          >
+            Cancel
+        </Button>
+      </View>
     </SafeAreaView>
-  );
-}
-
-interface ContactPreviewCardProps {
-  contact: ContactWithDetails;
-  value: string;
-  label: string;
-  selected: boolean;
-}
-
-function ContactPreviewCard({ contact, value, label, selected }: ContactPreviewCardProps) {
-  return (
-    <Card style={[styles.contactCard, selected && styles.contactCardSelected]}>
-      <Card.Content>
-        <View style={styles.cardHeader}>
-          <RadioButton value={value} color={COLORS.primary} />
-          <View style={styles.headerText}>
-            <Text style={styles.contactLabel}>{label} {selected ? '(KEEP)' : ''}</Text>
-            <Text style={styles.contactName}>{contact.displayName}</Text>
-          </View>
-        </View>
-        {contact.company && <Text style={styles.company}>{contact.company}</Text>}
-        {contact.phoneNumbers.map((p) => (
-          <Text key={p.id} style={styles.detail}>📞 {p.number}</Text>
-        ))}
-        {contact.emails.map((e) => (
-          <Text key={e.id} style={styles.detail}>✉️ {e.email}</Text>
-        ))}
-      </Card.Content>
-    </Card>
   );
 }
 
@@ -328,6 +297,15 @@ const styles = StyleSheet.create({
     gap: SPACING.md,
     backgroundColor: COLORS.background,
   },
+  header: {
+      marginBottom: SPACING.xs,
+  },
+  title: {
+      fontSize: FONT_SIZE.xl,
+      fontWeight: 'bold',
+      color: COLORS.textPrimary,
+      marginBottom: SPACING.xs,
+  },
   subtitle: {
     color: COLORS.textSecondary,
     fontSize: FONT_SIZE.sm,
@@ -336,22 +314,48 @@ const styles = StyleSheet.create({
     padding: SPACING.sm,
     borderRadius: 8,
   },
-  contactCard: {
-    backgroundColor: COLORS.surface,
-    borderWidth: 2,
-    borderColor: 'transparent',
+  statsRow: {
+      flexDirection: 'row',
+      gap: SPACING.sm,
   },
-  contactCardSelected: { borderColor: COLORS.primary },
-  cardHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: SPACING.xs },
-  headerText: { flex: 1 },
-  contactLabel: { color: COLORS.textDisabled, fontSize: FONT_SIZE.xs, textTransform: 'uppercase', letterSpacing: 0.5 },
-  contactName: { color: COLORS.textPrimary, fontSize: FONT_SIZE.lg, fontWeight: '700' },
-  company: { color: COLORS.textSecondary, fontSize: FONT_SIZE.sm, marginBottom: SPACING.xs },
-  detail: { color: COLORS.textSecondary, fontSize: FONT_SIZE.sm, paddingVertical: 2 },
-  reasonsCard: { backgroundColor: COLORS.surfaceVariant },
-  summaryCard: { backgroundColor: COLORS.surface },
-  reasonsTitle: { color: COLORS.textSecondary, fontSize: FONT_SIZE.sm, fontWeight: '600', marginBottom: SPACING.xs },
+  statBox: {
+      flex: 1,
+      backgroundColor: COLORS.surface,
+      padding: SPACING.sm,
+      borderRadius: 8,
+      alignItems: 'center',
+      borderWidth: 1,
+      borderColor: COLORS.surfaceVariant,
+  },
+  statBoxAlert: {
+      borderColor: COLORS.error,
+      backgroundColor: 'rgba(255, 107, 107, 0.1)',
+  },
+  statValue: {
+      fontSize: FONT_SIZE.xl,
+      fontWeight: 'bold',
+      color: COLORS.primary,
+  },
+  statLabel: {
+      fontSize: FONT_SIZE.xs,
+      color: COLORS.textDisabled,
+      textTransform: 'uppercase',
+  },
+  fieldsContainer: {
+      gap: 2,
+  },
+  summaryCard: { backgroundColor: COLORS.surfaceVariant },
+  summaryTitle: { color: COLORS.textSecondary, fontSize: FONT_SIZE.sm, fontWeight: '600', marginBottom: SPACING.xs },
   reason: { color: COLORS.textSecondary, fontSize: FONT_SIZE.sm, paddingVertical: 2 },
-  mergeBtn: { marginTop: SPACING.xs },
+  bottomBar: {
+      padding: SPACING.md,
+      backgroundColor: COLORS.surface,
+      borderTopWidth: 1,
+      borderTopColor: COLORS.surfaceVariant,
+      gap: SPACING.sm,
+  },
+  mergeBtn: { 
+      paddingVertical: 4,
+  },
   notFound: { color: COLORS.textSecondary, fontSize: FONT_SIZE.md },
 });
