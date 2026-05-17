@@ -15,6 +15,9 @@ import {
 } from '../../utils/normalization';
 import type { LocalContact, ContactWithDetails, PhoneNumber, EmailAddress } from '../../types';
 import { PAGE_SIZE } from '../../constants';
+import { recordUndoAction } from './undoRepository';
+import type { UndoDeletePayload, UndoBulkDeletePayload } from '../../features/undo/types';
+import { useUndoStore } from '../../store/undoStore';
 
 // ---------------------------------------------------------------------------
 // Row mapper helpers
@@ -120,6 +123,54 @@ export function insertContact(params: {
   return result.lastInsertRowId;
 }
 
+export function restoreContactWithDetailsSync(contact: ContactWithDetails): void {
+  const db = getDatabase();
+  
+  db.runSync(
+    `INSERT INTO contacts
+       (id, native_id, first_name, last_name, display_name, normalized_name,
+        company, job_title, notes, birthday, image_uri, has_thumbnail,
+        is_temporary, is_ghost, tags, synced_at, created_at, updated_at)
+     VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
+    [
+      contact.id,
+      contact.nativeId,
+      contact.firstName,
+      contact.lastName,
+      contact.displayName,
+      contact.normalizedName,
+      contact.company,
+      contact.jobTitle,
+      contact.notes,
+      contact.birthday,
+      contact.imageUri,
+      contact.hasThumbnail ? 1 : 0,
+      contact.isTemporary ? 1 : 0,
+      contact.isGhost ? 1 : 0,
+      contact.tags,
+      contact.syncedAt,
+      contact.createdAt,
+      contact.updatedAt,
+    ],
+  );
+
+  for (const phone of contact.phoneNumbers) {
+    db.runSync(
+      `INSERT INTO phone_numbers (id, contact_id, label, number, normalized_number)
+       VALUES (?,?,?,?,?)`,
+      [phone.id, contact.id, phone.label ?? null, phone.number, phone.normalizedNumber],
+    );
+  }
+
+  for (const email of contact.emails) {
+    db.runSync(
+      `INSERT INTO emails (id, contact_id, label, email, normalized_email)
+       VALUES (?,?,?,?,?)`,
+      [email.id, contact.id, email.label ?? null, email.email, email.normalizedEmail],
+    );
+  }
+}
+
 export function updateContact(
   id: number,
   params: Partial<{
@@ -180,7 +231,39 @@ export function updateContact(
 }
 
 export function deleteContact(id: number): void {
+  const contact = getContactWithDetails(id);
+  if (contact) {
+    const payload: UndoDeletePayload = { contact };
+    recordUndoAction({
+      actionType: 'delete',
+      actionDataJson: JSON.stringify(payload),
+      contactId: id,
+    });
+    useUndoStore.getState().setUndoableAction(`Contact "${contact.displayName}" deleted.`);
+  }
   getDatabase().runSync('DELETE FROM contacts WHERE id = ?', [id]);
+}
+
+export function deleteContactsBulk(ids: number[]): void {
+  if (ids.length === 0) return;
+  const db = getDatabase();
+  
+  // Fetch snapshots for all before deleting
+  const contacts = ids.map(getContactWithDetails).filter(Boolean) as ContactWithDetails[];
+  if (contacts.length > 0) {
+    const payload: UndoBulkDeletePayload = { contacts };
+    recordUndoAction({
+      actionType: 'bulk_delete',
+      actionDataJson: JSON.stringify(payload),
+    });
+    useUndoStore.getState().setUndoableAction(`${contacts.length} contacts deleted.`);
+  }
+
+  db.withTransactionSync(() => {
+    for (const id of ids) {
+      db.runSync('DELETE FROM contacts WHERE id = ?', [id]);
+    }
+  });
 }
 
 export function getContactById(id: number): LocalContact | null {
@@ -260,6 +343,22 @@ export function replacePhonesByContactIdSync(
 
 export function deleteEmailsByContactId(contactId: number): void {
   getDatabase().runSync('DELETE FROM emails WHERE contact_id = ?', [contactId]);
+}
+
+export function replaceEmailsByContactIdSync(
+  contactId: number,
+  emails: Array<{ label?: string | null; email: string }>,
+): void {
+  const db = getDatabase();
+  db.runSync('DELETE FROM emails WHERE contact_id = ?', [contactId]);
+
+  for (const email of emails) {
+    db.runSync(
+      `INSERT INTO emails (contact_id, label, email, normalized_email)
+       VALUES (?,?,?,?)`,
+      [contactId, email.label ?? null, email.email, normalizeEmail(email.email)],
+    );
+  }
 }
 
 export function getPhonesByContactId(contactId: number): PhoneNumber[] {
