@@ -188,6 +188,46 @@ ContactForge supports web platforms with robust SQLite WebAssembly capabilities.
 npm run web
 ```
 
+### Web SQLite requirements
+SQLite on web depends on cross-origin isolation. The main HTML document must send:
+
+- Cross-Origin-Opener-Policy: same-origin
+- Cross-Origin-Embedder-Policy: require-corp
+
+If those headers are missing, the app will show a "Web preview limited" fallback
+instead of initializing the local database.
+
+Verify in the browser console:
+
+- window.crossOriginIsolated should be true
+- typeof SharedArrayBuffer !== 'undefined' should be true
+
+Verify headers for the main document:
+
+- PowerShell: Invoke-WebRequest http://localhost:8081 -Method Head -UseBasicParsing
+
+Note: some device-only features (like native contact change listeners) are disabled on web.
+The UI still works, but contact changes from the OS will not auto-refresh.
+
+### Dev-only COOP/COEP proxy (if headers are missing)
+If the main HTML response still lacks COOP/COEP headers, use the dev proxy to
+inject them for local web testing.
+
+```bash
+# Terminal A: start Expo web
+npm run web
+
+# Terminal B: start COOP/COEP proxy (serves http://localhost:8082)
+npm run web:coop
+```
+
+Then open http://localhost:8082 and verify:
+
+- window.crossOriginIsolated === true
+- typeof SharedArrayBuffer !== 'undefined'
+
+
+
 ---
 
 ## 🧪 Quality & Testing
