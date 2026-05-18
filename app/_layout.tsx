@@ -17,7 +17,7 @@ import { Stack } from 'expo-router';
 import { PaperProvider, MD3DarkTheme, configureFonts } from 'react-native-paper';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
-import { AppState, StyleSheet } from 'react-native';
+import { AppState, Platform, StyleSheet } from 'react-native';
 import { getDatabase } from '../src/db';
 import { getAllSettings } from '../src/db/repositories/settingsRepository';
 import { countPendingDuplicates } from '../src/db/repositories/duplicateRepository';
@@ -109,7 +109,11 @@ export default function RootLayout() {
   useEffect(() => {
     const subscription = AppState.addEventListener('change', (state) => {
       if (state === 'active' && settings.enableBackgroundMaintenance) {
-        maybeRunMaintenance('foreground', MAINTENANCE_MIN_INTERVAL_MINUTES).catch(() => undefined);
+        // expo-file-system and expo-sharing (used by pruneOldBackups) are unavailable on web.
+        // Background maintenance only runs on native platforms.
+        if (Platform.OS !== 'web') {
+          maybeRunMaintenance('foreground', MAINTENANCE_MIN_INTERVAL_MINUTES).catch(() => undefined);
+        }
       }
     });
 

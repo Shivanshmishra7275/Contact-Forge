@@ -1,8 +1,8 @@
 'use client';
 
-import React, { useActionState, useEffect } from 'react';
+import React, { useActionState } from 'react';
 import { motion } from 'framer-motion';
-import { submitWaitlist, WaitlistState } from './actions';
+import { submitWaitlist, type WaitlistState } from './actions/waitlist';
 import { ShieldCheck, Mail, ArrowRight, Loader2, CheckCircle2 } from 'lucide-react';
 
 const initialState: WaitlistState = { status: 'idle' };
@@ -17,7 +17,13 @@ export default function Home() {
       <div className="absolute bottom-0 left-1/4 w-[600px] h-[400px] bg-blue-600/10 blur-[120px] rounded-full pointer-events-none" />
       
       {/* Noise overlay for texture */}
-      <div className="absolute inset-0 opacity-[0.015] pointer-events-none" style={{ backgroundImage: 'url("data:image/svg+xml,%3Csvg viewBox=%220 0 200 200%22 xmlns=%22http://www.w3.org/2000/svg%22%3E%3Cfilter id=%22noiseFilter%22%3E%3CfeTurbulence type=%22fractalNoise%22 baseFrequency=%220.65%22 numOctaves=%223%22 stitchTiles=%22stitch%22/%3E%3C/filter%3E%3Crect width=%22100%25%22 height=%22100%25%22 filter=%22url(%23noiseFilter)%22/%3E%3C/svg%3E")' }} />
+      <div
+        className="absolute inset-0 opacity-[0.015] pointer-events-none"
+        style={{
+          backgroundImage:
+            'url("data:image/svg+xml,%3Csvg viewBox=%220 0 200 200%22 xmlns=%22http://www.w3.org/2000/svg%22%3E%3Cfilter id=%22noiseFilter%22%3E%3CfeTurbulence type=%22fractalNoise%22 baseFrequency=%220.65%22 numOctaves=%223%22 stitchTiles=%22stitch%22/%3E%3C/filter%3E%3Crect width=%22100%25%22 height=%22100%25%22 filter=%22url(%23noiseFilter)%22/%3E%3C/svg%3E")',
+        }}
+      />
 
       <div className="z-10 w-full max-w-3xl px-6 flex flex-col items-center text-center">
         
@@ -65,7 +71,7 @@ export default function Home() {
           {state.status === 'success' || state.status === 'duplicate' ? (
             <div className="flex flex-col items-center justify-center p-8 bg-slate-900/40 border border-teal-500/30 rounded-2xl backdrop-blur-xl shadow-2xl">
               <CheckCircle2 className="w-12 h-12 text-teal-400 mb-4" />
-              <h3 className="text-xl font-bold text-white mb-2">You're on the list!</h3>
+              <h3 className="text-xl font-bold text-white mb-2">You&apos;re on the list!</h3>
               <p className="text-slate-400 text-center">
                 {state.status === 'duplicate' 
                   ? "We already have your email safely stored." 
@@ -74,6 +80,16 @@ export default function Home() {
             </div>
           ) : (
             <form action={formAction} className="relative group">
+              {/* Anti-spam honeypot — hidden from users, triggers bot detection */}
+              <input
+                type="text"
+                name="website"
+                tabIndex={-1}
+                autoComplete="off"
+                aria-hidden="true"
+                className="absolute opacity-0 -z-10 w-0 h-0"
+              />
+
               <div className="absolute inset-0 bg-teal-500/20 rounded-2xl blur-xl transition-all duration-500 group-hover:bg-teal-500/30 group-focus-within:bg-teal-500/40 pointer-events-none" />
               
               <div className="relative flex items-center bg-slate-950 border border-slate-800 rounded-2xl p-2 shadow-2xl focus-within:border-teal-500/50 transition-colors duration-300 overflow-hidden">
@@ -84,6 +100,7 @@ export default function Home() {
                 <input 
                   type="email" 
                   name="email"
+                  id="waitlist-email"
                   placeholder="Enter your email address"
                   required
                   disabled={isPending}
@@ -92,6 +109,7 @@ export default function Home() {
 
                 <button 
                   type="submit"
+                  id="waitlist-submit"
                   disabled={isPending}
                   className="flex items-center justify-center gap-2 bg-white hover:bg-slate-100 text-slate-950 font-semibold px-6 py-3 rounded-xl transition-all duration-200 disabled:opacity-70 disabled:cursor-not-allowed group/btn"
                 >
