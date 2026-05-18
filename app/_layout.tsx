@@ -17,7 +17,7 @@ import { Stack } from 'expo-router';
 import { PaperProvider, MD3DarkTheme, configureFonts } from 'react-native-paper';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
-import { AppState, Platform, StyleSheet } from 'react-native';
+import { AppState, Platform, StyleSheet, Text, View } from 'react-native';
 import { getDatabase } from '../src/db';
 import { getAllSettings } from '../src/db/repositories/settingsRepository';
 import { countPendingDuplicates } from '../src/db/repositories/duplicateRepository';
@@ -61,6 +61,7 @@ export default function RootLayout() {
   const setSyncedAt = useAppStore((s) => s.setSyncedAt);
   const settings = useAppStore((s) => s.settings);
   const [showSplash, setShowSplash] = useState(true);
+  const [webUnsupported, setWebUnsupported] = useState(false);
 
   /**
    * Bootstrap application
@@ -70,6 +71,21 @@ export default function RootLayout() {
    * - Show splash screen on first load
    */
   useEffect(() => {
+    const isWeb = Platform.OS === 'web';
+    const hasSharedArrayBuffer = typeof globalThis.SharedArrayBuffer !== 'undefined';
+    const isCrossOriginIsolated =
+      typeof globalThis !== 'undefined' &&
+      'crossOriginIsolated' in globalThis &&
+      (globalThis as { crossOriginIsolated?: boolean }).crossOriginIsolated === true;
+
+    if (isWeb && (!hasSharedArrayBuffer || !isCrossOriginIsolated)) {
+      if (__DEV__) {
+        console.warn('[ContactForge] Web SQLite requires SharedArrayBuffer + cross-origin isolation.');
+      }
+      setWebUnsupported(true);
+      return;
+    }
+
     try {
       getDatabase(); // ensures schema is created
       const settings = getAllSettings();
@@ -120,6 +136,26 @@ export default function RootLayout() {
     return () => subscription.remove();
   }, [settings.enableBackgroundMaintenance]);
 
+  if (webUnsupported) {
+    return (
+      <GestureHandlerRootView style={styles.root}>
+        <SafeAreaProvider>
+          <View style={styles.webFallback}>
+            <Text style={styles.webFallbackTitle}>Web preview limited</Text>
+            <Text style={styles.webFallbackBody}>
+              ContactForge uses SQLite with WebAssembly. This browser session is not
+              cross-origin isolated, so local data cannot be initialized.
+            </Text>
+            <Text style={styles.webFallbackBody}>
+              Run the Expo web dev server with COOP/COEP headers and refresh, or
+              use a browser that supports SharedArrayBuffer.
+            </Text>
+          </View>
+        </SafeAreaProvider>
+      </GestureHandlerRootView>
+    );
+  }
+
   if (showSplash) {
     return (
       <GestureHandlerRootView style={styles.root}>
@@ -162,4 +198,25 @@ export default function RootLayout() {
 
 const styles = StyleSheet.create({
   root: { flex: 1 },
+  webFallback: {
+    flex: 1,
+    backgroundColor: COLORS.background,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 24,
+  },
+  webFallbackTitle: {
+    color: COLORS.textPrimary,
+    fontSize: 20,
+    fontWeight: '700',
+    marginBottom: 12,
+    textAlign: 'center',
+  },
+  webFallbackBody: {
+    color: COLORS.textSecondary,
+    fontSize: 14,
+    textAlign: 'center',
+    marginBottom: 8,
+    lineHeight: 20,
+  },
 });

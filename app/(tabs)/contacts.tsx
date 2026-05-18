@@ -14,6 +14,7 @@ import {
   TextInput as RNTextInput,
   AppState,
   InteractionManager,
+  Platform,
 } from 'react-native';
 import { Text, Chip, FAB, ActivityIndicator, Button } from 'react-native-paper';
 import { router, useLocalSearchParams } from 'expo-router';
@@ -125,7 +126,7 @@ export default function ContactsScreen() {
   }, [filter, refreshContacts]);
 
   useEffect(() => {
-    const subscription = typeof Contacts.addContactsChangeListener === 'function'
+    const subscription = Platform.OS !== 'web' && typeof Contacts.addContactsChangeListener === 'function'
       ? Contacts.addContactsChangeListener(() => {
           refreshContacts();
         })
