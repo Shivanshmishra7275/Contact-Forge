@@ -17,7 +17,10 @@ import { getDuplicatesByContactId } from '../../src/db/repositories/duplicateRep
 import { logAction } from '../../src/db/repositories/auditRepository';
 import { getNotesByContactId } from '../../src/db/repositories/noteRepository';
 import { getRelationshipsByContactId } from '../../src/db/repositories/relationshipRepository';
+import { getContactContext } from '../../src/db/repositories/contactContextRepository';
+import { getRemindersByContactId } from '../../src/db/repositories/reminderRepository';
 import { calculateContactHealthScore } from '../../src/services/contactHealthService';
+import { suggestCategories, CategorySuggestion } from '../../src/services/relationshipCategorizationService';
 import {
   markContactAsTemporary,
   unmarkContactAsTemporary,
@@ -27,8 +30,10 @@ import { isoToDisplay } from '../../src/utils/normalization';
 import { HealthScoreDisplay } from '../../src/HealthScoreDisplay';
 import { NotesEditor } from '../../src/NotesEditor';
 import { RelationshipsEditor } from '../../src/RelationshipsEditor';
-import type { TemporaryContact, ContactNote, ContactHealthScore, ContactRelationship } from '../../src/types';
-import { COLORS, SPACING, FONT_SIZE } from '../../src/constants';
+import { ContactContextEditor } from '../../src/ContactContextEditor';
+import { ReminderEditor } from '../../src/ReminderEditor';
+import type { TemporaryContact, ContactNote, ContactHealthScore, ContactRelationship, ContactContext, ContactReminder } from '../../src/types';
+import { COLORS, SPACING, FONT_SIZE, RADIUS } from '../../src/constants';
 import type { ContactWithDetails } from '../../src/types';
 
 export default function ContactDetailScreen() {
@@ -39,9 +44,15 @@ export default function ContactDetailScreen() {
   const [notes, setNotes] = useState<ContactNote[]>([]);
   const [relationships, setRelationships] = useState<ContactRelationship[]>([]);
   const [health, setHealth] = useState<ContactHealthScore | null>(null);
+  const [context, setContext] = useState<ContactContext | null>(null);
+  const [reminders, setReminders] = useState<ContactReminder[]>([]);
 
   const [showNotesEditor, setShowNotesEditor] = useState(false);
   const [showRelationshipsEditor, setShowRelationshipsEditor] = useState(false);
+  const [showContextEditor, setShowContextEditor] = useState(false);
+  const [showReminderEditor, setShowReminderEditor] = useState(false);
+
+  const [suggestions, setSuggestions] = useState<CategorySuggestion[]>([]);
 
   const [isTempModalVisible, setTempModalVisible] = useState(false);
   const [selectedExpiry, setSelectedExpiry] = useState<'none' | '1day' | '1week' | '1month'>('none');
@@ -55,8 +66,11 @@ export default function ContactDetailScreen() {
       setTempEntry(getTemporaryContactEntry(c.id));
       setNotes(getNotesByContactId(c.id));
       setRelationships(getRelationshipsByContactId(c.id));
+      setContext(getContactContext(c.id));
+      setReminders(getRemindersByContactId(c.id).filter((r) => r.status === 'pending'));
       const healthScore = calculateContactHealthScore(c.id);
       setHealth(healthScore);
+      setSuggestions(suggestCategories(c));
     }
   }, [id]);
 
@@ -103,6 +117,25 @@ export default function ContactDetailScreen() {
       ],
     );
   }, [contact]);
+
+  const handleApplySuggestion = useCallback((suggestion: CategorySuggestion) => {
+    if (!contact) return;
+    try {
+      const currentTags = JSON.parse(contact.tags || '[]');
+      if (!currentTags.includes(suggestion.category)) {
+        currentTags.push(suggestion.category);
+        const { updateContact } = require('../../src/db/repositories/contactRepository');
+        updateContact(contact.id, { tags: currentTags });
+        load();
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  }, [contact, load]);
+
+  const handleDismissSuggestion = useCallback((category: string) => {
+    setSuggestions(prev => prev.filter(s => s.category !== category));
+  }, []);
 
   if (!contact) {
     return (
@@ -181,6 +214,33 @@ export default function ContactDetailScreen() {
           </Card>
         )}
 
+        {/* Suggested Categories */}
+        {suggestions.length > 0 && (
+          <View style={{ gap: SPACING.xs, marginVertical: SPACING.xs }}>
+            <Text style={{ fontSize: FONT_SIZE.sm, color: COLORS.textSecondary, marginLeft: SPACING.xs }}>Suggested Relationships</Text>
+            {suggestions.map((s) => (
+              <Card key={s.category} style={[styles.card, { borderColor: COLORS.primary, borderWidth: 1 }]}>
+                <Card.Content style={{ flexDirection: 'row', alignItems: 'center', gap: SPACING.sm, paddingVertical: SPACING.sm }}>
+                  <MaterialCommunityIcons name="tag-plus-outline" size={20} color={COLORS.primary} />
+                  <View style={{ flex: 1 }}>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                      <Text style={{ color: COLORS.textPrimary, fontWeight: 'bold' }}>{s.category}</Text>
+                      <Chip style={{ backgroundColor: s.confidence === 'high' ? COLORS.success + '22' : COLORS.warning + '22', height: 20 }} textStyle={{ fontSize: 10, color: s.confidence === 'high' ? COLORS.success : COLORS.warning, marginVertical: 0 }}>
+                        {s.confidence} match
+                      </Chip>
+                    </View>
+                    <Text style={{ color: COLORS.textSecondary, fontSize: FONT_SIZE.xs }}>{s.reasons[0]}</Text>
+                  </View>
+                  <View style={{ flexDirection: 'row', gap: SPACING.xs }}>
+                    <Button mode="text" textColor={COLORS.textDisabled} compact onPress={() => handleDismissSuggestion(s.category)}>Dismiss</Button>
+                    <Button mode="contained" buttonColor={COLORS.primary} compact onPress={() => handleApplySuggestion(s)}>Apply</Button>
+                  </View>
+                </Card.Content>
+              </Card>
+            ))}
+          </View>
+        )}
+
         {/* Phone numbers */}
         {contact.phoneNumbers.length > 0 && (
           <Card style={styles.card}>
@@ -234,6 +294,108 @@ export default function ContactDetailScreen() {
             </Card.Content>
           </Card>
         )}
+
+        {/* Relationship Brief */}
+        <Card style={styles.card}>
+          <Card.Title
+            title="Relationship Brief"
+            titleStyle={styles.sectionTitle}
+            left={() => <MaterialCommunityIcons name="brain" color={COLORS.primary} size={20} />}
+            right={() => (
+              <Button
+                mode="text"
+                onPress={() => setShowContextEditor(true)}
+                textColor={COLORS.primary}
+                compact
+              >
+                {context ? 'Edit' : 'Add'}
+              </Button>
+            )}
+          />
+          <Card.Content>
+            {!context ? (
+              <Text style={styles.emptySectionText}>No relationship context yet. Tap Add to capture where you met, warmth, and next steps.</Text>
+            ) : (
+              <View style={{ gap: SPACING.sm }}>
+                {/* Strength + Warmth row */}
+                <View style={styles.briefRow}>
+                  <StrengthBadge strength={context.relationshipStrength} />
+                  <View style={styles.warmthPill}>
+                    <MaterialCommunityIcons name="fire" size={12} color={COLORS.accent} />
+                    <Text style={styles.warmthText}>Warmth {context.warmth}/100</Text>
+                  </View>
+                </View>
+                {context.whereMet && (
+                  <View style={styles.briefField}>
+                    <MaterialCommunityIcons name="map-marker" size={13} color={COLORS.textDisabled} />
+                    <Text style={styles.briefFieldText}>Met: {context.whereMet}</Text>
+                  </View>
+                )}
+                {context.lastInteractionAt && (
+                  <View style={styles.briefField}>
+                    <MaterialCommunityIcons name="clock-outline" size={13} color={COLORS.textDisabled} />
+                    <Text style={styles.briefFieldText}>Last: {isoToDisplay(context.lastInteractionAt)}</Text>
+                  </View>
+                )}
+                {context.nextAction && (
+                  <View style={styles.briefField}>
+                    <MaterialCommunityIcons name="arrow-right-circle" size={13} color={COLORS.secondary} />
+                    <Text style={[styles.briefFieldText, { color: COLORS.secondary }]}>{context.nextAction}</Text>
+                  </View>
+                )}
+                {context.notesPlain && (
+                  <Text style={styles.briefNotes}>{context.notesPlain}</Text>
+                )}
+              </View>
+            )}
+          </Card.Content>
+        </Card>
+
+        {/* Follow-up Reminders */}
+        <Card style={styles.card}>
+          <Card.Title
+            title="Follow-up Reminders"
+            titleStyle={styles.sectionTitle}
+            left={() => <MaterialCommunityIcons name="bell-outline" color={COLORS.warning} size={20} />}
+            right={() => (
+              <Button
+                mode="text"
+                onPress={() => setShowReminderEditor(true)}
+                textColor={COLORS.primary}
+                compact
+              >
+                Manage
+              </Button>
+            )}
+          />
+          <Card.Content>
+            {reminders.length === 0 ? (
+              <Text style={styles.emptySectionText}>No reminders. Tap Manage to schedule a follow-up.</Text>
+            ) : (
+              reminders.slice(0, 3).map((r, i) => {
+                const due = new Date(r.dueAt);
+                const today = new Date(); today.setHours(0,0,0,0);
+                const diff = Math.floor((due.getTime() - today.getTime()) / 86400000);
+                const overdue = diff < 0;
+                const label = overdue ? `${Math.abs(diff)}d overdue` : diff === 0 ? 'Due today' : `Due in ${diff}d`;
+                return (
+                  <View key={r.id}>
+                    {i > 0 && <Divider style={styles.divider} />}
+                    <View style={styles.reminderRow}>
+                      <MaterialCommunityIcons
+                        name={overdue ? 'bell-alert' : 'bell-outline'}
+                        size={14}
+                        color={overdue ? COLORS.error : COLORS.warning}
+                      />
+                      <Text style={styles.reminderTitle}>{r.title}</Text>
+                      <Text style={[styles.reminderDue, overdue && { color: COLORS.error }]}>{label}</Text>
+                    </View>
+                  </View>
+                );
+              })
+            )}
+          </Card.Content>
+        </Card>
 
         {/* Memory Notes */}
         <Card style={styles.card}>
@@ -362,10 +524,7 @@ export default function ContactDetailScreen() {
         >
           <NotesEditor
             contactId={contact.id}
-            onClose={() => {
-              setShowNotesEditor(false);
-              load();
-            }}
+            onClose={() => { setShowNotesEditor(false); load(); }}
           />
         </Modal>
         <Modal
@@ -375,10 +534,29 @@ export default function ContactDetailScreen() {
         >
           <RelationshipsEditor
             contactId={contact.id}
-            onClose={() => {
-              setShowRelationshipsEditor(false);
-              load();
-            }}
+            onClose={() => { setShowRelationshipsEditor(false); load(); }}
+          />
+        </Modal>
+        <Modal
+          visible={showContextEditor}
+          onDismiss={() => setShowContextEditor(false)}
+          contentContainerStyle={styles.modalContainer}
+        >
+          <ContactContextEditor
+            contactId={contact.id}
+            contactName={contact.displayName}
+            onClose={() => { setShowContextEditor(false); load(); }}
+          />
+        </Modal>
+        <Modal
+          visible={showReminderEditor}
+          onDismiss={() => setShowReminderEditor(false)}
+          contentContainerStyle={styles.modalContainer}
+        >
+          <ReminderEditor
+            contactId={contact.id}
+            contactName={contact.displayName}
+            onClose={() => { setShowReminderEditor(false); load(); }}
           />
         </Modal>
       </Portal>
@@ -412,6 +590,33 @@ function getInitials(name: string): string {
   if (parts.length >= 2) return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
   return name.slice(0, 2).toUpperCase();
 }
+
+const STRENGTH_COLORS: Record<string, string> = {
+  close: '#e86c6c',
+  active: '#5cba82',
+  neutral: '#a8b3c1',
+  dormant: '#f5c842',
+  fading: '#6db3e8',
+};
+
+function StrengthBadge({ strength }: { strength: string }) {
+  const color = STRENGTH_COLORS[strength] ?? COLORS.textDisabled;
+  return (
+    <View style={[strengthStyles.badge, { borderColor: color, backgroundColor: color + '22' }]}>
+      <Text style={[strengthStyles.label, { color }]}>{strength}</Text>
+    </View>
+  );
+}
+
+const strengthStyles = StyleSheet.create({
+  badge: {
+    borderWidth: 1,
+    borderRadius: RADIUS.full,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+  },
+  label: { fontSize: FONT_SIZE.xs, fontWeight: '700', textTransform: 'capitalize' },
+});
 
 const styles = StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: COLORS.background },
@@ -471,4 +676,15 @@ const styles = StyleSheet.create({
   relationshipChip: { backgroundColor: COLORS.surfaceVariant },
   relationshipText: { color: COLORS.textSecondary, fontSize: FONT_SIZE.sm, flex: 1 },
   modalContainer: { flex: 1, backgroundColor: COLORS.background, padding: 0 },
+  // Relationship Brief styles
+  briefRow: { flexDirection: 'row', alignItems: 'center', gap: SPACING.sm, flexWrap: 'wrap' },
+  warmthPill: { flexDirection: 'row', alignItems: 'center', gap: 3, backgroundColor: COLORS.surfaceVariant, borderRadius: RADIUS.full, paddingHorizontal: 8, paddingVertical: 2 },
+  warmthText: { color: COLORS.accent, fontSize: FONT_SIZE.xs, fontWeight: '600' },
+  briefField: { flexDirection: 'row', alignItems: 'center', gap: SPACING.sm },
+  briefFieldText: { color: COLORS.textSecondary, fontSize: FONT_SIZE.sm, flex: 1 },
+  briefNotes: { color: COLORS.textDisabled, fontSize: FONT_SIZE.sm, lineHeight: 18, fontStyle: 'italic', marginTop: 2 },
+  // Reminder styles
+  reminderRow: { flexDirection: 'row', alignItems: 'center', gap: SPACING.sm, paddingVertical: SPACING.xs },
+  reminderTitle: { color: COLORS.textPrimary, fontSize: FONT_SIZE.sm, flex: 1 },
+  reminderDue: { color: COLORS.warning, fontSize: FONT_SIZE.xs, fontWeight: '600' },
 });
