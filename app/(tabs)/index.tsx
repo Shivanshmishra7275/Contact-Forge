@@ -34,6 +34,9 @@ import { countPendingDuplicates } from '../../src/db/repositories/duplicateRepos
 import { countExpiredTemporaryContacts } from '../../src/services/temporaryContactService';
 import { countContactsWithIssues } from '../../src/services/cleanupService';
 import { calculateHealthSummary } from '../../src/services/contactHealthService';
+import { getIntelligenceSummary } from '../../src/services/relationshipIntelligenceService';
+import { createDailySnapshotIfNeeded, getSnapshotFromDaysAgo } from '../../src/db/repositories/networkSnapshotRepository';
+import { countContactsWithSuggestions } from '../../src/services/relationshipCategorizationService';
 import { isoToDisplay } from '../../src/utils/normalization';
 import type { SyncProgress, SyncResult } from '../../src/services/contactSyncService';
 import type { SyncState } from '../../src/types';
@@ -48,24 +51,30 @@ export default function DashboardScreen() {
   const setGlobalLoading = useAppStore((s) => s.setGlobalLoading);
   const setGlobalLoadingMessage = useAppStore((s) => s.setGlobalLoadingMessage);
   const settings = useAppStore((s) => s.settings);
+  const latestSnapshot = useAppStore((s) => s.latestSnapshot);
+  const previousSnapshot = useAppStore((s) => s.previousSnapshot);
+  const setSnapshots = useAppStore((s) => s.setSnapshots);
 
   const [totalContacts, setTotalContacts] = useState(0);
   const [expiredTemps, setExpiredTemps] = useState(0);
   const [averageHealth, setAverageHealth] = useState(0);
   const [lowHealthCount, setLowHealthCount] = useState(0);
   const [cleanupIssueCount, setCleanupIssueCount] = useState(0);
+  const [followUpsDue, setFollowUpsDue] = useState(0);
+  const [highValueInactive, setHighValueInactive] = useState(0);
+  const [suggestedCategorizations, setSuggestedCategorizations] = useState(0);
   const [statsLoading, setStatsLoading] = useState(false);
   const [permissionGranted, setPermissionGranted] = useState<boolean | null>(null);
   const [syncProgress, setSyncProgress] = useState<SyncProgress | null>(null);
   const [isSyncing, setIsSyncing] = useState(false);
   const [isScanning, setIsScanning] = useState(false);
   const [maintenanceState, setMaintenanceState] = useState(() => getMaintenanceState());
-  const entranceValues = useRef([...Array(7)].map(() => new Animated.Value(0))).current;
+  const entranceValues = useRef([...Array(8)].map(() => new Animated.Value(0))).current;
 
   const animatedTotal = useCountUp(totalContacts);
   const animatedDuplicates = useCountUp(pendingDuplicates);
   const animatedExpired = useCountUp(expiredTemps);
-  const needsAttentionCount = pendingDuplicates + cleanupIssueCount + expiredTemps + lowHealthCount;
+  const needsAttentionCount = pendingDuplicates + cleanupIssueCount + expiredTemps + lowHealthCount + followUpsDue + highValueInactive + suggestedCategorizations;
 
   const syncBadge = useMemo(
     () => buildSyncBadge({
@@ -93,6 +102,16 @@ export default function DashboardScreen() {
       setAverageHealth(summary.average);
       setLowHealthCount(summary.lowCount);
       setMaintenanceState(getMaintenanceState());
+
+      const intSummary = getIntelligenceSummary();
+      setFollowUpsDue(intSummary.dueFollowUps);
+      setHighValueInactive(intSummary.highValueInactive);
+      setSuggestedCategorizations(countContactsWithSuggestions());
+
+      // Opportunistically create daily snapshot and load comparisons
+      const latest = createDailySnapshotIfNeeded();
+      const prev = getSnapshotFromDaysAgo(7);
+      setSnapshots(latest, prev);
     } finally {
       setStatsLoading(false);
     }
@@ -272,6 +291,43 @@ export default function DashboardScreen() {
         </Animated.View>
 
         <Animated.View style={getEntranceStyle(entranceValues[2])}>
+          <Card style={styles.healthCard}>
+            <Card.Content>
+              <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: SPACING.xs }}>
+                <MaterialCommunityIcons name="chart-timeline-variant" size={20} color={COLORS.primary} style={{ marginRight: SPACING.sm }} />
+                <Text style={styles.cardTitle}>Weekly Network Health</Text>
+              </View>
+              {latestSnapshot && previousSnapshot ? (
+                <View style={{ gap: SPACING.xs, marginTop: SPACING.sm }}>
+                  <TrendRow 
+                    label="Overdue follow-ups" 
+                    current={latestSnapshot.overdueFollowUps} 
+                    previous={previousSnapshot.overdueFollowUps} 
+                    invertColors={true}
+                  />
+                  <TrendRow 
+                    label="Stale important contacts" 
+                    current={latestSnapshot.staleContacts} 
+                    previous={previousSnapshot.staleContacts} 
+                    invertColors={true}
+                  />
+                  <TrendRow 
+                    label="Active relationships" 
+                    current={latestSnapshot.activeRelationships} 
+                    previous={previousSnapshot.activeRelationships} 
+                    invertColors={false}
+                  />
+                </View>
+              ) : (
+                <Text style={[styles.syncHelper, { marginTop: SPACING.sm }]}>
+                  Tracking network trends... Check back in a few days.
+                </Text>
+              )}
+            </Card.Content>
+          </Card>
+        </Animated.View>
+
+        <Animated.View style={getEntranceStyle(entranceValues[3])}>
           <Card style={styles.card}>
             <Card.Title
               title="Sync status"
@@ -308,7 +364,7 @@ export default function DashboardScreen() {
           </Card>
         </Animated.View>
 
-        <Animated.View style={getEntranceStyle(entranceValues[3])}>
+        <Animated.View style={getEntranceStyle(entranceValues[4])}>
           <Card style={styles.card}>
             <Card.Title title="Maintenance" titleStyle={styles.cardTitle} />
             <Card.Content>
@@ -327,7 +383,7 @@ export default function DashboardScreen() {
           </Card>
         </Animated.View>
 
-        <Animated.View style={getEntranceStyle(entranceValues[4])}>
+        <Animated.View style={getEntranceStyle(entranceValues[5])}>
           <Card style={styles.card}>
             <Card.Title title="Quick actions" titleStyle={styles.cardTitle} />
             <Card.Content style={styles.actionsContent}>
@@ -366,7 +422,7 @@ export default function DashboardScreen() {
           </Card>
         </Animated.View>
 
-        <Animated.View style={getEntranceStyle(entranceValues[5])}>
+        <Animated.View style={getEntranceStyle(entranceValues[6])}>
           <Card style={styles.card}>
             <Card.Title
               title="Needs attention"
@@ -379,6 +435,24 @@ export default function DashboardScreen() {
             />
             <Card.Content style={styles.reviewContent}>
               <Text style={styles.reviewHint}>Start where the risk is highest and work down the list.</Text>
+              <ReviewRow
+                label="Follow-ups due"
+                count={followUpsDue}
+                color={COLORS.warning}
+                onPress={() => router.push('/(tabs)/contacts')}
+              />
+              <ReviewRow
+                label="Stale important contacts"
+                count={highValueInactive}
+                color={COLORS.accent}
+                onPress={() => router.push('/(tabs)/contacts')}
+              />
+              <ReviewRow
+                label="Suggested relationships"
+                count={suggestedCategorizations}
+                color={COLORS.primary}
+                onPress={() => router.push('/(tabs)/contacts')}
+              />
               <ReviewRow
                 label="Duplicate candidates"
                 count={pendingDuplicates}
@@ -416,7 +490,7 @@ export default function DashboardScreen() {
           </Card>
         </Animated.View>
 
-        <Animated.View style={getEntranceStyle(entranceValues[6])}>
+        <Animated.View style={getEntranceStyle(entranceValues[7])}>
           <Card style={styles.privacyCard}>
             <Card.Content style={styles.privacyContent}>
               <MaterialCommunityIcons name="shield-check" color={COLORS.success} size={18} />
@@ -428,6 +502,35 @@ export default function DashboardScreen() {
         </Animated.View>
       </ScrollView>
     </SafeAreaView>
+  );
+}
+
+function TrendRow({ label, current, previous, invertColors }: { label: string, current: number, previous: number, invertColors: boolean }) {
+  const diff = current - previous;
+  const isBetter = invertColors ? diff < 0 : diff > 0;
+  const isNeutral = diff === 0;
+  
+  let color: string = COLORS.textSecondary;
+  if (!isNeutral) {
+    color = isBetter ? COLORS.success : COLORS.warning;
+  }
+  
+  const icon = isNeutral ? 'minus' : (diff > 0 ? 'arrow-up' : 'arrow-down');
+  const displayDiff = Math.abs(diff);
+
+  return (
+    <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+      <Text style={{ color: COLORS.textSecondary, fontSize: FONT_SIZE.sm }}>{label}</Text>
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+        <Text style={{ color: COLORS.textPrimary, fontSize: FONT_SIZE.sm, fontWeight: '600' }}>{current}</Text>
+        {!isNeutral && (
+          <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: color + '22', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 12, marginLeft: SPACING.xs }}>
+            <MaterialCommunityIcons name={icon as any} size={12} color={color} />
+            <Text style={{ color, fontSize: FONT_SIZE.xs, fontWeight: '600', marginLeft: 2 }}>{displayDiff}</Text>
+          </View>
+        )}
+      </View>
+    </View>
   );
 }
 
