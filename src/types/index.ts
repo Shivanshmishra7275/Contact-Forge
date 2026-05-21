@@ -177,6 +177,11 @@ export interface AppSettings {
   autoPurgeExpiredTemporary: boolean;
   backupRetentionCount: number;
   enableOnlineFeatures: boolean;
+  syncProviderId: string;
+  syncWebDavEndpoint: string;
+  syncWebDavUser: string;
+  syncWebDavPass: string;
+  lastSyncTime: string | null;
 }
 
 // ---------------------------------------------------------------------------
@@ -308,4 +313,21 @@ export interface NetworkSnapshot {
   warmRelationships: number;
   coldRelationships: number;
   createdAt: string; // ISO date string
+}
+
+// ---------------------------------------------------------------------------
+// Backup / Sync Types
+// ---------------------------------------------------------------------------
+
+export interface ContactForgeBackup {
+  version: number;
+  exportedAt: string;
+  contacts: any[];
+  notes: any[];
+  relationships: any[];
+  emails: any[];
+  phoneNumbers: any[];
+  contexts: any[];
+  reminders: any[];
+  snapshots: any[];
 }

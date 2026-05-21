@@ -63,6 +63,11 @@ export function getAllSettings(): AppSettings {
     autoPurgeExpiredTemporary: (map.autoPurgeExpiredTemporary ?? String(DEFAULT_SETTINGS.autoPurgeExpiredTemporary)) === 'true',
     backupRetentionCount: Number.isFinite(backupRetentionRaw) ? backupRetentionRaw : DEFAULT_SETTINGS.backupRetentionCount,
     enableOnlineFeatures: (map.enableOnlineFeatures ?? String(DEFAULT_SETTINGS.enableOnlineFeatures)) === 'true',
+    syncProviderId: map.syncProviderId ?? DEFAULT_SETTINGS.syncProviderId,
+    syncWebDavEndpoint: map.syncWebDavEndpoint ?? DEFAULT_SETTINGS.syncWebDavEndpoint,
+    syncWebDavUser: map.syncWebDavUser ?? DEFAULT_SETTINGS.syncWebDavUser,
+    syncWebDavPass: map.syncWebDavPass ?? DEFAULT_SETTINGS.syncWebDavPass,
+    lastSyncTime: map.lastSyncTime ?? DEFAULT_SETTINGS.lastSyncTime,
   };
 }
 

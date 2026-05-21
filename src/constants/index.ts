@@ -46,6 +46,11 @@ export const DEFAULT_SETTINGS = {
   autoPurgeExpiredTemporary: false,
   backupRetentionCount: 20,
   enableOnlineFeatures: false,
+  syncProviderId: '',
+  syncWebDavEndpoint: '',
+  syncWebDavUser: '',
+  syncWebDavPass: '',
+  lastSyncTime: null,
 } as const;
 
 export const MAINTENANCE_MIN_INTERVAL_MINUTES = 60;
