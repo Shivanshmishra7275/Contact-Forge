@@ -262,9 +262,10 @@ npm test
 | **Smart Merge** | ✅ Done | Deduplication | Granular side-by-side field resolution reviews. |
 | **Undo Engine** | ✅ Done | Safety | Pre-mutation database snapshotting and one-tap restore. |
 | **Cleanup Command Center** | ✅ Done | Quality | Premium filtering dashboard and Safe Preview Modal. |
-| **Relationship Intelligence** | ✅ Done | Intelligence | Local-first relationship tracking, context, and follow-ups. |
+| **Offline Categorization** | ✅ Done | AI | Rule-based engine assigning tags based on context/emails without sending data to an LLM. |
 | **Session Insights** | ✅ Done | Analytics | Weekly deterministic network health tracking (active, stale, follow-ups). |
-| **Cross-Device Sync** | 🔮 Future | Growth | Optional secure end-to-end encrypted local cloud sync. |
+| **Encrypted Local Backup** | ✅ Done | Foundation | AES-CBC encrypted local exports of all contact and context data. |
+| **WebDAV Sync Transport** | ✅ Done | Growth | Manual, offline-first WebDAV push/pull with end-to-end encryption. |
 
 ## Why Offline Intelligence?
 - **Privacy**: Your relationships are your most valuable asset. ContactForge never sends your context to a remote LLM.
