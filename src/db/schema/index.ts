@@ -175,6 +175,55 @@ export const CREATE_PROFILE_CARDS_TABLE = `
 `;
 
 // ---------------------------------------------------------------------------
+// Phase 10: Relationship Intelligence
+// ---------------------------------------------------------------------------
+
+export const CREATE_CONTACT_CONTEXT_TABLE = `
+  CREATE TABLE IF NOT EXISTS contact_context (
+    id                    INTEGER PRIMARY KEY AUTOINCREMENT,
+    contact_id            INTEGER NOT NULL UNIQUE,
+    where_met             TEXT,              -- free-text: 'Conference 2024', 'Intro by Alex'
+    relationship_strength TEXT NOT NULL DEFAULT 'neutral',  -- 'close' | 'active' | 'neutral' | 'dormant' | 'fading'
+    warmth                INTEGER NOT NULL DEFAULT 50,       -- 0-100 subjective score
+    last_interaction_at   TEXT,              -- ISO timestamp of last real interaction
+    next_action           TEXT,              -- free-text: 'Send project update', 'Introduce to Sara'
+    notes_plain           TEXT,              -- quick freeform context note
+    created_at            TEXT NOT NULL,
+    updated_at            TEXT NOT NULL,
+    FOREIGN KEY (contact_id) REFERENCES contacts(id) ON DELETE CASCADE
+  )
+`;
+
+export const CREATE_CONTACT_REMINDERS_TABLE = `
+  CREATE TABLE IF NOT EXISTS contact_reminders (
+    id                INTEGER PRIMARY KEY AUTOINCREMENT,
+    contact_id        INTEGER NOT NULL,
+    title             TEXT NOT NULL,         -- 'Follow up after meeting'
+    due_at            TEXT NOT NULL,         -- ISO date string
+    interval_days     INTEGER,               -- 30/60/90 for recurring; null = one-shot
+    status            TEXT NOT NULL DEFAULT 'pending',  -- 'pending' | 'done' | 'snoozed' | 'dismissed'
+    notes             TEXT,
+    created_at        TEXT NOT NULL,
+    updated_at        TEXT NOT NULL,
+    FOREIGN KEY (contact_id) REFERENCES contacts(id) ON DELETE CASCADE
+  )
+`;
+
+export const CREATE_NETWORK_SNAPSHOTS_TABLE = `
+  CREATE TABLE IF NOT EXISTS network_snapshots (
+    id                    INTEGER PRIMARY KEY AUTOINCREMENT,
+    total_contacts        INTEGER NOT NULL,
+    important_contacts    INTEGER NOT NULL,
+    stale_contacts        INTEGER NOT NULL,
+    overdue_follow_ups    INTEGER NOT NULL,
+    active_relationships  INTEGER NOT NULL,
+    warm_relationships    INTEGER NOT NULL,
+    cold_relationships    INTEGER NOT NULL,
+    created_at            TEXT NOT NULL UNIQUE
+  )
+`;
+
+// ---------------------------------------------------------------------------
 // Phase 9: Import Studio & Archive System Tables
 // ---------------------------------------------------------------------------
 
@@ -305,6 +354,18 @@ export const CREATE_INDEXES = [
      ON contact_relationships(contact_id_from)`,
   `CREATE INDEX IF NOT EXISTS idx_relationships_contact_to
      ON contact_relationships(contact_id_to)`,
+
+  // Phase 10: Relationship Intelligence
+  `CREATE INDEX IF NOT EXISTS idx_contact_context_contact_id
+     ON contact_context(contact_id)`,
+  `CREATE INDEX IF NOT EXISTS idx_reminders_contact_id
+     ON contact_reminders(contact_id)`,
+  `CREATE INDEX IF NOT EXISTS idx_reminders_due_at
+     ON contact_reminders(due_at)`,
+  `CREATE INDEX IF NOT EXISTS idx_reminders_status
+     ON contact_reminders(status)`,
+  `CREATE INDEX IF NOT EXISTS idx_snapshots_created_at
+     ON network_snapshots(created_at)`,
 ];
 
 export const ALL_CREATE_STATEMENTS = [
@@ -321,6 +382,9 @@ export const ALL_CREATE_STATEMENTS = [
   CREATE_CONTACT_NOTES_TABLE,
   CREATE_CONTACT_RELATIONSHIPS_TABLE,
   CREATE_PROFILE_CARDS_TABLE,
+  CREATE_CONTACT_CONTEXT_TABLE,
+  CREATE_CONTACT_REMINDERS_TABLE,
+  CREATE_NETWORK_SNAPSHOTS_TABLE,
   // Phase 9: Import & Archive
   CREATE_IMPORT_SESSIONS_TABLE,
   CREATE_IMPORT_ROWS_TABLE,

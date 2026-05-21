@@ -255,3 +255,57 @@ export interface ContactHealthScore {
   explanation: string;
   suggestions: string[];
 }
+
+// ---------------------------------------------------------------------------
+// Phase 10: Relationship Intelligence
+// ---------------------------------------------------------------------------
+
+export type RelationshipStrength = 'close' | 'active' | 'neutral' | 'dormant' | 'fading';
+
+export interface ContactContext {
+  id: number;
+  contactId: number;
+  whereMet: string | null;
+  relationshipStrength: RelationshipStrength;
+  warmth: number; // 0-100
+  lastInteractionAt: string | null;
+  nextAction: string | null;
+  notesPlain: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export type ReminderStatus = 'pending' | 'done' | 'snoozed' | 'dismissed';
+
+export interface ContactReminder {
+  id: number;
+  contactId: number;
+  title: string;
+  dueAt: string;       // ISO date string
+  intervalDays: number | null;
+  status: ReminderStatus;
+  notes: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ReminderWithContact extends ContactReminder {
+  contactDisplayName: string;
+  contactId: number;
+}
+
+// ---------------------------------------------------------------------------
+// Phase 11: Network Insights
+// ---------------------------------------------------------------------------
+
+export interface NetworkSnapshot {
+  id: number;
+  totalContacts: number;
+  importantContacts: number;
+  staleContacts: number;
+  overdueFollowUps: number;
+  activeRelationships: number;
+  warmRelationships: number;
+  coldRelationships: number;
+  createdAt: string; // ISO date string
+}
