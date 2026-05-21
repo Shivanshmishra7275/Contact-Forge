@@ -23,6 +23,8 @@ import { getAllSettings, saveAllSettings } from '../../src/db/repositories/setti
 import { createFullBackup, shareFile } from '../../src/services/exportService';
 import { getMaintenanceState, runMaintenance } from '../../src/services/maintenanceService';
 import { checkForUpdates, getUpdateState } from '../../src/services/updateService';
+import { exportEncryptedBackup, restoreEncryptedBackup } from '../../src/services/backupService';
+import { syncAdapter } from '../../src/services/syncAdapter';
 import { useAppStore } from '../../src/store/appStore';
 import { COLORS, SPACING, FONT_SIZE, APP_NAME, APP_VERSION, DEFAULT_SETTINGS, RELEASES_URL } from '../../src/constants';
 import { EXPORT_WARNING_DIALOG } from '../../src/constants/legalContent';
@@ -36,6 +38,9 @@ export default function SettingsScreen() {
   const [isExporting, setIsExporting] = useState(false);
   const [isRunningMaintenance, setIsRunningMaintenance] = useState(false);
   const [isCheckingUpdate, setIsCheckingUpdate] = useState(false);
+  const [isRestoring, setIsRestoring] = useState(false);
+  const [isSyncing, setIsSyncing] = useState(false);
+  const [passphrase, setPassphrase] = useState('');
   const [versionTaps, setVersionTaps] = useState(0);
   const [showDevMenu, setShowDevMenu] = useState(false);
   const [showQRCard, setShowQRCard] = useState(false);
@@ -48,6 +53,10 @@ export default function SettingsScreen() {
     setStoreSettings(s);
     setMaintenanceState(getMaintenanceState());
     setUpdateState(getUpdateState());
+  }, []);
+
+  const update = useCallback(<K extends keyof AppSettings>(key: K, value: AppSettings[K]) => {
+    setSettings((s) => ({ ...s, [key]: value }));
   }, []);
 
   const handleSave = useCallback(() => {
@@ -112,6 +121,90 @@ export default function SettingsScreen() {
       void runExportVCF();
     });
   }, [confirmExport, runExportVCF]);
+
+  const handleExportBackup = useCallback(async () => {
+    if (!passphrase) {
+      Alert.alert('Error', 'Please enter a passphrase to encrypt your backup.');
+      return;
+    }
+    setIsExporting(true);
+    try {
+      const success = await exportEncryptedBackup(passphrase);
+      if (success) Alert.alert('Success', 'Encrypted backup created and saved.');
+    } catch (e) {
+      Alert.alert('Error', 'Failed to create backup.');
+    } finally {
+      setIsExporting(false);
+    }
+  }, [passphrase]);
+
+  const handleRestoreBackup = useCallback(async () => {
+    if (!passphrase) {
+      Alert.alert('Error', 'Please enter your passphrase to decrypt the backup.');
+      return;
+    }
+    setIsRestoring(true);
+    try {
+      const result = await restoreEncryptedBackup(passphrase);
+      Alert.alert(result.success ? 'Success' : 'Error', result.message);
+    } catch (e) {
+      Alert.alert('Error', 'Failed to restore backup.');
+    } finally {
+      setIsRestoring(false);
+    }
+  }, [passphrase]);
+
+  const handlePushBackup = useCallback(async () => {
+    if (!passphrase) {
+      Alert.alert('Error', 'Please enter your passphrase to encrypt the push.');
+      return;
+    }
+    if (!settings.syncWebDavEndpoint || !settings.syncWebDavUser || !settings.syncWebDavPass) {
+      Alert.alert('Configuration Error', 'Please configure WebDAV settings before pushing.');
+      return;
+    }
+    setIsSyncing(true);
+    try {
+      // Need to save settings first so provider sees them
+      handleSave();
+      const result = await syncAdapter.pushBackup(passphrase);
+      if (result.success) {
+        update('lastSyncTime', new Date().toISOString());
+        // Save the new timestamp
+        saveAllSettings({ ...settings, lastSyncTime: new Date().toISOString() });
+      }
+      Alert.alert(result.success ? 'Success' : 'Error', result.message);
+    } catch (e) {
+      Alert.alert('Error', 'Failed to push to WebDAV.');
+    } finally {
+      setIsSyncing(false);
+    }
+  }, [passphrase, settings, handleSave, update]);
+
+  const handlePullBackup = useCallback(async () => {
+    if (!passphrase) {
+      Alert.alert('Error', 'Please enter your passphrase to decrypt the pull.');
+      return;
+    }
+    if (!settings.syncWebDavEndpoint || !settings.syncWebDavUser || !settings.syncWebDavPass) {
+      Alert.alert('Configuration Error', 'Please configure WebDAV settings before pulling.');
+      return;
+    }
+    setIsSyncing(true);
+    try {
+      handleSave();
+      const result = await syncAdapter.pullBackup(passphrase);
+      if (result.success) {
+        update('lastSyncTime', new Date().toISOString());
+        saveAllSettings({ ...settings, lastSyncTime: new Date().toISOString() });
+      }
+      Alert.alert(result.success ? 'Success' : 'Error', result.message);
+    } catch (e) {
+      Alert.alert('Error', 'Failed to pull from WebDAV.');
+    } finally {
+      setIsSyncing(false);
+    }
+  }, [passphrase, settings, handleSave, update]);
 
   const handleRunMaintenance = useCallback(async () => {
     setIsRunningMaintenance(true);
@@ -181,10 +274,6 @@ export default function SettingsScreen() {
     }
   }, [versionTaps]);
 
-  const update = useCallback(<K extends keyof AppSettings>(key: K, value: AppSettings[K]) => {
-    setSettings((s) => ({ ...s, [key]: value }));
-  }, []);
-
   const handleRetentionChange = useCallback((value: string) => {
     const parsed = Number.parseInt(value.replace(/\D/g, ''), 10);
     update('backupRetentionCount', Number.isFinite(parsed) ? parsed : 0);
@@ -240,9 +329,52 @@ export default function SettingsScreen() {
                 onValueChange={(v) => update('exportIncludeNotes', v)}
                 color={COLORS.primary}
               />
-            </SettingRow>
-            <Divider style={styles.divider} />
-            <View style={styles.exportButtons}>
+              </SettingRow>
+              <Divider style={styles.divider} />
+              
+              <View style={{ marginTop: SPACING.md, marginBottom: SPACING.sm }}>
+                <Text style={{ fontSize: FONT_SIZE.sm, color: COLORS.textSecondary, marginBottom: SPACING.xs }}>
+                  Encrypted Backup Passphrase
+                </Text>
+                <TextInput
+                  mode="outlined"
+                  secureTextEntry
+                  value={passphrase}
+                  onChangeText={setPassphrase}
+                  placeholder="Enter a strong passphrase"
+                  style={{ backgroundColor: COLORS.surface }}
+                  autoCapitalize="none"
+                />
+              </View>
+
+              <View style={styles.exportButtons}>
+                <Button
+                  mode="outlined"
+                  onPress={handleExportBackup}
+                  loading={isExporting}
+                  disabled={isExporting || isRestoring}
+                  icon="shield-lock"
+                  textColor={COLORS.primary}
+                  style={styles.exportBtn}
+                >
+                  Backup
+                </Button>
+                <Button
+                  mode="outlined"
+                  onPress={handleRestoreBackup}
+                  loading={isRestoring}
+                  disabled={isExporting || isRestoring}
+                  icon="restore"
+                  textColor={COLORS.accent}
+                  style={styles.exportBtn}
+                >
+                  Restore
+                </Button>
+              </View>
+
+              <Divider style={[styles.divider, { marginVertical: SPACING.md }]} />
+
+              <View style={styles.exportButtons}>
               <Button
                 mode="outlined"
                 onPress={handleExportCSV}
@@ -275,6 +407,96 @@ export default function SettingsScreen() {
             >
               Open Backup Vault
             </Button>
+          </Card.Content>
+        </Card>
+
+        {/* Sync */}
+        <SectionHeader title="Encrypted Sync" icon="cloud-sync-outline" />
+        <Card style={styles.card}>
+          <Card.Content>
+            <Text style={styles.cardDesc}>
+              Optional encrypted WebDAV transport. ContactForge pushes and pulls an AES-encrypted backup. Your provider never sees your data in plaintext.
+            </Text>
+            
+            <SettingRow label="WebDAV Endpoint URL">
+              <TextInput
+                value={settings.syncWebDavEndpoint}
+                onChangeText={(v) => update('syncWebDavEndpoint', v)}
+                style={styles.longInput}
+                mode="outlined"
+                dense
+                autoCapitalize="none"
+                placeholder="https://example.com/remote.php/webdav/"
+                outlineColor={COLORS.border}
+                activeOutlineColor={COLORS.primary}
+                textColor={COLORS.textPrimary}
+              />
+            </SettingRow>
+            
+            <SettingRow label="Username">
+              <TextInput
+                value={settings.syncWebDavUser}
+                onChangeText={(v) => update('syncWebDavUser', v)}
+                style={styles.longInput}
+                mode="outlined"
+                dense
+                autoCapitalize="none"
+                outlineColor={COLORS.border}
+                activeOutlineColor={COLORS.primary}
+                textColor={COLORS.textPrimary}
+              />
+            </SettingRow>
+
+            <SettingRow label="App Password">
+              <TextInput
+                value={settings.syncWebDavPass}
+                onChangeText={(v) => update('syncWebDavPass', v)}
+                style={styles.longInput}
+                mode="outlined"
+                secureTextEntry
+                dense
+                autoCapitalize="none"
+                outlineColor={COLORS.border}
+                activeOutlineColor={COLORS.primary}
+                textColor={COLORS.textPrimary}
+              />
+            </SettingRow>
+
+            <View style={{ marginTop: SPACING.sm, marginBottom: SPACING.md }}>
+              <Text style={{ fontSize: FONT_SIZE.xs, color: COLORS.textSecondary }}>
+                Enter the 'Encrypted Backup Passphrase' above to sync.
+              </Text>
+            </View>
+
+            <View style={styles.exportButtons}>
+              <Button
+                mode="outlined"
+                onPress={handlePushBackup}
+                loading={isSyncing}
+                disabled={isSyncing || isExporting}
+                icon="cloud-upload"
+                textColor={COLORS.primary}
+                style={styles.exportBtn}
+              >
+                Push
+              </Button>
+              <Button
+                mode="outlined"
+                onPress={handlePullBackup}
+                loading={isSyncing}
+                disabled={isSyncing || isExporting}
+                icon="cloud-download"
+                textColor={COLORS.secondary}
+                style={styles.exportBtn}
+              >
+                Pull
+              </Button>
+            </View>
+            {settings.lastSyncTime && (
+              <Text style={[styles.maintenanceNote, { marginTop: SPACING.md }]}>
+                Last successful sync: {isoToDisplay(settings.lastSyncTime)}
+              </Text>
+            )}
           </Card.Content>
         </Card>
 
@@ -606,6 +828,12 @@ const styles = StyleSheet.create({
   settingLabel: { color: COLORS.textPrimary, fontSize: FONT_SIZE.md, flex: 1 },
   smallInput: {
     width: 80,
+    backgroundColor: COLORS.surface,
+    fontSize: FONT_SIZE.sm,
+  },
+  longInput: {
+    flex: 1,
+    marginLeft: SPACING.md,
     backgroundColor: COLORS.surface,
     fontSize: FONT_SIZE.sm,
   },
