@@ -65,7 +65,7 @@ npm run dev
 
 ## Turbopack / Monorepo Note
 
-This project lives inside the ContactForge monorepo which has a root-level `package-lock.json`. The `next.config.ts` sets `experimental.turbo.root` to this subdirectory to prevent the "multiple lockfiles" detection warning from Turbopack.
+This project lives inside the ContactForge monorepo which has a root-level `package-lock.json`. The `next.config.ts` sets `turbopack.root` (Next.js 15+ / 16 API) to this subdirectory to prevent the "multiple lockfiles" detection warning from Turbopack.
 
 ---
 

@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="https://capsule-render.vercel.app/api?type=waving&height=240&color=0:111827,100:000000&text=ContactForge&fontSize=56&fontColor=ffffff&animation=fadeIn&fontAlignY=38&desc=Privacy-First%20Offline%20Contact%20Intelligence&descAlignY=60" width="100%" />
+<img src="https://capsule-render.vercel.app/api?type=waving&height=240&color=0:111827,100:000000&text=ContactForge&fontSize=56&fontColor=ffffff&animation=fadeIn&fontAlignY=38&desc=Privacy-First%20Local%20Relationship%20Intelligence&descAlignY=60" width="100%" />
 
 <br>
 
@@ -29,10 +29,10 @@
 
 <br><br>
 
-### 🛡️ A privacy-first mobile app for cleaning, organizing, deduplicating, and safely managing real-world contact libraries
+### 🛡️ A privacy-first mobile app for cleaning contacts, tracking relationships, and safely managing real-world networks
 
 <p>
-ContactForge is designed for people who want complete ownership of their contacts, with fast on-device processing, transparent cleanup workflows, and zero dependence on cloud services.
+ContactForge is designed for people who want complete ownership of their networks. It provides fast on-device processing, relationship context tracking, follow-up reminders, and transparent cleanup workflows with zero dependence on cloud services.
 </p>
 
 <br>
@@ -65,7 +65,7 @@ ContactForge is designed for people who want complete ownership of their contact
 
 # 📖 Overview
 
-> ContactForge mirrors device contacts into a local SQLite database for fast search, explainable cleanup, duplicate review, safe merges, and offline export workflows — without sending personal data to any backend.
+> ContactForge mirrors device contacts into a local SQLite database for fast search, explainable cleanup, relationship context tracking, follow-ups, and safe merges — without sending personal data to any backend.
 
 <div align="center">
 
@@ -75,14 +75,14 @@ ContactForge is designed for people who want complete ownership of their contact
 
 </div>
 
-ContactForge is built as a serious local-first utility rather than a thin contact viewer. It focuses on real-world contact problems such as duplicates, inconsistent formatting, incomplete records, temporary contacts, and cleanup workflows that users can review before anything destructive happens.
+ContactForge is built as a serious local-first utility rather than a thin contact viewer or a generic bloated CRM. It focuses on real-world networking problems such as neglected relationships, forgotten context, duplicates, inconsistent formatting, and cleanup workflows that users can review before anything destructive happens.
 
 ---
 
 # 🎯 Built For
 
-- **Messy Contact Libraries**: People with large, unstandardized, or cluttered real-world contact lists.
-- **Privacy Advocates**: Users who explicitly reject cloud contact indexing, silent uploads, and third-party data tracking.
+- **Network Maintainers**: People with large, unstandardized contact lists who need to remember where they met someone and when to follow up.
+- **Privacy Advocates**: Users who explicitly reject cloud contact indexing, silent CRM uploads, and third-party data tracking.
 - **Offline Reliability**: Mobile users needing fast, zero-latency local workflows while traveling or completely offline.
 - **Power Users**: Serious managers who demand full control, advanced deduplication reviews, and safety guardrails.
 - **Modern Developers**: Engineers eager to explore cutting-edge local-first architecture built on React Native, Expo, and SQLite.
@@ -113,6 +113,12 @@ Exchange information using locally generated, encrypted QR code cards. Scans and
 
 ### 📦 7. Backup & Export Vault
 Export records into standardized VCF or CSV formats. Maintain automatic local snapshot rotations to prevent database regressions.
+
+### 🧠 8. Relationship Intelligence
+Capture "where you met", relationship strength, warmth scores, and next actions. Surface high-value neglected contacts and follow-ups due directly on your dashboard.
+
+### 🗓️ 9. Follow-up Reminders
+Lightweight local scheduling for pending interactions (one-shot or recurring like 30/60/90 days), tracking the pulse of your network without a server.
 
 ---
 
@@ -256,11 +262,13 @@ npm test
 | **Smart Merge** | ✅ Done | Deduplication | Granular side-by-side field resolution reviews. |
 | **Undo Engine** | ✅ Done | Safety | Pre-mutation database snapshotting and one-tap restore. |
 | **Cleanup Command Center** | ✅ Done | Quality | Premium filtering dashboard and Safe Preview Modal. |
-| **Session Insights** | 🔄 Next | Analytics | Weekly data health progress indicators and tracking. |
-| **AI offline categorization**| 🔄 Next | Intelligence | On-device lightweight NLP tagger for unknown contacts. |
+| **Relationship Intelligence** | ✅ Done | Intelligence | Local-first relationship tracking, context, and follow-ups. |
+| **Session Insights** | ✅ Done | Analytics | Weekly deterministic network health tracking (active, stale, follow-ups). |
 | **Cross-Device Sync** | 🔮 Future | Growth | Optional secure end-to-end encrypted local cloud sync. |
 
----
+## Why Offline Intelligence?
+- **Privacy**: Your relationships are your most valuable asset. ContactForge never sends your context to a remote LLM.
+- **Speed**: Categorization suggestions are deterministic and instant.
 
 # 🤝 Contributing
 

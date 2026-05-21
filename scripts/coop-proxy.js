@@ -34,6 +34,5 @@ server.on('upgrade', (req, socket, head) => {
 });
 
 server.listen(port, () => {
-  // eslint-disable-next-line no-console
   console.log(`[coop-proxy] Forwarding ${target} -> http://localhost:${port}`);
 });
