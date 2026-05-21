@@ -6,7 +6,7 @@
  */
 
 import { create } from 'zustand';
-import type { AppSettings, SyncState } from '../types';
+import type { AppSettings, SyncState, NetworkSnapshot } from '../types';
 import { DEFAULT_SETTINGS } from '../constants';
 
 interface AppStore {
@@ -33,6 +33,11 @@ interface AppStore {
   setGlobalLoading: (v: boolean) => void;
   globalLoadingMessage: string;
   setGlobalLoadingMessage: (msg: string) => void;
+
+  // Session Insights (Network Health)
+  latestSnapshot: NetworkSnapshot | null;
+  previousSnapshot: NetworkSnapshot | null;
+  setSnapshots: (latest: NetworkSnapshot | null, previous: NetworkSnapshot | null) => void;
 }
 
 export const useAppStore = create<AppStore>((set) => ({
@@ -70,4 +75,8 @@ export const useAppStore = create<AppStore>((set) => ({
   setGlobalLoading: (v) => set({ isGlobalLoading: v }),
   globalLoadingMessage: '',
   setGlobalLoadingMessage: (msg) => set({ globalLoadingMessage: msg }),
+
+  latestSnapshot: null,
+  previousSnapshot: null,
+  setSnapshots: (latest, previous) => set({ latestSnapshot: latest, previousSnapshot: previous }),
 }));
