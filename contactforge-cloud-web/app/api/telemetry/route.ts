@@ -1,7 +1,7 @@
 export const dynamic = 'force-dynamic';
 
 import { NextResponse } from 'next/server';
-import { kv } from '@vercel/kv';
+import Redis from 'ioredis';
 
 export async function GET() {
   let downloadsCount = 0;
@@ -40,16 +40,17 @@ export async function GET() {
     console.error(githubDebug, githubErr);
   }
 
-  // 2. Track Visitors via Vercel KV
+  // 2. Track Visitors via Redis Cloud
   try {
-    // Explicit environment variable availability check for production debugging
-    if (!process.env.KV_REST_API_URL || !process.env.KV_REST_API_TOKEN) {
-      console.warn("Vercel KV environment variables are not configured in process.env.");
+    if (!process.env.REDIS_URL) {
+      throw new Error("REDIS_URL is not set in environment variables");
     }
-    visitorsCount = await kv.incr('contactforge_visitors');
+    const redis = new Redis(process.env.REDIS_URL);
+    visitorsCount = await redis.incr('contactforge_visitors');
+    await redis.quit().catch(() => {});
   } catch (kvErr) {
     kvDebug = String(kvErr);
-    console.error('Failed to increment Vercel KV:', kvErr);
+    console.error('Failed to increment Redis visitor count:', kvErr);
     visitorsCount = 0;
   }
 
@@ -60,5 +61,4 @@ export async function GET() {
     debug: { github: githubDebug, kv: kvDebug }
   });
 }
-
 
