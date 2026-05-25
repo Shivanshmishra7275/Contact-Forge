@@ -1,246 +1,661 @@
 /**
- * ContactForge — Splash / Initialization Screen
+ * ContactForge — Cinematic Splash / Initialization Screen
  *
- * Premium SaaS vibe: dark background, glowing icon, clear hierarchy.
+ * Design: Tier-one premium mobile utility feel.
+ * Communicates: privacy-first, offline intelligence, "forging" data.
  *
- * Content structure:
- *   - Glowing star icon (breathing pulse animation)
- *   - "ContactForge" — massive primary title
- *   - "Privacy-first contact intelligence." — muted subtitle
- *   - "Initializing local workspace…" — subtle loading text
- *   - "Built with ❤️ by Shivansh Mishra" — absolute footer
+ * Architecture:
+ *   - Pure react-native-reanimated v4 worklets (no Animated API)
+ *   - Network node cluster → converging → single forge icon
+ *   - Layered glow: purple (#6B46C1) + cyan (#0bc5ea) dual radial
+ *   - Staggered entrance choreography with spring physics
+ *   - Typewriter effect on loading status line
+ *   - Exit: smooth fade before handoff
  *
- * Animations:
- *   1. Content fades + scales in (500 ms)
- *   2. Star icon pulses opacity while app loads (breathing loop)
- *   3. Everything fades out before handing off (400 ms)
+ * Entrance sequence:
+ *   0ms   Background gradient fades in
+ *   200ms Central forge icon springs up (damped bounce)
+ *   400ms "ContactForge" slides up + fades in
+ *   500ms Subtitle + loading text fades in
+ *   Loop  Breathing pulse + node orbit on icon
+ *   Hold  2400ms idle then exits over 400ms
  */
 
-import React, { useEffect, useRef } from 'react';
-import { View, StyleSheet, Animated, Easing, Dimensions } from 'react-native';
-import { Text } from 'react-native-paper';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
+import {
+  Dimensions,
+  StyleSheet,
+  View,
+} from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import Animated, {
+  Easing,
+  interpolate,
+  runOnJS,
+  useAnimatedStyle,
+  useSharedValue,
+  withDelay,
+  withRepeat,
+  withSequence,
+  withSpring,
+  withTiming,
+  type SharedValue,
+} from 'react-native-reanimated';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { COLORS, SPACING, FONT_SIZE } from './constants';
 
-const { width: SCREEN_WIDTH } = Dimensions.get('window');
+// ─── Constants ─────────────────────────────────────────────────────────────────
+
+const { width: SCREEN_W } = Dimensions.get('window');
+
+/** The 6 satellite nodes that orbit the central icon */
+const NODES: Array<{ angle: number; radius: number; delay: number; size: number }> = [
+  { angle: 0,   radius: 68, delay: 0,   size: 6 },
+  { angle: 60,  radius: 80, delay: 80,  size: 4 },
+  { angle: 120, radius: 62, delay: 160, size: 7 },
+  { angle: 180, radius: 76, delay: 40,  size: 5 },
+  { angle: 240, radius: 70, delay: 120, size: 4 },
+  { angle: 300, radius: 64, delay: 200, size: 6 },
+];
+
+const DEG = Math.PI / 180;
+
+// ─── Typewriter hook ────────────────────────────────────────────────────────────
+
+function useTypewriter(text: string, speed = 38, startDelay = 520): string {
+  const [displayed, setDisplayed] = useState('');
+  const idxRef = useRef(0);
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    idxRef.current = 0;
+    setDisplayed('');
+
+    const delayTimer = setTimeout(() => {
+      const tick = () => {
+        idxRef.current += 1;
+        setDisplayed(text.slice(0, idxRef.current));
+        if (idxRef.current < text.length) {
+          timerRef.current = setTimeout(tick, speed);
+        }
+      };
+      tick();
+    }, startDelay);
+
+    return () => {
+      clearTimeout(delayTimer);
+      if (timerRef.current) clearTimeout(timerRef.current);
+    };
+  }, [text, speed, startDelay]);
+
+  return displayed;
+}
+
+// ─── Satellite Node ─────────────────────────────────────────────────────────────
+
+interface NodeProps {
+  angle: number;
+  radius: number;
+  delay: number;
+  size: number;
+  convergeProgress: SharedValue<number>;
+}
+
+function SatelliteNode({ angle, radius, delay, size, convergeProgress }: NodeProps) {
+  const x = Math.cos(angle * DEG) * radius;
+  const y = Math.sin(angle * DEG) * radius;
+
+  const orbitPhase = useSharedValue(0);
+
+  useEffect(() => {
+    orbitPhase.value = withDelay(
+      delay,
+      withRepeat(
+        withSequence(
+          withTiming(1, { duration: 3200 + delay * 2, easing: Easing.inOut(Easing.sin) }),
+          withTiming(0, { duration: 3200 + delay * 2, easing: Easing.inOut(Easing.sin) }),
+        ),
+        -1,
+        false,
+      ),
+    );
+  }, []);
+
+  const nodeStyle = useAnimatedStyle(() => {
+    // Slow orbital drift ±8px on each axis
+    const driftX = interpolate(orbitPhase.value, [0, 1], [-8, 8]);
+    const driftY = interpolate(orbitPhase.value, [0, 1], [-5, 5]);
+
+    // Converge: nodes shrink and move toward center as progress → 1
+    const convergeFraction = convergeProgress.value;
+    const scale = interpolate(convergeFraction, [0, 0.8, 1], [1, 0.4, 0]);
+    const translateX = interpolate(convergeFraction, [0, 1], [x + driftX, 0]);
+    const translateY = interpolate(convergeFraction, [0, 1], [y + driftY, 0]);
+    const opacity = interpolate(convergeFraction, [0, 0.6, 1], [0.75, 0.4, 0]);
+
+    return {
+      transform: [
+        { translateX },
+        { translateY },
+        { scale },
+      ],
+      opacity,
+    };
+  });
+
+  return (
+    <Animated.View
+      style={[
+        styles.node,
+        {
+          width: size * 2,
+          height: size * 2,
+          borderRadius: size,
+          // Cyan for even nodes, purple for odd
+          backgroundColor: angle % 120 === 0 ? '#0bc5ea' : '#8B7EFF',
+        },
+        nodeStyle,
+      ]}
+    />
+  );
+}
+
+// ─── Connection Lines (static SVG-like lines using View transforms) ─────────────
+
+function NodeLine({
+  angle,
+  radius,
+  convergeProgress,
+}: {
+  angle: number;
+  radius: number;
+  convergeProgress: SharedValue<number>;
+}) {
+  const x = Math.cos(angle * DEG) * radius;
+  const y = Math.sin(angle * DEG) * radius;
+  const length = Math.sqrt(x * x + y * y);
+  const lineAngle = Math.atan2(y, x) * (180 / Math.PI);
+
+  const lineStyle = useAnimatedStyle(() => ({
+    opacity: interpolate(convergeProgress.value, [0, 0.5, 1], [0.12, 0.06, 0]),
+  }));
+
+  return (
+    <Animated.View
+      style={[
+        styles.connectionLine,
+        {
+          width: length,
+          transform: [
+            { rotate: `${lineAngle}deg` },
+            { translateX: length / 2 },
+          ],
+        },
+        lineStyle,
+      ]}
+    />
+  );
+}
+
+// ─── Central Forge Orb ─────────────────────────────────────────────────────────
+
+function ForgeOrb({ convergeProgress }: { convergeProgress: SharedValue<number> }) {
+  const breathe = useSharedValue(1);
+  const glowPulse = useSharedValue(0.55);
+
+  useEffect(() => {
+    // Gentle breathing scale on icon
+    breathe.value = withDelay(
+      800,
+      withRepeat(
+        withSequence(
+          withTiming(1.06, { duration: 1800, easing: Easing.inOut(Easing.sin) }),
+          withTiming(0.97, { duration: 1800, easing: Easing.inOut(Easing.sin) }),
+        ),
+        -1,
+        false,
+      ),
+    );
+    // Glow halo pulse
+    glowPulse.value = withDelay(
+      600,
+      withRepeat(
+        withSequence(
+          withTiming(0.85, { duration: 2000, easing: Easing.inOut(Easing.sin) }),
+          withTiming(0.45, { duration: 2000, easing: Easing.inOut(Easing.sin) }),
+        ),
+        -1,
+        false,
+      ),
+    );
+  }, []);
+
+  const iconStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: breathe.value }],
+  }));
+
+  const outerGlowStyle = useAnimatedStyle(() => ({
+    opacity: interpolate(glowPulse.value, [0, 1], [0.06, 0.14]),
+    transform: [{ scale: interpolate(glowPulse.value, [0, 1], [1, 1.18]) }],
+  }));
+
+  const innerGlowStyle = useAnimatedStyle(() => ({
+    opacity: interpolate(glowPulse.value, [0, 1], [0.12, 0.28]),
+    transform: [{ scale: interpolate(glowPulse.value, [0, 1], [0.9, 1.06]) }],
+  }));
+
+  const iconBadgeStyle = useAnimatedStyle(() => ({
+    opacity: interpolate(convergeProgress.value, [0, 0.4, 1], [0, 0, 1]),
+    transform: [
+      { scale: interpolate(convergeProgress.value, [0.4, 1], [0.5, 1]) },
+    ],
+  }));
+
+  return (
+    <View style={styles.orbContainer}>
+      {/* Outermost cyan glow ring */}
+      <Animated.View style={[styles.outerGlow, outerGlowStyle]} />
+      {/* Purple mid-glow ring */}
+      <Animated.View style={[styles.innerGlow, innerGlowStyle]} />
+      {/* Icon surface */}
+      <Animated.View style={[styles.orbSurface, iconStyle]}>
+        <MaterialCommunityIcons
+          name="shield-lock"
+          size={52}
+          color={COLORS.primary}
+          style={styles.orbIcon}
+        />
+      </Animated.View>
+      {/* Converge indicator — small "merged" badge that appears after nodes converge */}
+      <Animated.View style={[styles.convergeCheck, iconBadgeStyle]}>
+        <MaterialCommunityIcons name="check" size={11} color="#0bc5ea" />
+      </Animated.View>
+    </View>
+  );
+}
+
+// ─── Main Component ─────────────────────────────────────────────────────────────
 
 interface SplashScreenProps {
   onFinish: () => void;
 }
 
 export const SplashScreen: React.FC<SplashScreenProps> = ({ onFinish }) => {
-  // Master fade for enter / exit
-  const masterFade = useRef(new Animated.Value(0)).current;
-  // Scale for content entrance
-  const entranceScale = useRef(new Animated.Value(0.88)).current;
-  // Breathing pulse for the icon glow
-  const iconPulse = useRef(new Animated.Value(0.6)).current;
-  // Loading text subtle blink
-  const loadingFade = useRef(new Animated.Value(0.4)).current;
+  // Shared animation values
+  const bgOpacity      = useSharedValue(0);
+  const forgeScale     = useSharedValue(0.55);
+  const titleOpacity   = useSharedValue(0);
+  const titleTranslateY = useSharedValue(14);
+  const subOpacity     = useSharedValue(0);
+  const footerOpacity  = useSharedValue(0);
+  const masterOpacity  = useSharedValue(1);
+  const convergeProgress = useSharedValue(0); // 0=nodes spread, 1=converged to center
 
-  useEffect(() => {
-    // ── Phase 1: Entrance (500 ms) ──────────────────────────────────────────
-    const entrance = Animated.parallel([
-      Animated.timing(masterFade, {
-        toValue: 1,
-        duration: 500,
-        easing: Easing.out(Easing.quad),
-        useNativeDriver: true,
-      }),
-      Animated.timing(entranceScale, {
-        toValue: 1,
-        duration: 500,
-        easing: Easing.out(Easing.back(1.4)),
-        useNativeDriver: true,
-      }),
-    ]);
+  // Typewriter text for loading state
+  const loadingText = useTypewriter('Initializing local workspace…', 36, 540);
 
-    // ── Breathing loops (run while app is "holding") ────────────────────────
-    const iconBreath = Animated.loop(
-      Animated.sequence([
-        Animated.timing(iconPulse, {
-          toValue: 1,
-          duration: 1000,
-          easing: Easing.inOut(Easing.sin),
-          useNativeDriver: true,
-        }),
-        Animated.timing(iconPulse, {
-          toValue: 0.6,
-          duration: 1000,
-          easing: Easing.inOut(Easing.sin),
-          useNativeDriver: true,
-        }),
-      ]),
-    );
+  // Cursor blink for typewriter
+  const cursorBlink = useSharedValue(1);
 
-    const loadingBlink = Animated.loop(
-      Animated.sequence([
-        Animated.timing(loadingFade, {
-          toValue: 1,
-          duration: 700,
-          easing: Easing.inOut(Easing.ease),
-          useNativeDriver: true,
-        }),
-        Animated.timing(loadingFade, {
-          toValue: 0.3,
-          duration: 700,
-          easing: Easing.inOut(Easing.ease),
-          useNativeDriver: true,
-        }),
-      ]),
-    );
-
-    // ── Phase 3: Exit (400 ms) ──────────────────────────────────────────────
-    const exit = Animated.timing(masterFade, {
-      toValue: 0,
-      duration: 400,
-      easing: Easing.in(Easing.quad),
-      useNativeDriver: true,
+  const startExit = useCallback(() => {
+    masterOpacity.value = withTiming(0, { duration: 420, easing: Easing.in(Easing.quad) }, () => {
+      runOnJS(onFinish)();
     });
-
-    // ── Sequence ────────────────────────────────────────────────────────────
-    entrance.start(() => {
-      iconBreath.start();
-      loadingBlink.start();
-
-      // Hold for 2 s then exit
-      setTimeout(() => {
-        iconBreath.stop();
-        loadingBlink.stop();
-        exit.start(() => onFinish());
-      }, 2000);
-    });
-
-    return () => {
-      iconBreath.stop();
-      loadingBlink.stop();
-    };
   }, []);
 
+  useEffect(() => {
+    // ── 0ms: background fade in ─────────────────────────────────────────────
+    bgOpacity.value = withTiming(1, { duration: 400, easing: Easing.out(Easing.quad) });
+
+    // ── 200ms: forge orb springs in ─────────────────────────────────────────
+    forgeScale.value = withDelay(
+      200,
+      withSpring(1, { damping: 14, stiffness: 110, mass: 1 }),
+    );
+
+    // ── 400ms: title slides + fades in ──────────────────────────────────────
+    titleOpacity.value = withDelay(
+      400,
+      withTiming(1, { duration: 320, easing: Easing.out(Easing.cubic) }),
+    );
+    titleTranslateY.value = withDelay(
+      400,
+      withTiming(0, { duration: 320, easing: Easing.out(Easing.cubic) }),
+    );
+
+    // ── 500ms: subtitle + loading text fade in ───────────────────────────────
+    subOpacity.value = withDelay(
+      500,
+      withTiming(1, { duration: 280, easing: Easing.out(Easing.quad) }),
+    );
+    footerOpacity.value = withDelay(
+      700,
+      withTiming(0.4, { duration: 400 }),
+    );
+
+    // ── 900ms: nodes converge toward center ──────────────────────────────────
+    convergeProgress.value = withDelay(
+      900,
+      withTiming(1, { duration: 1100, easing: Easing.inOut(Easing.cubic) }),
+    );
+
+    // ── Cursor blink loop ────────────────────────────────────────────────────
+    cursorBlink.value = withRepeat(
+      withSequence(
+        withTiming(1, { duration: 530 }),
+        withTiming(0, { duration: 530 }),
+      ),
+      -1,
+      false,
+    );
+
+    // ── Total hold: ~2400ms, then exit ───────────────────────────────────────
+    const exitTimer = setTimeout(startExit, 2800);
+    return () => clearTimeout(exitTimer);
+  }, []);
+
+  // ── Animated styles ──────────────────────────────────────────────────────────
+
+  const bgStyle = useAnimatedStyle(() => ({
+    opacity: bgOpacity.value,
+  }));
+
+  const forgeStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: forgeScale.value }],
+  }));
+
+  const titleStyle = useAnimatedStyle(() => ({
+    opacity: titleOpacity.value,
+    transform: [{ translateY: titleTranslateY.value }],
+  }));
+
+  const subStyle = useAnimatedStyle(() => ({
+    opacity: subOpacity.value,
+  }));
+
+  const footerStyle = useAnimatedStyle(() => ({
+    opacity: footerOpacity.value,
+  }));
+
+  const masterStyle = useAnimatedStyle(() => ({
+    opacity: masterOpacity.value,
+  }));
+
+  const cursorStyle = useAnimatedStyle(() => ({
+    opacity: cursorBlink.value,
+  }));
+
   return (
-    <View style={styles.container}>
-      {/* Radial glow backdrop */}
-      <View style={styles.glowBackdrop} />
+    <Animated.View style={[styles.root, masterStyle]}>
+      {/* ── Background: deep navy base ─────────────────────────────────────── */}
+      <Animated.View style={[StyleSheet.absoluteFillObject, styles.bg, bgStyle]} />
 
-      {/* ── Main content block ─────────────────────────────────────────────── */}
-      <Animated.View
-        style={[
-          styles.content,
-          { opacity: masterFade, transform: [{ scale: entranceScale }] },
-        ]}
-      >
-        {/* Pulsing star icon */}
-        <Animated.View style={[styles.iconWrapper, { opacity: iconPulse }]}>
-          {/* Glow halo behind the icon */}
-          <View style={styles.iconGlow} />
-          <MaterialCommunityIcons
-            name="star-four-points"
-            size={72}
-            color={COLORS.primary}
-            style={styles.icon}
-          />
+      {/* ── Dual radial glow: purple left, cyan right ──────────────────────── */}
+      <Animated.View style={[styles.glowPurple, bgStyle]} />
+      <Animated.View style={[styles.glowCyan, bgStyle]} />
+
+      <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
+        {/* ── Network + Forge Centerpiece ───────────────────────────────────── */}
+        <View style={styles.centerpieceWrapper}>
+          <Animated.View style={[styles.networkCluster, forgeStyle]}>
+            {/* Connection lines radiating from center */}
+            {NODES.map((n) => (
+              <NodeLine
+                key={`line-${n.angle}`}
+                angle={n.angle}
+                radius={n.radius}
+                convergeProgress={convergeProgress}
+              />
+            ))}
+            {/* Satellite nodes */}
+            {NODES.map((n) => (
+              <SatelliteNode
+                key={`node-${n.angle}`}
+                angle={n.angle}
+                radius={n.radius}
+                delay={n.delay}
+                size={n.size}
+                convergeProgress={convergeProgress}
+              />
+            ))}
+            {/* Central forge orb */}
+            <ForgeOrb convergeProgress={convergeProgress} />
+          </Animated.View>
+        </View>
+
+        {/* ── Typography block ──────────────────────────────────────────────── */}
+        <View style={styles.textBlock}>
+          {/* App name — display weight, gradient feel via text shadow */}
+          <Animated.Text style={[styles.title, titleStyle]}>
+            Contact
+            <Animated.Text style={styles.titleAccent}>Forge</Animated.Text>
+          </Animated.Text>
+
+          {/* Subtitle */}
+          <Animated.Text style={[styles.subtitle, subStyle]}>
+            Privacy-first contact intelligence.
+          </Animated.Text>
+
+          {/* Typewriter loading status */}
+          <Animated.View style={[styles.loadingRow, subStyle]}>
+            <Animated.Text style={styles.loadingText}>
+              {loadingText}
+            </Animated.Text>
+            <Animated.Text style={[styles.cursor, cursorStyle]}>|</Animated.Text>
+          </Animated.View>
+        </View>
+
+        {/* ── Footer ───────────────────────────────────────────────────────── */}
+        <Animated.View style={[styles.footer, footerStyle]}>
+          <Animated.Text style={styles.footerText}>
+            Built with ❤️ by Shivansh Mishra
+          </Animated.Text>
         </Animated.View>
-
-        {/* PRIMARY TITLE — the hero element */}
-        <Text style={styles.title}>ContactForge</Text>
-
-        {/* Subtitle */}
-        <Text style={styles.subtitle}>Privacy-first contact intelligence.</Text>
-
-        {/* Loading text — subtle, blinking */}
-        <Animated.Text style={[styles.loadingText, { opacity: loadingFade }]}>
-          Initializing local workspace…
-        </Animated.Text>
-      </Animated.View>
-
-      {/* ── Footer — absolute bottom ────────────────────────────────────────── */}
-      <Animated.View style={[styles.footer, { opacity: masterFade }]}>
-        <Text style={styles.footerText}>Built with ❤️ by Shivansh Mishra</Text>
-      </Animated.View>
-    </View>
+      </SafeAreaView>
+    </Animated.View>
   );
 };
 
-// ──────────────────────────────────────────────────────────────────────────────
-// Styles
-// ──────────────────────────────────────────────────────────────────────────────
+// ─── Styles ─────────────────────────────────────────────────────────────────────
+
+const GLOW_SIZE = SCREEN_W * 1.1;
 
 const styles = StyleSheet.create({
-  container: {
+  root: {
     flex: 1,
-    backgroundColor: COLORS.background,
+    backgroundColor: '#0B0B12',
+  },
+  bg: {
+    backgroundColor: '#0B0B12',
+  },
+
+  // ── Layered background glows ──────────────────────────────────────────────────
+  glowPurple: {
+    position: 'absolute',
+    width: GLOW_SIZE,
+    height: GLOW_SIZE,
+    borderRadius: GLOW_SIZE / 2,
+    backgroundColor: '#6B46C1',
+    opacity: 0.07,
+    top: -GLOW_SIZE * 0.15,
+    left: -GLOW_SIZE * 0.25,
+    // Simulate radial falloff with nested glow
+    shadowColor: '#6B46C1',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.6,
+    shadowRadius: 120,
+  },
+  glowCyan: {
+    position: 'absolute',
+    width: GLOW_SIZE * 0.7,
+    height: GLOW_SIZE * 0.7,
+    borderRadius: GLOW_SIZE * 0.35,
+    backgroundColor: '#0bc5ea',
+    opacity: 0.05,
+    bottom: -GLOW_SIZE * 0.2,
+    right: -GLOW_SIZE * 0.2,
+    shadowColor: '#0bc5ea',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.5,
+    shadowRadius: 100,
+  },
+
+  // ── Layout ──────────────────────────────────────────────────────────────────
+  safeArea: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  centerpieceWrapper: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: SPACING.xxl,
+    height: 200,
+    width: 200,
+  },
+  networkCluster: {
+    width: 200,
+    height: 200,
     alignItems: 'center',
     justifyContent: 'center',
   },
 
-  // Soft radial glow behind the centre content
-  glowBackdrop: {
+  // ── Satellite nodes ──────────────────────────────────────────────────────────
+  node: {
     position: 'absolute',
-    width: SCREEN_WIDTH * 0.8,
-    height: SCREEN_WIDTH * 0.8,
-    borderRadius: SCREEN_WIDTH * 0.4,
-    backgroundColor: COLORS.primary,
-    opacity: 0.04,
-    top: '25%',
-    alignSelf: 'center',
+    shadowColor: '#0bc5ea',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.9,
+    shadowRadius: 6,
+    elevation: 6,
+  },
+  connectionLine: {
+    position: 'absolute',
+    height: 1,
+    backgroundColor: '#8B7EFF',
+    transformOrigin: 'left center',
+    left: 0,
   },
 
-  // Centred content column
-  content: {
+  // ── Central forge orb ────────────────────────────────────────────────────────
+  orbContainer: {
+    position: 'absolute',
+    alignItems: 'center',
+    justifyContent: 'center',
+    width: 100,
+    height: 100,
+  },
+  outerGlow: {
+    position: 'absolute',
+    width: 130,
+    height: 130,
+    borderRadius: 65,
+    backgroundColor: '#0bc5ea',
+    shadowColor: '#0bc5ea',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 1,
+    shadowRadius: 40,
+  },
+  innerGlow: {
+    position: 'absolute',
+    width: 96,
+    height: 96,
+    borderRadius: 48,
+    backgroundColor: '#6B46C1',
+    shadowColor: '#6B46C1',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 1,
+    shadowRadius: 30,
+  },
+  orbSurface: {
+    width: 84,
+    height: 84,
+    borderRadius: 42,
+    backgroundColor: '#15102A',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1.5,
+    borderColor: '#6B46C155',
+    shadowColor: '#6B46C1',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.6,
+    shadowRadius: 16,
+    elevation: 12,
+  },
+  orbIcon: {
+    textShadowColor: '#8B7EFF',
+    textShadowOffset: { width: 0, height: 0 },
+    textShadowRadius: 20,
+  },
+  convergeCheck: {
+    position: 'absolute',
+    bottom: 2,
+    right: 2,
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    backgroundColor: '#0B0B12',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1.5,
+    borderColor: '#0bc5ea',
+  },
+
+  // ── Typography ────────────────────────────────────────────────────────────────
+  textBlock: {
     alignItems: 'center',
     paddingHorizontal: SPACING.xl,
-    gap: SPACING.lg,
+    gap: 10,
   },
-
-  // Icon + its glow halo
-  iconWrapper: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: SPACING.md,
-  },
-  iconGlow: {
-    position: 'absolute',
-    width: 110,
-    height: 110,
-    borderRadius: 55,
-    backgroundColor: COLORS.primary,
-    opacity: 0.18,
-  },
-  icon: {
-    textShadowColor: COLORS.primary,
-    textShadowOffset: { width: 0, height: 0 },
-    textShadowRadius: 28,
-  },
-
-  // "ContactForge" — dominant, unmissable
   title: {
-    fontSize: 44,
-    fontWeight: '800',
-    color: COLORS.textPrimary,
-    letterSpacing: -0.5,
+    fontSize: 46,
+    fontWeight: '900',
+    color: '#F5F7FA',
+    letterSpacing: -1.5,
     textAlign: 'center',
+    // Metallic feel via text shadow layers
+    textShadowColor: '#FFFFFF',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 12,
   },
-
-  // Muted one-liner beneath the title
+  titleAccent: {
+    fontSize: 46,
+    fontWeight: '900',
+    color: '#8B7EFF',
+    letterSpacing: -1.5,
+    textShadowColor: '#6B46C1',
+    textShadowOffset: { width: 0, height: 0 },
+    textShadowRadius: 24,
+  },
   subtitle: {
-    fontSize: FONT_SIZE.md,
+    fontSize: FONT_SIZE.sm,
     fontWeight: '400',
-    color: COLORS.textSecondary,
+    color: '#8F9BB3',
     textAlign: 'center',
-    letterSpacing: 0.2,
+    letterSpacing: 0.8,
+    marginTop: 2,
   },
-
-  // Small, italic, blinking loading text
+  loadingRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: SPACING.lg,
+    minHeight: 18,
+  },
   loadingText: {
     fontSize: FONT_SIZE.xs,
-    fontStyle: 'italic',
-    color: COLORS.textDisabled,
-    textAlign: 'center',
-    marginTop: SPACING.md,
-    letterSpacing: 0.3,
+    fontWeight: '500',
+    color: '#5A6478',
+    letterSpacing: 0.4,
+    fontVariant: ['tabular-nums'],
+  },
+  cursor: {
+    fontSize: FONT_SIZE.xs,
+    fontWeight: '300',
+    color: '#0bc5ea',
+    marginLeft: 1,
   },
 
-  // Absolute footer — never competes with the title
+  // ── Footer ────────────────────────────────────────────────────────────────────
   footer: {
     position: 'absolute',
     bottom: SPACING.xxl,
@@ -248,9 +663,8 @@ const styles = StyleSheet.create({
   },
   footerText: {
     fontSize: FONT_SIZE.xs,
-    color: COLORS.textDisabled,
-    opacity: 0.6,
+    color: '#8F9BB3',
     textAlign: 'center',
-    letterSpacing: 0.2,
+    letterSpacing: 0.3,
   },
 });
