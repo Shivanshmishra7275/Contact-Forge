@@ -1,29 +1,19 @@
 /**
  * ContactForge — Flashcard Duplicate Review Screen
  *
- * Presents each suspected duplicate as a focused flashcard.
- * The user reviews one pair at a time with clear, always-visible actions.
+ * Gesture-first, Reanimated-powered duplicate review.
+ * Swipe right → Same Person (merge preview)
+ * Swipe left  → Not a Match (dismiss)
+ * Swipe down  → Review Later (move to end of queue)
+ * Buttons also available for accessibility.
  *
- * Actions per card:
- *   - Same Person → opens merge preview
- *   - Not a Match → dismisses (marks ignored)
- *   - Review Later → snoozes (moves to end of queue)
- *   - Undo Last → reverses the previous card decision
- *   - List View → switches to legacy list-mode
- *
- * Rules:
- *   - No auto-merge
- *   - No swipe-only destructive actions
- *   - Every reason is human-readable
- *   - Buttons are always visible
+ * Motion: worklet-driven, 60fps, threshold-based accept/reject.
  */
 
 import { memo, useCallback, useRef, useState } from 'react';
 import {
   View,
   StyleSheet,
-  Animated,
-  Easing,
   InteractionManager,
   ScrollView,
 } from 'react-native';
@@ -32,6 +22,17 @@ import { router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
+import Animated, {
+  useSharedValue,
+  useAnimatedStyle,
+  withSpring,
+  withTiming,
+  runOnJS,
+  interpolate,
+  Extrapolation,
+  FadeIn,
+} from 'react-native-reanimated';
+import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import {
   getPendingDuplicates,
   resolveDuplicateCandidate,
@@ -73,9 +74,16 @@ interface UndoEntry {
   action: 'ignored';
 }
 
+// Swipe thresholds
+const SWIPE_THRESHOLD = 90;
+const SWIPE_DOWN_THRESHOLD = 80;
+const MAX_ROTATION = 12;
+const CARD_EXIT_X = 460;
+const CARD_EXIT_Y = 200;
+
 const CONFIDENCE_CONFIG: Record<string, { label: string; color: string }> = {
-  very_high: { label: 'Very likely duplicate', color: COLORS.error },
-  high: { label: 'Likely duplicate', color: '#e07040' },
+  very_high: { label: 'Very likely duplicate', color: COLORS.success },
+  high: { label: 'Likely duplicate', color: COLORS.secondary },
   medium: { label: 'Possible duplicate', color: COLORS.warning },
   low: { label: 'Weak signal', color: COLORS.textSecondary },
 };
@@ -95,6 +103,128 @@ function loadContactDetails(id: number): ContactDetails | null {
 }
 
 // ---------------------------------------------------------------------------
+// Swipeable Card
+// ---------------------------------------------------------------------------
+
+interface SwipeableCardProps {
+  pair: DuplicatePair;
+  onSwipeLeft: () => void;
+  onSwipeRight: () => void;
+  onSwipeDown: () => void;
+}
+
+function SwipeableCard({ pair, onSwipeLeft, onSwipeRight, onSwipeDown }: SwipeableCardProps) {
+  const translateX = useSharedValue(0);
+  const translateY = useSharedValue(0);
+  const isAnimatingOut = useSharedValue(false);
+
+  const exitCard = useCallback(
+    (direction: 'left' | 'right' | 'down', callback: () => void) => {
+      isAnimatingOut.value = true;
+      const toX = direction === 'left' ? -CARD_EXIT_X : direction === 'right' ? CARD_EXIT_X : 0;
+      const toY = direction === 'down' ? CARD_EXIT_Y : 0;
+      translateX.value = withTiming(toX, { duration: 260 }, () => runOnJS(callback)());
+      translateY.value = withTiming(toY, { duration: 260 });
+    },
+    [translateX, translateY, isAnimatingOut],
+  );
+
+  const gesture = Gesture.Pan()
+    .onUpdate((e) => {
+      if (isAnimatingOut.value) return;
+      translateX.value = e.translationX;
+      translateY.value = e.translationY;
+    })
+    .onEnd((e) => {
+      if (isAnimatingOut.value) return;
+      const vx = e.velocityX;
+      const vy = e.velocityY;
+
+      // Swipe down: dismiss to later
+      if (e.translationY > SWIPE_DOWN_THRESHOLD && Math.abs(e.translationX) < 80) {
+        runOnJS(exitCard)('down', onSwipeDown);
+        return;
+      }
+
+      // Swipe right: same person
+      if (e.translationX > SWIPE_THRESHOLD || vx > 600) {
+        runOnJS(exitCard)('right', onSwipeRight);
+        return;
+      }
+
+      // Swipe left: not a match
+      if (e.translationX < -SWIPE_THRESHOLD || vx < -600) {
+        runOnJS(exitCard)('left', onSwipeLeft);
+        return;
+      }
+
+      // Spring back
+      translateX.value = withSpring(0, { damping: 18, stiffness: 200 });
+      translateY.value = withSpring(0, { damping: 18, stiffness: 200 });
+    });
+
+  const cardStyle = useAnimatedStyle(() => {
+    const rotate = interpolate(
+      translateX.value,
+      [-200, 0, 200],
+      [-MAX_ROTATION, 0, MAX_ROTATION],
+      Extrapolation.CLAMP,
+    );
+    const scale = interpolate(
+      Math.abs(translateX.value) + Math.abs(translateY.value),
+      [0, 200],
+      [1, 0.96],
+      Extrapolation.CLAMP,
+    );
+    return {
+      transform: [
+        { translateX: translateX.value },
+        { translateY: translateY.value },
+        { rotate: `${rotate}deg` },
+        { scale },
+      ],
+    };
+  });
+
+  // Green overlay when swiping right
+  const rightOverlayStyle = useAnimatedStyle(() => ({
+    opacity: interpolate(translateX.value, [20, SWIPE_THRESHOLD], [0, 1], Extrapolation.CLAMP),
+  }));
+
+  // Red overlay when swiping left
+  const leftOverlayStyle = useAnimatedStyle(() => ({
+    opacity: interpolate(translateX.value, [-20, -SWIPE_THRESHOLD], [0, 1], Extrapolation.CLAMP),
+  }));
+
+  // Down overlay when swiping down
+  const downOverlayStyle = useAnimatedStyle(() => ({
+    opacity: interpolate(translateY.value, [20, SWIPE_DOWN_THRESHOLD], [0, 0.85], Extrapolation.CLAMP),
+  }));
+
+  return (
+    <GestureDetector gesture={gesture}>
+      <Animated.View style={[styles.cardWrapper, cardStyle]} entering={FadeIn.duration(220).springify()}>
+        {/* Directional hint overlays */}
+        <Animated.View style={[styles.swipeOverlay, styles.swipeOverlayRight, rightOverlayStyle]}>
+          <MaterialCommunityIcons name="merge" size={36} color={COLORS.success} />
+          <Text style={[styles.overlayLabel, { color: COLORS.success }]}>Same Person</Text>
+        </Animated.View>
+        <Animated.View style={[styles.swipeOverlay, styles.swipeOverlayLeft, leftOverlayStyle]}>
+          <MaterialCommunityIcons name="close-circle" size={36} color={COLORS.error} />
+          <Text style={[styles.overlayLabel, { color: COLORS.error }]}>Not a Match</Text>
+        </Animated.View>
+        <Animated.View style={[styles.swipeOverlay, styles.swipeOverlayDown, downOverlayStyle]}>
+          <MaterialCommunityIcons name="clock-outline" size={32} color={COLORS.warning} />
+          <Text style={[styles.overlayLabel, { color: COLORS.warning }]}>Review Later</Text>
+        </Animated.View>
+
+        <FlashCard pair={pair} />
+      </Animated.View>
+    </GestureDetector>
+  );
+}
+
+// ---------------------------------------------------------------------------
 // Main Screen
 // ---------------------------------------------------------------------------
 
@@ -103,9 +233,9 @@ export default function DuplicateFlashcardsScreen() {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
   const [undoStack, setUndoStack] = useState<UndoEntry[]>([]);
-  const slideAnim = useRef(new Animated.Value(0)).current;
-  const fadeAnim = useRef(new Animated.Value(1)).current;
   const setPendingDuplicateCount = useAppStore((s) => s.setPendingDuplicateCount);
+  // Key changes force React to remount SwipeableCard, resetting gesture state
+  const [cardKey, setCardKey] = useState(0);
 
   const loadQueue = useCallback(() => {
     setIsLoading(true);
@@ -129,54 +259,28 @@ export default function DuplicateFlashcardsScreen() {
     }, [loadQueue]),
   );
 
-  const animateOut = useCallback(
-    (direction: 'left' | 'right', callback: () => void) => {
-      const toX = direction === 'left' ? -420 : 420;
-      Animated.parallel([
-        Animated.timing(slideAnim, {
-          toValue: toX,
-          duration: 220,
-          easing: Easing.in(Easing.quad),
-          useNativeDriver: true,
-        }),
-        Animated.timing(fadeAnim, {
-          toValue: 0,
-          duration: 180,
-          useNativeDriver: true,
-        }),
-      ]).start(() => {
-        slideAnim.setValue(0);
-        fadeAnim.setValue(1);
-        callback();
-      });
-    },
-    [slideAnim, fadeAnim],
-  );
+  const advanceCard = useCallback(() => {
+    setCurrentIndex((i) => i + 1);
+    setCardKey((k) => k + 1);
+  }, []);
 
   const handleNotAMatch = useCallback(() => {
     const pair = queue[currentIndex];
     if (!pair) return;
-    animateOut('left', () => {
-      resolveDuplicateCandidate(pair.candidate.id, 'ignored');
-      setUndoStack((s) => [...s, { candidateId: pair.candidate.id, action: 'ignored' }]);
-      setCurrentIndex((i) => i + 1);
-    });
-  }, [queue, currentIndex, animateOut]);
+    resolveDuplicateCandidate(pair.candidate.id, 'ignored');
+    setUndoStack((s) => [...s, { candidateId: pair.candidate.id, action: 'ignored' }]);
+    advanceCard();
+  }, [queue, currentIndex, advanceCard]);
 
   const handleReviewLater = useCallback(() => {
-    const pair = queue[currentIndex];
-    if (!pair) return;
-    animateOut('right', () => {
-      // Move current card to end of queue without resolving it
-      setQueue((q) => {
-        const next = [...q];
-        const [removed] = next.splice(currentIndex, 1);
-        next.push(removed);
-        return next;
-      });
-      // Don't advance index — next card slides in at same position
+    setQueue((q) => {
+      const next = [...q];
+      const [removed] = next.splice(currentIndex, 1);
+      next.push(removed);
+      return next;
     });
-  }, [queue, currentIndex, animateOut]);
+    setCardKey((k) => k + 1);
+  }, [currentIndex]);
 
   const handleSamePerson = useCallback(() => {
     const pair = queue[currentIndex];
@@ -188,7 +292,6 @@ export default function DuplicateFlashcardsScreen() {
     const last = undoStack[undoStack.length - 1];
     if (!last) return;
     setUndoStack((s) => s.slice(0, -1));
-    // Reload full queue to surface the previously ignored candidate
     loadQueue();
   }, [undoStack, loadQueue]);
 
@@ -223,14 +326,18 @@ export default function DuplicateFlashcardsScreen() {
   }
 
   const current = queue[currentIndex];
+  const progress = currentIndex / Math.max(queue.length, 1);
 
   return (
     <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
       {/* Header */}
       <View style={styles.header}>
-        <Text style={styles.queueText}>
-          {currentIndex + 1} / {queue.length}
-        </Text>
+        <View>
+          <Text style={styles.queueText}>
+            {currentIndex + 1} / {queue.length}
+          </Text>
+          <Text style={styles.gestureHint}>← Swipe to review →</Text>
+        </View>
         <View style={styles.headerRight}>
           {undoStack.length > 0 && (
             <Button
@@ -248,28 +355,26 @@ export default function DuplicateFlashcardsScreen() {
 
       {/* Progress bar */}
       <View style={styles.progressBar}>
-        <View
-          style={[
-            styles.progressFill,
-            { width: `${(currentIndex / Math.max(queue.length, 1)) * 100}%` as any },
-          ]}
-        />
+        <Animated.View style={[styles.progressFill, { width: `${progress * 100}%` as any }]} />
       </View>
 
-      {/* Card */}
+      {/* Card — remounted on each action to reset gesture state cleanly */}
       <ScrollView
         style={styles.scrollArea}
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
+        scrollEnabled={false}
       >
-        <Animated.View
-          style={[{ transform: [{ translateX: slideAnim }], opacity: fadeAnim }]}
-        >
-          <FlashCard pair={current} />
-        </Animated.View>
+        <SwipeableCard
+          key={cardKey}
+          pair={current}
+          onSwipeLeft={handleNotAMatch}
+          onSwipeRight={handleSamePerson}
+          onSwipeDown={handleReviewLater}
+        />
       </ScrollView>
 
-      {/* Action bar — always visible */}
+      {/* Action bar — always visible, mirrors swipe actions */}
       <View style={styles.actionBar}>
         <Button
           mode="outlined"
@@ -391,7 +496,7 @@ const ContactColumn = memo(function ContactColumn({
       {phones.slice(0, 2).map((p) => (
         <View key={p.id} style={styles.dataRow}>
           <MaterialCommunityIcons name="phone-outline" size={12} color={COLORS.textTertiary} />
-          <Text style={styles.contactMeta} numberOfLines={1}>
+          <Text style={[styles.contactPhone]} numberOfLines={1}>
             {' '}
             {p.number}
           </Text>
@@ -446,6 +551,7 @@ const styles = StyleSheet.create({
   },
   headerRight: { flexDirection: 'row', alignItems: 'center' },
   queueText: { fontSize: FONT_SIZE.md, color: COLORS.textSecondary, fontWeight: '600' },
+  gestureHint: { fontSize: FONT_SIZE.xs, color: COLORS.textDisabled, marginTop: 1 },
   progressBar: {
     height: 3,
     backgroundColor: COLORS.surfaceVariant,
@@ -463,6 +569,42 @@ const styles = StyleSheet.create({
     padding: SPACING.lg,
     paddingBottom: SPACING.xxl,
   },
+  // Wrapper that the gesture hits
+  cardWrapper: {
+    position: 'relative',
+  },
+  // Directional overlay hints shown while dragging
+  swipeOverlay: {
+    position: 'absolute',
+    top: 16,
+    zIndex: 10,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: RADIUS.full,
+    borderWidth: 2,
+    pointerEvents: 'none',
+  },
+  swipeOverlayRight: {
+    left: 16,
+    backgroundColor: COLORS.success + '18',
+    borderColor: COLORS.success + '55',
+  },
+  swipeOverlayLeft: {
+    right: 16,
+    backgroundColor: COLORS.error + '18',
+    borderColor: COLORS.error + '55',
+  },
+  swipeOverlayDown: {
+    alignSelf: 'center',
+    left: '25%',
+    top: 60,
+    backgroundColor: COLORS.warning + '18',
+    borderColor: COLORS.warning + '55',
+  },
+  overlayLabel: { fontSize: FONT_SIZE.sm, fontWeight: '700' },
   flashCard: {
     backgroundColor: COLORS.surface,
     borderRadius: RADIUS.lg,
@@ -471,10 +613,10 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: COLORS.border,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.25,
-    shadowRadius: 8,
-    elevation: 4,
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.3,
+    shadowRadius: 12,
+    elevation: 6,
   },
   confidenceBadge: {
     flexDirection: 'row',
@@ -507,7 +649,7 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.surfaceVariant,
     borderRadius: RADIUS.md,
     padding: SPACING.md,
-    gap: 4,
+    gap: 6,
   },
   contactLabel: {
     fontSize: FONT_SIZE.xs,
@@ -520,10 +662,16 @@ const styles = StyleSheet.create({
     fontSize: FONT_SIZE.md,
     fontWeight: '700',
     color: COLORS.textPrimary,
-    lineHeight: 20,
+    lineHeight: 22,
   },
-  contactMeta: { fontSize: FONT_SIZE.xs, color: COLORS.textSecondary, lineHeight: 16 },
-  dataRow: { flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap' },
+  contactMeta: { fontSize: FONT_SIZE.xs, color: COLORS.textSecondary, lineHeight: 17 },
+  contactPhone: {
+    fontSize: FONT_SIZE.xs,
+    color: COLORS.textSecondary,
+    lineHeight: 17,
+    fontVariant: ['tabular-nums'],
+  },
+  dataRow: { flexDirection: 'row', alignItems: 'center', flexWrap: 'nowrap' },
   compareVs: { alignSelf: 'center', paddingTop: SPACING.xl },
   actionBar: {
     padding: SPACING.lg,
