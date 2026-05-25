@@ -366,7 +366,36 @@ export const CREATE_INDEXES = [
      ON contact_reminders(status)`,
   `CREATE INDEX IF NOT EXISTS idx_snapshots_created_at
      ON network_snapshots(created_at)`,
+  `CREATE INDEX IF NOT EXISTS idx_contact_groups_contact_id
+     ON contact_groups(contact_id)`,
+  `CREATE INDEX IF NOT EXISTS idx_contact_groups_group_id
+     ON contact_groups(group_id)`,
 ];
+
+// ---------------------------------------------------------------------------
+// Phase 11: Groups & Tags
+// ---------------------------------------------------------------------------
+
+export const CREATE_GROUPS_TABLE = `
+  CREATE TABLE IF NOT EXISTS groups (
+    id          INTEGER PRIMARY KEY AUTOINCREMENT,
+    name        TEXT NOT NULL UNIQUE,
+    color       TEXT NOT NULL,
+    created_at  TEXT NOT NULL
+  )
+`;
+
+export const CREATE_CONTACT_GROUPS_TABLE = `
+  CREATE TABLE IF NOT EXISTS contact_groups (
+    id          INTEGER PRIMARY KEY AUTOINCREMENT,
+    contact_id  INTEGER NOT NULL,
+    group_id    INTEGER NOT NULL,
+    assigned_at TEXT NOT NULL,
+    FOREIGN KEY (contact_id) REFERENCES contacts(id) ON DELETE CASCADE,
+    FOREIGN KEY (group_id) REFERENCES groups(id) ON DELETE CASCADE,
+    UNIQUE(contact_id, group_id)
+  )
+`;
 
 export const ALL_CREATE_STATEMENTS = [
   CREATE_CONTACTS_TABLE,
@@ -385,6 +414,8 @@ export const ALL_CREATE_STATEMENTS = [
   CREATE_CONTACT_CONTEXT_TABLE,
   CREATE_CONTACT_REMINDERS_TABLE,
   CREATE_NETWORK_SNAPSHOTS_TABLE,
+  CREATE_GROUPS_TABLE,
+  CREATE_CONTACT_GROUPS_TABLE,
   // Phase 9: Import & Archive
   CREATE_IMPORT_SESSIONS_TABLE,
   CREATE_IMPORT_ROWS_TABLE,

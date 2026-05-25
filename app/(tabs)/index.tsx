@@ -33,8 +33,10 @@ import { createDailySnapshotIfNeeded, getSnapshotFromDaysAgo } from '../../src/d
 import { countContactsWithSuggestions } from '../../src/services/relationshipCategorizationService';
 import { isoToDisplay } from '../../src/utils/normalization';
 import type { SyncProgress, SyncResult } from '../../src/services/contactSyncService';
-import type { SyncState } from '../../src/types';
+import type { SyncState, Group } from '../../src/types';
 import { AuroraBackground } from '../../src/components/AuroraBackground';
+import { GroupRepository } from '../../src/db/repositories/groupRepository';
+import { ManageGroupsModal } from '../../src/features/groups/components/ManageGroupsModal';
 
 export default function DashboardScreen() {
   const sync = useAppStore((s) => s.sync);
@@ -65,6 +67,9 @@ export default function DashboardScreen() {
   const [isScanning, setIsScanning] = useState(false);
   const [maintenanceState, setMaintenanceState] = useState(() => getMaintenanceState());
 
+  const [groups, setGroups] = useState<Group[]>([]);
+  const [isGroupsModalVisible, setIsGroupsModalVisible] = useState(false);
+
   // Force re-render of entrances on focus
   const [entranceKey, setEntranceKey] = useState(0);
 
@@ -92,6 +97,12 @@ export default function DashboardScreen() {
     setExpiredTemps(countExpiredTemporaryContacts());
     setCleanupIssueCount(countContactsWithIssues());
     setMaintenanceState(getMaintenanceState());
+    
+    try {
+      setGroups(GroupRepository.getAllGroups());
+    } catch (e) {
+      console.warn('Groups not initialized yet', e);
+    }
 
     Promise.resolve().then(() => {
       try {
@@ -268,6 +279,29 @@ export default function DashboardScreen() {
           />
         </Animated.View>
 
+        {/* Quick Filters / Tags */}
+        <Animated.View entering={FadeInUp.delay(180).springify().stiffness(100).damping(15)} style={{ marginBottom: SPACING.md }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: SPACING.sm }}>
+            <Text style={{ color: COLORS.textSecondary, fontSize: FONT_SIZE.xs, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 0.5 }}>Quick Filters</Text>
+            <TouchableOpacity onPress={() => setIsGroupsModalVisible(true)}>
+              <Text style={{ color: '#06b6d4', fontSize: FONT_SIZE.xs, fontWeight: '600' }}>Manage Tags</Text>
+            </TouchableOpacity>
+          </View>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: SPACING.sm, paddingRight: SPACING.md }}>
+            <TouchableOpacity style={[styles.glassCard, { paddingHorizontal: 16, paddingVertical: 8, borderRadius: 20 }]}>
+              <Text style={{ color: COLORS.textPrimary, fontSize: FONT_SIZE.sm, fontWeight: '600' }}>All Contacts</Text>
+            </TouchableOpacity>
+            {groups.map(group => (
+              <TouchableOpacity key={group.id} style={[styles.glassCard, { paddingHorizontal: 16, paddingVertical: 8, borderRadius: 20, backgroundColor: group.color + '1A', borderColor: group.color + '33' }]}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                  <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: group.color, shadowColor: group.color, shadowOffset: { width: 0, height: 0 }, shadowOpacity: 0.8, shadowRadius: 4 }} />
+                  <Text style={{ color: COLORS.textPrimary, fontSize: FONT_SIZE.sm, fontWeight: '600' }}>{group.name}</Text>
+                </View>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+        </Animated.View>
+
         {pendingDuplicates > 0 && (
           <Animated.View entering={FadeInUp.delay(200).springify().stiffness(100).damping(15)}>
             <PulseCard style={styles.duplicateCta} onPress={() => router.push('/(tabs)/duplicates')} color={COLORS.error}>
@@ -385,6 +419,12 @@ export default function DashboardScreen() {
         </Animated.View>
 
       </ScrollView>
+
+      <ManageGroupsModal
+        visible={isGroupsModalVisible}
+        onClose={() => setIsGroupsModalVisible(false)}
+        onGroupsUpdated={refreshStats}
+      />
     </SafeAreaView>
   );
 }

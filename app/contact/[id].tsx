@@ -32,9 +32,11 @@ import { NotesEditor } from '../../src/NotesEditor';
 import { RelationshipsEditor } from '../../src/RelationshipsEditor';
 import { ContactContextEditor } from '../../src/ContactContextEditor';
 import { ReminderEditor } from '../../src/ReminderEditor';
-import type { TemporaryContact, ContactNote, ContactHealthScore, ContactRelationship, ContactContext, ContactReminder } from '../../src/types';
+import type { TemporaryContact, ContactNote, ContactHealthScore, ContactRelationship, ContactContext, ContactReminder, Group } from '../../src/types';
 import { COLORS, SPACING, FONT_SIZE, RADIUS } from '../../src/constants';
 import type { ContactWithDetails } from '../../src/types';
+import { GroupRepository } from '../../src/db/repositories/groupRepository';
+import * as Haptics from 'expo-haptics';
 
 export default function ContactDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -51,6 +53,10 @@ export default function ContactDetailScreen() {
   const [showRelationshipsEditor, setShowRelationshipsEditor] = useState(false);
   const [showContextEditor, setShowContextEditor] = useState(false);
   const [showReminderEditor, setShowReminderEditor] = useState(false);
+
+  const [assignedGroups, setAssignedGroups] = useState<Group[]>([]);
+  const [availableGroups, setAvailableGroups] = useState<Group[]>([]);
+  const [showGroupsModal, setShowGroupsModal] = useState(false);
 
   const [suggestions, setSuggestions] = useState<CategorySuggestion[]>([]);
 
@@ -71,6 +77,13 @@ export default function ContactDetailScreen() {
       const healthScore = calculateContactHealthScore(c.id);
       setHealth(healthScore);
       setSuggestions(suggestCategories(c));
+      
+      try {
+        setAssignedGroups(GroupRepository.getGroupsForContact(c.id));
+        setAvailableGroups(GroupRepository.getAllGroups());
+      } catch (e) {
+        console.warn('Groups not initialized', e);
+      }
     }
   }, [id]);
 
@@ -201,17 +214,34 @@ export default function ContactDetailScreen() {
           </Button>
         )}
 
-        {/* Tags */}
-        {tags.length > 0 && (
+        {/* Groups & Tags */}
+        {(tags.length > 0 || assignedGroups.length > 0) ? (
           <Card style={styles.card}>
+            <Card.Title 
+              title="Groups & Tags" 
+              titleStyle={styles.sectionTitle}
+              right={() => (
+                <Button mode="text" onPress={() => setShowGroupsModal(true)} textColor={'#06b6d4'} compact>Manage</Button>
+              )}
+            />
             <Card.Content style={styles.tagsContent}>
+              {assignedGroups.map(g => (
+                <View key={`g-${g.id}`} style={[{ backgroundColor: g.color + '1A', borderColor: g.color + '33', borderWidth: 1, paddingHorizontal: 12, paddingVertical: 4, borderRadius: 16, flexDirection: 'row', alignItems: 'center', gap: 6 }]}>
+                  <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: g.color, shadowColor: g.color, shadowOffset: { width: 0, height: 0 }, shadowOpacity: 0.8, shadowRadius: 4 }} />
+                  <Text style={{ color: COLORS.textPrimary, fontSize: FONT_SIZE.xs, fontWeight: '600' }}>{g.name}</Text>
+                </View>
+              ))}
               {tags.map((t) => (
-                <Chip key={t} style={styles.tag} textStyle={{ color: COLORS.accent, fontSize: FONT_SIZE.xs }}>
+                <Chip key={`t-${t}`} style={styles.tag} textStyle={{ color: COLORS.accent, fontSize: FONT_SIZE.xs }}>
                   {t}
                 </Chip>
               ))}
             </Card.Content>
           </Card>
+        ) : (
+          <Button mode="outlined" icon="tag" onPress={() => setShowGroupsModal(true)} style={{ borderColor: COLORS.border, marginBottom: SPACING.md }} textColor={COLORS.textSecondary}>
+            Add to Group
+          </Button>
         )}
 
         {/* Suggested Categories */}
@@ -496,7 +526,6 @@ export default function ContactDetailScreen() {
         </Button>
       </ScrollView>
 
-      {/* Temporary Setup Modal */}
       <Portal>
         <Dialog visible={isTempModalVisible} onDismiss={() => setTempModalVisible(false)} style={styles.dialog}>
           <Dialog.Title>Mark as Temporary</Dialog.Title>
@@ -512,6 +541,50 @@ export default function ContactDetailScreen() {
           <Dialog.Actions>
             <Button onPress={() => setTempModalVisible(false)}>Cancel</Button>
             <Button onPress={handleMarkTemporary} textColor={COLORS.primary}>Save</Button>
+          </Dialog.Actions>
+        </Dialog>
+
+        <Dialog visible={showGroupsModal} onDismiss={() => setShowGroupsModal(false)} style={styles.dialog}>
+          <Dialog.Title>Manage Groups</Dialog.Title>
+          <Dialog.Content>
+            {availableGroups.length === 0 ? (
+              <Text style={{ color: COLORS.textSecondary }}>No groups exist yet. Create them from the Dashboard.</Text>
+            ) : (
+              <ScrollView style={{ maxHeight: 300 }}>
+                {availableGroups.map(group => {
+                  const isAssigned = assignedGroups.some(ag => ag.id === group.id);
+                  return (
+                    <View key={group.id} style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 8 }}>
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                        <View style={{ width: 12, height: 12, borderRadius: 6, backgroundColor: group.color }} />
+                        <Text style={{ color: COLORS.textPrimary, fontSize: FONT_SIZE.md }}>{group.name}</Text>
+                      </View>
+                      <Button 
+                        mode={isAssigned ? "contained" : "outlined"} 
+                        buttonColor={isAssigned ? group.color : undefined}
+                        textColor={isAssigned ? '#000' : group.color}
+                        style={!isAssigned && { borderColor: group.color + '55' }}
+                        compact
+                        onPress={() => {
+                          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                          if (isAssigned) {
+                            GroupRepository.removeContactFromGroup(contact.id, group.id);
+                          } else {
+                            GroupRepository.assignContactToGroup(contact.id, group.id);
+                          }
+                          load();
+                        }}
+                      >
+                        {isAssigned ? 'Added' : 'Add'}
+                      </Button>
+                    </View>
+                  );
+                })}
+              </ScrollView>
+            )}
+          </Dialog.Content>
+          <Dialog.Actions>
+            <Button onPress={() => setShowGroupsModal(false)} textColor={COLORS.textSecondary}>Close</Button>
           </Dialog.Actions>
         </Dialog>
       </Portal>

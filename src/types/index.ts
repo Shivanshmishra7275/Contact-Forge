@@ -300,8 +300,22 @@ export interface ReminderWithContact extends ContactReminder {
 }
 
 // ---------------------------------------------------------------------------
-// Phase 11: Network Insights
+// Phase 11: Network Insights & Groups
 // ---------------------------------------------------------------------------
+
+export interface Group {
+  id: number;
+  name: string;
+  color: string;
+  createdAt: string;
+}
+
+export interface ContactGroup {
+  id: number;
+  contactId: number;
+  groupId: number;
+  assignedAt: string;
+}
 
 export interface NetworkSnapshot {
   id: number;

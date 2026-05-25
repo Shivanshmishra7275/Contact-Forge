@@ -261,6 +261,14 @@ npm test
 
 # 🚀 Version History & Solved Problems
 
+### 🏷️ V3.2: Local Offline Group Management (CRM Evolution)
+*The goal of V3.2 was to add local, offline-first group and tag management, evolving ContactForge from a cleanup tool into a lightweight CRM.*
+
+**What it solved:**
+- **Lack of grouping**: V3.2 introduces a SQLite-backed many-to-many relationship allowing custom tags/groups assignment.
+- **Complexity in tag management**: V3.2 adds a premium tag creation and management dashboard supporting customized colors, renaming, and safe deletion.
+- **Fast cohort isolation**: Added instant quick filtering on the Dashboard screen allowing single-tap isolation of specific client cohorts, VIPs, or lists.
+
 ### 🎨 V3.1: The "Mission Control" UI Overhaul
 *The goal of V3.1 was to transform the app into a premium, cinematic SaaS-grade experience using advanced Reanimated physics and Skia-like mesh gradients.*
 
@@ -300,7 +308,7 @@ npm test
 
 What remains planned for ContactForge:
 - [ ] **Cross-Platform Release**: Native iOS distribution (currently optimized for Android APK).
-- [ ] **Group Management**: Local offline tags and groups.
+- [x] **Group Management**: Local offline tags and groups.
 - [ ] **Automated Sync**: Background scheduled WebDAV sync (currently manual only).
 - [ ] **Desktop Companion App**: Shared database management via web/desktop.
 
