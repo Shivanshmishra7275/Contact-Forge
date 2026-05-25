@@ -1,201 +1,256 @@
 /**
- * ContactForge — Premium Splash Screen
+ * ContactForge — Splash / Initialization Screen
  *
- * Created by: Shivansh Mishra
- * Part of ContactForge Phase 8 Premium Cinematic Upgrade
+ * Premium SaaS vibe: dark background, glowing icon, clear hierarchy.
  *
- * Purpose:
- * Display Shivansh Mishra branding on app startup
- * Premium cinematic experience with smooth animations
- * Sets tone for professional, offline-first contact management
+ * Content structure:
+ *   - Glowing star icon (breathing pulse animation)
+ *   - "ContactForge" — massive primary title
+ *   - "Privacy-first contact intelligence." — muted subtitle
+ *   - "Initializing local workspace…" — subtle loading text
+ *   - "Built with ❤️ by Shivansh Mishra" — absolute footer
  *
- * Features:
- * - Animated T.G.S Mishra logo entrance
- * - Tagline: "First Mobile App"
- * - Smooth fade-out transition
- * - Database initialization indicator
- * - Premium dark mode aesthetics
+ * Animations:
+ *   1. Content fades + scales in (500 ms)
+ *   2. Star icon pulses opacity while app loads (breathing loop)
+ *   3. Everything fades out before handing off (400 ms)
  */
 
-import React, { useEffect } from 'react';
-import { View, StyleSheet, Animated, Dimensions } from 'react-native';
+import React, { useEffect, useRef } from 'react';
+import { View, StyleSheet, Animated, Easing, Dimensions } from 'react-native';
 import { Text } from 'react-native-paper';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { COLORS, SPACING, FONT_SIZE } from './constants';
+
+const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
 interface SplashScreenProps {
   onFinish: () => void;
 }
 
-/**
- * Premium splash screen component with Shivansh Mishra branding
- * Auto-dismisses after animation completes
- */
 export const SplashScreen: React.FC<SplashScreenProps> = ({ onFinish }) => {
-  const fadeAnim = React.useRef(new Animated.Value(0)).current;
-  const scaleAnim = React.useRef(new Animated.Value(0.8)).current;
+  // Master fade for enter / exit
+  const masterFade = useRef(new Animated.Value(0)).current;
+  // Scale for content entrance
+  const entranceScale = useRef(new Animated.Value(0.88)).current;
+  // Breathing pulse for the icon glow
+  const iconPulse = useRef(new Animated.Value(0.6)).current;
+  // Loading text subtle blink
+  const loadingFade = useRef(new Animated.Value(0.4)).current;
 
   useEffect(() => {
-    // Sequence of animations
-    Animated.sequence([
-      // Phase 1: Logo entrance (500ms)
-      Animated.parallel([
-        Animated.timing(fadeAnim, {
+    // ── Phase 1: Entrance (500 ms) ──────────────────────────────────────────
+    const entrance = Animated.parallel([
+      Animated.timing(masterFade, {
+        toValue: 1,
+        duration: 500,
+        easing: Easing.out(Easing.quad),
+        useNativeDriver: true,
+      }),
+      Animated.timing(entranceScale, {
+        toValue: 1,
+        duration: 500,
+        easing: Easing.out(Easing.back(1.4)),
+        useNativeDriver: true,
+      }),
+    ]);
+
+    // ── Breathing loops (run while app is "holding") ────────────────────────
+    const iconBreath = Animated.loop(
+      Animated.sequence([
+        Animated.timing(iconPulse, {
           toValue: 1,
-          duration: 500,
+          duration: 1000,
+          easing: Easing.inOut(Easing.sin),
           useNativeDriver: true,
         }),
-        Animated.timing(scaleAnim, {
-          toValue: 1,
-          duration: 500,
+        Animated.timing(iconPulse, {
+          toValue: 0.6,
+          duration: 1000,
+          easing: Easing.inOut(Easing.sin),
           useNativeDriver: true,
         }),
       ]),
-      // Phase 2: Hold on screen (2000ms)
-      Animated.delay(2000),
-      // Phase 3: Fade out (400ms)
-      Animated.timing(fadeAnim, {
-        toValue: 0,
-        duration: 400,
-        useNativeDriver: true,
-      }),
-    ]).start(() => {
-      onFinish();
+    );
+
+    const loadingBlink = Animated.loop(
+      Animated.sequence([
+        Animated.timing(loadingFade, {
+          toValue: 1,
+          duration: 700,
+          easing: Easing.inOut(Easing.ease),
+          useNativeDriver: true,
+        }),
+        Animated.timing(loadingFade, {
+          toValue: 0.3,
+          duration: 700,
+          easing: Easing.inOut(Easing.ease),
+          useNativeDriver: true,
+        }),
+      ]),
+    );
+
+    // ── Phase 3: Exit (400 ms) ──────────────────────────────────────────────
+    const exit = Animated.timing(masterFade, {
+      toValue: 0,
+      duration: 400,
+      easing: Easing.in(Easing.quad),
+      useNativeDriver: true,
     });
+
+    // ── Sequence ────────────────────────────────────────────────────────────
+    entrance.start(() => {
+      iconBreath.start();
+      loadingBlink.start();
+
+      // Hold for 2 s then exit
+      setTimeout(() => {
+        iconBreath.stop();
+        loadingBlink.stop();
+        exit.start(() => onFinish());
+      }, 2000);
+    });
+
+    return () => {
+      iconBreath.stop();
+      loadingBlink.stop();
+    };
   }, []);
 
   return (
     <View style={styles.container}>
-      {/* Background gradient effect */}
-      <View style={styles.background} />
+      {/* Radial glow backdrop */}
+      <View style={styles.glowBackdrop} />
 
-      {/* Main content */}
+      {/* ── Main content block ─────────────────────────────────────────────── */}
       <Animated.View
         style={[
           styles.content,
-          {
-            opacity: fadeAnim,
-            transform: [{ scale: scaleAnim }],
-          },
+          { opacity: masterFade, transform: [{ scale: entranceScale }] },
         ]}
       >
-        {/* Star icon with glow */}
-        <View style={styles.iconContainer}>
+        {/* Pulsing star icon */}
+        <Animated.View style={[styles.iconWrapper, { opacity: iconPulse }]}>
+          {/* Glow halo behind the icon */}
+          <View style={styles.iconGlow} />
           <MaterialCommunityIcons
-            name="star"
-            size={80}
+            name="star-four-points"
+            size={72}
             color={COLORS.primary}
-            style={styles.starIcon}
+            style={styles.icon}
           />
-        </View>
+        </Animated.View>
 
-        {/* Developer brand name */}
-        <Text style={styles.brandName}>Shivansh Mishra</Text>
-
-        {/* App name */}
-        <Text style={styles.appName}>ContactForge</Text>
-
-        {/* Tagline */}
-        <Text style={styles.tagline}>Cinematic Offline-First Release</Text>
+        {/* PRIMARY TITLE — the hero element */}
+        <Text style={styles.title}>ContactForge</Text>
 
         {/* Subtitle */}
-        <Text style={styles.subtitle}>
-          Privacy-First Offline Contact Manager
-        </Text>
+        <Text style={styles.subtitle}>Privacy-first contact intelligence.</Text>
 
-        {/* Loading indicator */}
-        <View style={styles.loadingContainer}>
-          <Text style={styles.loadingText}>Initializing...</Text>
-        </View>
+        {/* Loading text — subtle, blinking */}
+        <Animated.Text style={[styles.loadingText, { opacity: loadingFade }]}>
+          Initializing local workspace…
+        </Animated.Text>
       </Animated.View>
 
-      {/* Footer text */}
-      <Animated.View style={[styles.footer, { opacity: fadeAnim }]}>
-        <Text style={styles.footerText}>
-          Built with ❤️ by Shivansh Mishra
-        </Text>
+      {/* ── Footer — absolute bottom ────────────────────────────────────────── */}
+      <Animated.View style={[styles.footer, { opacity: masterFade }]}>
+        <Text style={styles.footerText}>Built with ❤️ by Shivansh Mishra</Text>
       </Animated.View>
     </View>
   );
 };
 
+// ──────────────────────────────────────────────────────────────────────────────
+// Styles
+// ──────────────────────────────────────────────────────────────────────────────
+
 const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: COLORS.background,
-    justifyContent: 'center',
     alignItems: 'center',
+    justifyContent: 'center',
   },
-  background: {
+
+  // Soft radial glow behind the centre content
+  glowBackdrop: {
     position: 'absolute',
-    width: '100%',
-    height: '100%',
-    backgroundColor: COLORS.background,
-    zIndex: 0,
+    width: SCREEN_WIDTH * 0.8,
+    height: SCREEN_WIDTH * 0.8,
+    borderRadius: SCREEN_WIDTH * 0.4,
+    backgroundColor: COLORS.primary,
+    opacity: 0.04,
+    top: '25%',
+    alignSelf: 'center',
   },
+
+  // Centred content column
   content: {
     alignItems: 'center',
-    zIndex: 1,
+    paddingHorizontal: SPACING.xl,
+    gap: SPACING.lg,
   },
-  iconContainer: {
-    marginBottom: SPACING.xl,
+
+  // Icon + its glow halo
+  iconWrapper: {
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  starIcon: {
     marginBottom: SPACING.md,
+  },
+  iconGlow: {
+    position: 'absolute',
+    width: 110,
+    height: 110,
+    borderRadius: 55,
+    backgroundColor: COLORS.primary,
+    opacity: 0.18,
+  },
+  icon: {
     textShadowColor: COLORS.primary,
     textShadowOffset: { width: 0, height: 0 },
-    textShadowRadius: 20,
+    textShadowRadius: 28,
   },
-  brandName: {
-    fontSize: FONT_SIZE.xxl,
-    fontWeight: '700',
-    color: COLORS.primary,
-    letterSpacing: 2,
-    marginBottom: SPACING.xs,
-    textAlign: 'center',
-  },
-  appName: {
-    fontSize: FONT_SIZE.xl,
-    fontWeight: '600',
+
+  // "ContactForge" — dominant, unmissable
+  title: {
+    fontSize: 44,
+    fontWeight: '800',
     color: COLORS.textPrimary,
-    marginBottom: SPACING.md,
+    letterSpacing: -0.5,
     textAlign: 'center',
   },
-  tagline: {
-    fontSize: FONT_SIZE.lg,
-    fontWeight: '500',
-    color: COLORS.secondary,
-    marginBottom: SPACING.xs,
-    textAlign: 'center',
-    letterSpacing: 1,
-  },
+
+  // Muted one-liner beneath the title
   subtitle: {
     fontSize: FONT_SIZE.md,
+    fontWeight: '400',
     color: COLORS.textSecondary,
-    marginBottom: SPACING.xl,
     textAlign: 'center',
-    fontStyle: 'italic',
+    letterSpacing: 0.2,
   },
-  loadingContainer: {
-    marginTop: SPACING.lg,
-    paddingHorizontal: SPACING.lg,
-  },
+
+  // Small, italic, blinking loading text
   loadingText: {
-    fontSize: FONT_SIZE.sm,
-    color: COLORS.textSecondary,
-    textAlign: 'center',
+    fontSize: FONT_SIZE.xs,
     fontStyle: 'italic',
+    color: COLORS.textDisabled,
+    textAlign: 'center',
+    marginTop: SPACING.md,
+    letterSpacing: 0.3,
   },
+
+  // Absolute footer — never competes with the title
   footer: {
     position: 'absolute',
-    bottom: SPACING.xl,
+    bottom: SPACING.xxl,
     alignItems: 'center',
   },
   footerText: {
-    fontSize: FONT_SIZE.sm,
-    color: COLORS.textSecondary,
+    fontSize: FONT_SIZE.xs,
+    color: COLORS.textDisabled,
+    opacity: 0.6,
     textAlign: 'center',
+    letterSpacing: 0.2,
   },
 });
