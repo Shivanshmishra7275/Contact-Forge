@@ -17,7 +17,9 @@ import {
   GitBranch,
   Star,
   Coffee,
-import { ExternalLink, MessageSquare } from 'lucide-react';
+  ExternalLink,
+  MessageSquare,
+} from 'lucide-react';
 import { trackEvent } from '../lib/analytics';
 import { TelemetryWidget } from '../components/TelemetryWidget';
 
