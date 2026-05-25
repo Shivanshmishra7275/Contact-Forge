@@ -1,14 +1,33 @@
 /**
- * ContactForge — Duplicates Queue Screen
+ * ContactForge — Flashcard Duplicate Review Screen
  *
- * Shows pending duplicate candidate pairs.
- * Each card shows both contacts, the confidence score, and the reason list.
- * Actions: Merge, Ignore, Mark Safe.
+ * Presents each suspected duplicate as a focused flashcard.
+ * The user reviews one pair at a time with clear, always-visible actions.
+ *
+ * Actions per card:
+ *   - Same Person → opens merge preview
+ *   - Not a Match → dismisses (marks ignored)
+ *   - Review Later → snoozes (moves to end of queue)
+ *   - Undo Last → reverses the previous card decision
+ *   - List View → switches to legacy list-mode
+ *
+ * Rules:
+ *   - No auto-merge
+ *   - No swipe-only destructive actions
+ *   - Every reason is human-readable
+ *   - Buttons are always visible
  */
 
-import { memo, useCallback, useState } from 'react';
-import { View, FlatList, StyleSheet, Alert, InteractionManager } from 'react-native';
-import { Text, Card, Button, Chip, ActivityIndicator, IconButton } from 'react-native-paper';
+import { memo, useCallback, useRef, useState } from 'react';
+import {
+  View,
+  StyleSheet,
+  Animated,
+  Easing,
+  InteractionManager,
+  ScrollView,
+} from 'react-native';
+import { Text, Button, ActivityIndicator } from 'react-native-paper';
 import { router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
@@ -16,131 +35,162 @@ import { useFocusEffect } from '@react-navigation/native';
 import {
   getPendingDuplicates,
   resolveDuplicateCandidate,
-  resolveDuplicateCandidatesBulk,
 } from '../../src/db/repositories/duplicateRepository';
-import { getContactById } from '../../src/db/repositories/contactRepository';
+import {
+  getContactById,
+  getPhonesByContactId,
+  getEmailsByContactId,
+} from '../../src/db/repositories/contactRepository';
 import { useAppStore } from '../../src/store/appStore';
-import { COLORS, SPACING, FONT_SIZE } from '../../src/constants';
-import type { DuplicateCandidate, LocalContact } from '../../src/types';
+import { COLORS, SPACING, FONT_SIZE, RADIUS } from '../../src/constants';
+import { REASON_LABELS } from '../../src/services/duplicateHeuristicsService';
+import type {
+  DuplicateCandidate,
+  LocalContact,
+  PhoneNumber,
+  EmailAddress,
+  DuplicateReason,
+} from '../../src/types';
+
+// ---------------------------------------------------------------------------
+// Types
+// ---------------------------------------------------------------------------
+
+interface ContactDetails {
+  contact: LocalContact;
+  phones: PhoneNumber[];
+  emails: EmailAddress[];
+}
 
 interface DuplicatePair {
   candidate: DuplicateCandidate;
-  contactA: LocalContact | null;
-  contactB: LocalContact | null;
+  a: ContactDetails | null;
+  b: ContactDetails | null;
 }
 
-const CONFIDENCE_COLORS: Record<string, string> = {
-  very_high: COLORS.error,
-  high: '#e07040',
-  medium: COLORS.warning,
-  low: COLORS.textSecondary,
+interface UndoEntry {
+  candidateId: number;
+  action: 'ignored';
+}
+
+const CONFIDENCE_CONFIG: Record<string, { label: string; color: string }> = {
+  very_high: { label: 'Very likely duplicate', color: COLORS.error },
+  high: { label: 'Likely duplicate', color: '#e07040' },
+  medium: { label: 'Possible duplicate', color: COLORS.warning },
+  low: { label: 'Weak signal', color: COLORS.textSecondary },
 };
 
-export default function DuplicatesScreen() {
-  const [pairs, setPairs] = useState<DuplicatePair[]>([]);
+// ---------------------------------------------------------------------------
+// Helper
+// ---------------------------------------------------------------------------
+
+function loadContactDetails(id: number): ContactDetails | null {
+  const contact = getContactById(id);
+  if (!contact) return null;
+  return {
+    contact,
+    phones: getPhonesByContactId(id),
+    emails: getEmailsByContactId(id),
+  };
+}
+
+// ---------------------------------------------------------------------------
+// Main Screen
+// ---------------------------------------------------------------------------
+
+export default function DuplicateFlashcardsScreen() {
+  const [queue, setQueue] = useState<DuplicatePair[]>([]);
+  const [currentIndex, setCurrentIndex] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
-  const [selectionMode, setSelectionMode] = useState(false);
-  const [selectedCandidateIds, setSelectedCandidateIds] = useState<number[]>([]);
+  const [undoStack, setUndoStack] = useState<UndoEntry[]>([]);
+  const slideAnim = useRef(new Animated.Value(0)).current;
+  const fadeAnim = useRef(new Animated.Value(1)).current;
   const setPendingDuplicateCount = useAppStore((s) => s.setPendingDuplicateCount);
 
-  const loadDuplicates = useCallback(() => {
+  const loadQueue = useCallback(() => {
     setIsLoading(true);
     const candidates = getPendingDuplicates();
-    const loaded: DuplicatePair[] = candidates.map((c) => ({
+    const pairs: DuplicatePair[] = candidates.map((c) => ({
       candidate: c,
-      contactA: getContactById(c.contactIdA),
-      contactB: getContactById(c.contactIdB),
+      a: loadContactDetails(c.contactIdA),
+      b: loadContactDetails(c.contactIdB),
     }));
-    setPairs(loaded);
-    setPendingDuplicateCount(loaded.length);
+    setQueue(pairs);
+    setCurrentIndex(0);
+    setUndoStack([]);
+    setPendingDuplicateCount(pairs.length);
     setIsLoading(false);
-  }, []);
+  }, [setPendingDuplicateCount]);
 
   useFocusEffect(
     useCallback(() => {
-      const task = InteractionManager.runAfterInteractions(() => {
-        loadDuplicates();
-      });
-
+      const task = InteractionManager.runAfterInteractions(loadQueue);
       return () => task.cancel();
-    }, [loadDuplicates]),
+    }, [loadQueue]),
   );
 
-  const clearSelection = useCallback(() => {
-    setSelectedCandidateIds([]);
-    setSelectionMode(false);
-  }, []);
+  const animateOut = useCallback(
+    (direction: 'left' | 'right', callback: () => void) => {
+      const toX = direction === 'left' ? -420 : 420;
+      Animated.parallel([
+        Animated.timing(slideAnim, {
+          toValue: toX,
+          duration: 220,
+          easing: Easing.in(Easing.quad),
+          useNativeDriver: true,
+        }),
+        Animated.timing(fadeAnim, {
+          toValue: 0,
+          duration: 180,
+          useNativeDriver: true,
+        }),
+      ]).start(() => {
+        slideAnim.setValue(0);
+        fadeAnim.setValue(1);
+        callback();
+      });
+    },
+    [slideAnim, fadeAnim],
+  );
 
-  const toggleCandidateSelection = useCallback((candidateId: number) => {
-    setSelectedCandidateIds((current) => {
-      if (current.includes(candidateId)) {
-        return current.filter((id) => id !== candidateId);
-      }
-      return [...current, candidateId];
+  const handleNotAMatch = useCallback(() => {
+    const pair = queue[currentIndex];
+    if (!pair) return;
+    animateOut('left', () => {
+      resolveDuplicateCandidate(pair.candidate.id, 'ignored');
+      setUndoStack((s) => [...s, { candidateId: pair.candidate.id, action: 'ignored' }]);
+      setCurrentIndex((i) => i + 1);
     });
-  }, []);
+  }, [queue, currentIndex, animateOut]);
 
-  const handleBulkResolve = useCallback(
-    (status: 'ignored' | 'safe') => {
-      if (selectedCandidateIds.length === 0) return;
-      Alert.alert(
-        status === 'safe' ? 'Mark selected as safe?' : 'Ignore selected duplicates?',
-        `Apply this action to ${selectedCandidateIds.length} selected duplicate candidates?`,
-        [
-          { text: 'Cancel', style: 'cancel' },
-          {
-            text: 'Apply',
-            onPress: () => {
-              resolveDuplicateCandidatesBulk(selectedCandidateIds, status);
-              clearSelection();
-              loadDuplicates();
-            },
-          },
-        ],
-      );
-    },
-    [clearSelection, loadDuplicates, selectedCandidateIds],
-  );
+  const handleReviewLater = useCallback(() => {
+    const pair = queue[currentIndex];
+    if (!pair) return;
+    animateOut('right', () => {
+      // Move current card to end of queue without resolving it
+      setQueue((q) => {
+        const next = [...q];
+        const [removed] = next.splice(currentIndex, 1);
+        next.push(removed);
+        return next;
+      });
+      // Don't advance index — next card slides in at same position
+    });
+  }, [queue, currentIndex, animateOut]);
 
-  const handleIgnore = useCallback(
-    (candidate: DuplicateCandidate) => {
-      resolveDuplicateCandidate(candidate.id, 'ignored');
-      clearSelection();
-      loadDuplicates();
-    },
-    [clearSelection, loadDuplicates],
-  );
+  const handleSamePerson = useCallback(() => {
+    const pair = queue[currentIndex];
+    if (!pair) return;
+    router.push(`/merge/${pair.candidate.id}`);
+  }, [queue, currentIndex]);
 
-  const handleMarkSafe = useCallback(
-    (candidate: DuplicateCandidate) => {
-      resolveDuplicateCandidate(candidate.id, 'safe');
-      clearSelection();
-      loadDuplicates();
-    },
-    [clearSelection, loadDuplicates],
-  );
-
-  const handleMerge = useCallback(
-    (pair: DuplicatePair) => {
-      router.push(`/merge/${pair.candidate.id}`);
-    },
-    [],
-  );
-
-  const renderItem = useCallback(
-    ({ item }: { item: DuplicatePair }) => (
-      <DuplicateCard
-        pair={item}
-        selectionMode={selectionMode}
-        selected={selectedCandidateIds.includes(item.candidate.id)}
-        onToggleSelect={() => toggleCandidateSelection(item.candidate.id)}
-        onMerge={() => handleMerge(item)}
-        onIgnore={() => handleIgnore(item.candidate)}
-        onMarkSafe={() => handleMarkSafe(item.candidate)}
-      />
-    ),
-    [handleIgnore, handleMarkSafe, handleMerge, selectedCandidateIds, selectionMode, toggleCandidateSelection],
-  );
+  const handleUndo = useCallback(() => {
+    const last = undoStack[undoStack.length - 1];
+    if (!last) return;
+    setUndoStack((s) => s.slice(0, -1));
+    // Reload full queue to surface the previously ignored candidate
+    loadQueue();
+  }, [undoStack, loadQueue]);
 
   if (isLoading) {
     return (
@@ -150,230 +200,341 @@ export default function DuplicatesScreen() {
     );
   }
 
-  if (pairs.length === 0) {
+  const remaining = queue.length - currentIndex;
+
+  if (remaining <= 0) {
     return (
       <View style={styles.center}>
-        <MaterialCommunityIcons name="check-circle" size={56} color={COLORS.success} />
-        <Text style={styles.emptyTitle}>No duplicates found</Text>
-        <Text style={styles.emptySubtitle}>
-          Run a duplicate scan from the dashboard to detect potential duplicates.
+        <MaterialCommunityIcons name="check-circle-outline" size={64} color={COLORS.success} />
+        <Text style={styles.doneTitle}>All caught up!</Text>
+        <Text style={styles.doneSubtitle}>
+          No pending duplicates to review.{'\n'}Run a scan from the dashboard to detect more.
         </Text>
+        <Button
+          mode="outlined"
+          onPress={loadQueue}
+          textColor={COLORS.primary}
+          style={{ marginTop: SPACING.lg }}
+        >
+          Refresh
+        </Button>
       </View>
     );
   }
 
+  const current = queue[currentIndex];
+
   return (
-    <SafeAreaView style={styles.safeArea} edges={['top']}>
+    <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
+      {/* Header */}
       <View style={styles.header}>
-        <View>
-          <Text style={styles.headerText}>{pairs.length} pending</Text>
-          {selectionMode && <Text style={styles.selectionText}>{selectedCandidateIds.length} selected</Text>}
-        </View>
-        <View style={styles.headerActions}>
-          {selectedCandidateIds.length > 0 && (
-            <Button mode="text" onPress={clearSelection} textColor={COLORS.textSecondary} compact>
-              Clear
+        <Text style={styles.queueText}>
+          {currentIndex + 1} / {queue.length}
+        </Text>
+        <View style={styles.headerRight}>
+          {undoStack.length > 0 && (
+            <Button
+              mode="text"
+              onPress={handleUndo}
+              textColor={COLORS.primary}
+              compact
+              icon="undo"
+            >
+              Undo
             </Button>
           )}
-          <Button
-            mode={selectionMode ? 'contained' : 'outlined'}
-            onPress={() => {
-              if (selectionMode) {
-                clearSelection();
-              } else {
-                setSelectionMode(true);
-              }
-            }}
-            buttonColor={selectionMode ? COLORS.primary : undefined}
-            textColor={selectionMode ? COLORS.textPrimary : COLORS.primary}
-            compact
-          >
-            {selectionMode ? 'Done' : 'Select'}
-          </Button>
         </View>
       </View>
-      {selectionMode && selectedCandidateIds.length > 0 && (
-        <Card style={styles.bulkCard}>
-          <Card.Content style={styles.bulkActions}>
-            <Button mode="contained" buttonColor={COLORS.primary} onPress={() => handleBulkResolve('safe')}>
-              Mark Safe Selected
-            </Button>
-            <Button mode="outlined" textColor={COLORS.textSecondary} onPress={() => handleBulkResolve('ignored')}>
-              Ignore Selected
-            </Button>
-          </Card.Content>
-        </Card>
-      )}
-      <FlatList
-        data={pairs}
-        keyExtractor={(item) => String(item.candidate.id)}
-        renderItem={renderItem}
-        contentContainerStyle={styles.listContent}
-        initialNumToRender={8}
-        maxToRenderPerBatch={10}
-        windowSize={7}
-        removeClippedSubviews
-      />
+
+      {/* Progress bar */}
+      <View style={styles.progressBar}>
+        <View
+          style={[
+            styles.progressFill,
+            { width: `${(currentIndex / Math.max(queue.length, 1)) * 100}%` as any },
+          ]}
+        />
+      </View>
+
+      {/* Card */}
+      <ScrollView
+        style={styles.scrollArea}
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+      >
+        <Animated.View
+          style={[{ transform: [{ translateX: slideAnim }], opacity: fadeAnim }]}
+        >
+          <FlashCard pair={current} />
+        </Animated.View>
+      </ScrollView>
+
+      {/* Action bar — always visible */}
+      <View style={styles.actionBar}>
+        <Button
+          mode="outlined"
+          onPress={handleNotAMatch}
+          textColor={COLORS.textSecondary}
+          style={styles.actionBtn}
+          contentStyle={styles.actionBtnContent}
+          icon="close-circle-outline"
+        >
+          Not a match
+        </Button>
+        <Button
+          mode="contained"
+          onPress={handleSamePerson}
+          buttonColor={COLORS.primary}
+          style={styles.actionBtn}
+          contentStyle={styles.actionBtnContent}
+          icon="merge"
+        >
+          Same person
+        </Button>
+        <Button
+          mode="text"
+          onPress={handleReviewLater}
+          textColor={COLORS.textSecondary}
+          compact
+          icon="clock-outline"
+        >
+          Later
+        </Button>
+      </View>
     </SafeAreaView>
   );
 }
 
-interface DuplicateCardProps {
-  pair: DuplicatePair;
-  selected: boolean;
-  selectionMode: boolean;
-  onToggleSelect: () => void;
-  onMerge: () => void;
-  onIgnore: () => void;
-  onMarkSafe: () => void;
-}
+// ---------------------------------------------------------------------------
+// FlashCard Component
+// ---------------------------------------------------------------------------
 
-const DuplicateCard = memo(function DuplicateCard({
-  pair,
-  selected,
-  selectionMode,
-  onToggleSelect,
-  onMerge,
-  onIgnore,
-  onMarkSafe,
-}: DuplicateCardProps) {
-  const { candidate, contactA, contactB } = pair;
-  const color = CONFIDENCE_COLORS[candidate.confidence] ?? COLORS.textSecondary;
-  const reasons = candidate.reasons;
+const FlashCard = memo(function FlashCard({ pair }: { pair: DuplicatePair }) {
+  const { candidate, a, b } = pair;
+  const conf = CONFIDENCE_CONFIG[candidate.confidence] ?? CONFIDENCE_CONFIG.low;
 
   return (
-    <Card style={[styles.card, selected && styles.cardSelected]}>
-      <Card.Content>
-        {/* Confidence badge */}
-        <View style={styles.badgeRow}>
-          {selectionMode && (
-            <IconButton
-              icon={selected ? 'checkbox-marked' : 'checkbox-blank-outline'}
-              size={20}
-              onPress={onToggleSelect}
-              iconColor={selected ? COLORS.primary : COLORS.textSecondary}
-              style={styles.selectIcon}
-            />
-          )}
-          <Chip
-            style={[styles.badge, { backgroundColor: color + '33' }]}
-            textStyle={{ color, fontSize: FONT_SIZE.xs }}
-          >
-            {candidate.confidence.replace('_', ' ')} · {candidate.score}%
-          </Chip>
-        </View>
+    <View style={styles.flashCard}>
+      {/* Confidence badge */}
+      <View
+        style={[
+          styles.confidenceBadge,
+          { backgroundColor: conf.color + '22', borderColor: conf.color + '55' },
+        ]}
+      >
+        <View style={[styles.confidenceDot, { backgroundColor: conf.color }]} />
+        <Text style={[styles.confidenceText, { color: conf.color }]}>{conf.label}</Text>
+        <Text style={[styles.scoreText, { color: conf.color }]}>{candidate.score}%</Text>
+      </View>
 
-        {/* Contact names */}
-        <View style={styles.namesRow}>
-          <ContactNameBlock contact={contactA} label="Contact A" />
-          <MaterialCommunityIcons name="equal" color={COLORS.textSecondary} size={20} />
-          <ContactNameBlock contact={contactB} label="Contact B" />
-        </View>
+      {/* Reason pills */}
+      <View style={styles.reasonsRow}>
+        {candidate.reasons.map((r) => (
+          <ReasonPill key={r} reason={r} />
+        ))}
+      </View>
 
-        {/* Reasons */}
-        <View style={styles.reasonsRow}>
-          {reasons.map((r) => (
-            <Chip
-              key={r}
-              style={styles.reasonChip}
-              textStyle={{ color: COLORS.textSecondary, fontSize: FONT_SIZE.xs }}
-            >
-              {r.replace(/_/g, ' ')}
-            </Chip>
-          ))}
+      {/* Contact comparison */}
+      <View style={styles.compareRow}>
+        <ContactColumn details={a} label="Contact A" />
+        <View style={styles.compareVs}>
+          <MaterialCommunityIcons
+            name="approximately-equal"
+            size={22}
+            color={COLORS.textSecondary}
+          />
         </View>
-
-        {/* Actions */}
-        <View style={styles.actionsRow}>
-          <Button
-            mode="contained"
-            onPress={onMerge}
-            compact
-            buttonColor={COLORS.primary}
-            style={styles.actionBtn}
-          >
-            Review & Merge
-          </Button>
-          <Button
-            mode="outlined"
-            onPress={onIgnore}
-            compact
-            textColor={COLORS.textSecondary}
-            style={styles.actionBtn}
-          >
-            Ignore
-          </Button>
-          <Button
-            mode="text"
-            onPress={onMarkSafe}
-            compact
-            textColor={COLORS.success}
-          >
-            Mark Safe
-          </Button>
-        </View>
-      </Card.Content>
-    </Card>
+        <ContactColumn details={b} label="Contact B" />
+      </View>
+    </View>
   );
 });
 
-function ContactNameBlock({
-  contact,
-  label,
-}: {
-  contact: LocalContact | null;
-  label: string;
-}) {
+const ReasonPill = memo(function ReasonPill({ reason }: { reason: DuplicateReason }) {
+  const label = REASON_LABELS[reason] ?? reason.replace(/_/g, ' ');
   return (
-    <View style={styles.nameBlock}>
-      <Text style={styles.nameLabel}>{label}</Text>
-      <Text style={styles.nameText} numberOfLines={2}>
-        {contact?.displayName ?? '(Deleted)'}
-      </Text>
-      {contact?.company && (
-        <Text style={styles.companyText} numberOfLines={1}>
-          {contact.company}
-        </Text>
-      )}
+    <View style={styles.reasonPill}>
+      <Text style={styles.reasonPillText}>{label}</Text>
     </View>
   );
-}
+});
+
+const ContactColumn = memo(function ContactColumn({
+  details,
+  label,
+}: {
+  details: ContactDetails | null;
+  label: string;
+}) {
+  if (!details) {
+    return (
+      <View style={styles.contactColumn}>
+        <Text style={styles.contactLabel}>{label}</Text>
+        <Text style={styles.contactName}>(Deleted)</Text>
+      </View>
+    );
+  }
+
+  const { contact, phones, emails } = details;
+
+  return (
+    <View style={styles.contactColumn}>
+      <Text style={styles.contactLabel}>{label}</Text>
+      <Text style={styles.contactName} numberOfLines={2}>
+        {contact.displayName}
+      </Text>
+      {contact.company ? (
+        <Text style={styles.contactMeta} numberOfLines={1}>
+          {contact.company}
+        </Text>
+      ) : null}
+      {phones.slice(0, 2).map((p) => (
+        <View key={p.id} style={styles.dataRow}>
+          <MaterialCommunityIcons name="phone-outline" size={12} color={COLORS.textTertiary} />
+          <Text style={styles.contactMeta} numberOfLines={1}>
+            {' '}
+            {p.number}
+          </Text>
+        </View>
+      ))}
+      {emails.slice(0, 1).map((e) => (
+        <View key={e.id} style={styles.dataRow}>
+          <MaterialCommunityIcons name="email-outline" size={12} color={COLORS.textTertiary} />
+          <Text style={styles.contactMeta} numberOfLines={1}>
+            {' '}
+            {e.email}
+          </Text>
+        </View>
+      ))}
+    </View>
+  );
+});
+
+// ---------------------------------------------------------------------------
+// Styles
+// ---------------------------------------------------------------------------
 
 const styles = StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: COLORS.background },
-  center: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: SPACING.xl, gap: SPACING.md, backgroundColor: COLORS.background },
-  header: { padding: SPACING.md, paddingBottom: SPACING.xs },
-  headerText: { color: COLORS.textSecondary, fontSize: FONT_SIZE.sm },
-  selectionText: { color: COLORS.primary, fontSize: FONT_SIZE.xs, marginTop: 2 },
-  headerActions: { flexDirection: 'row', alignItems: 'center', gap: SPACING.xs },
-  bulkCard: { marginHorizontal: SPACING.md, marginBottom: SPACING.sm, backgroundColor: COLORS.surfaceVariant },
-  bulkActions: { flexDirection: 'row', gap: SPACING.sm, justifyContent: 'space-between' },
-  listContent: { padding: SPACING.md, gap: SPACING.md, paddingBottom: SPACING.xxl },
-  card: { backgroundColor: COLORS.surface },
-  cardSelected: { borderColor: COLORS.primary, borderWidth: 1 },
-  badgeRow: { marginBottom: SPACING.sm },
-  selectIcon: { margin: 0, marginRight: SPACING.xs },
-  badge: { alignSelf: 'flex-start' },
-  namesRow: {
+  center: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: SPACING.xl,
+    gap: SPACING.lg,
+    backgroundColor: COLORS.background,
+  },
+  doneTitle: {
+    fontSize: FONT_SIZE.xxl,
+    fontWeight: '700',
+    color: COLORS.textPrimary,
+    textAlign: 'center',
+  },
+  doneSubtitle: {
+    fontSize: FONT_SIZE.sm,
+    color: COLORS.textSecondary,
+    textAlign: 'center',
+    lineHeight: 20,
+  },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: SPACING.lg,
+    paddingTop: SPACING.md,
+    paddingBottom: SPACING.sm,
+  },
+  headerRight: { flexDirection: 'row', alignItems: 'center' },
+  queueText: { fontSize: FONT_SIZE.md, color: COLORS.textSecondary, fontWeight: '600' },
+  progressBar: {
+    height: 3,
+    backgroundColor: COLORS.surfaceVariant,
+    marginHorizontal: SPACING.lg,
+    borderRadius: RADIUS.full,
+    overflow: 'hidden',
+  },
+  progressFill: {
+    height: '100%',
+    backgroundColor: COLORS.primary,
+    borderRadius: RADIUS.full,
+  },
+  scrollArea: { flex: 1 },
+  scrollContent: {
+    padding: SPACING.lg,
+    paddingBottom: SPACING.xxl,
+  },
+  flashCard: {
+    backgroundColor: COLORS.surface,
+    borderRadius: RADIUS.lg,
+    padding: SPACING.lg,
+    gap: SPACING.lg,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.25,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  confidenceBadge: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: SPACING.sm,
-    marginBottom: SPACING.sm,
+    paddingHorizontal: SPACING.md,
+    paddingVertical: SPACING.sm,
+    borderRadius: RADIUS.full,
+    borderWidth: 1,
+    alignSelf: 'flex-start',
   },
-  nameBlock: { flex: 1 },
-  nameLabel: { fontSize: FONT_SIZE.xs, color: COLORS.textDisabled, marginBottom: 2 },
-  nameText: { color: COLORS.textPrimary, fontSize: FONT_SIZE.md, fontWeight: '600' },
-  companyText: { color: COLORS.textSecondary, fontSize: FONT_SIZE.sm },
-  reasonsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 4, marginBottom: SPACING.sm },
-  reasonChip: { backgroundColor: COLORS.surfaceVariant, height: 26 },
-  actionsRow: {
+  confidenceDot: { width: 8, height: 8, borderRadius: 4 },
+  confidenceText: { fontSize: FONT_SIZE.sm, fontWeight: '600' },
+  scoreText: { fontSize: FONT_SIZE.xs, fontWeight: '500', marginLeft: SPACING.xs },
+  reasonsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: SPACING.sm },
+  reasonPill: {
+    backgroundColor: COLORS.surfaceVariant,
+    borderRadius: RADIUS.full,
+    paddingHorizontal: SPACING.md,
+    paddingVertical: 3,
+  },
+  reasonPillText: { fontSize: FONT_SIZE.xs, color: COLORS.textSecondary },
+  compareRow: {
     flexDirection: 'row',
-    alignItems: 'center',
-    flexWrap: 'wrap',
-    gap: SPACING.xs,
-    marginTop: SPACING.xs,
+    gap: SPACING.sm,
+    alignItems: 'flex-start',
   },
-  actionBtn: {},
-  emptyTitle: { fontSize: FONT_SIZE.xl, fontWeight: '700', color: COLORS.textPrimary, textAlign: 'center' },
-  emptySubtitle: { fontSize: FONT_SIZE.sm, color: COLORS.textSecondary, textAlign: 'center', maxWidth: 280 },
+  contactColumn: {
+    flex: 1,
+    backgroundColor: COLORS.surfaceVariant,
+    borderRadius: RADIUS.md,
+    padding: SPACING.md,
+    gap: 4,
+  },
+  contactLabel: {
+    fontSize: FONT_SIZE.xs,
+    color: COLORS.textDisabled,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+    marginBottom: 2,
+  },
+  contactName: {
+    fontSize: FONT_SIZE.md,
+    fontWeight: '700',
+    color: COLORS.textPrimary,
+    lineHeight: 20,
+  },
+  contactMeta: { fontSize: FONT_SIZE.xs, color: COLORS.textSecondary, lineHeight: 16 },
+  dataRow: { flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap' },
+  compareVs: { alignSelf: 'center', paddingTop: SPACING.xl },
+  actionBar: {
+    padding: SPACING.lg,
+    paddingTop: SPACING.md,
+    backgroundColor: COLORS.surface,
+    borderTopWidth: 1,
+    borderTopColor: COLORS.border,
+    flexDirection: 'row',
+    gap: SPACING.sm,
+    alignItems: 'center',
+  },
+  actionBtn: { flex: 1 },
+  actionBtnContent: { paddingVertical: 4 },
 });
