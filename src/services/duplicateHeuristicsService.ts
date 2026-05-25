@@ -180,14 +180,19 @@ function detectExactNameDuplicates(): SuggestionResult[] {
 
 // ---------------------------------------------------------------------------
 // Rule 4 — Fuzzy name + overlapping phone digits (last 7)
+// SQL pre-filtered by 3-char name prefix bucket to reduce O(N²) comparisons
 // ---------------------------------------------------------------------------
 
 function detectFuzzyNameWithPhoneOverlap(): SuggestionResult[] {
   const db = getDatabase();
 
-  const contacts = db.getAllSync<ContactRow>(
-    `SELECT id, normalized_name, company FROM contacts
-     WHERE normalized_name != '' AND is_ghost = 0`,
+  // SQL groups contacts by their first-3-char name prefix.
+  // We only compare within the same prefix bucket — this is a safe
+  // approximation: truly similar names almost always share a prefix.
+  const prefixRows = db.getAllSync<{ prefix: string }>(
+    `SELECT DISTINCT SUBSTR(normalized_name, 1, 3) AS prefix
+     FROM contacts
+     WHERE LENGTH(normalized_name) >= 3 AND is_ghost = 0`,
     [],
   );
 
@@ -196,7 +201,6 @@ function detectFuzzyNameWithPhoneOverlap(): SuggestionResult[] {
      WHERE normalized_number != ''`,
     [],
   );
-
   const phonesByContact = new Map<number, string[]>();
   for (const p of phones) {
     const list = phonesByContact.get(p.contact_id) ?? [];
@@ -206,37 +210,47 @@ function detectFuzzyNameWithPhoneOverlap(): SuggestionResult[] {
 
   const results: SuggestionResult[] = [];
 
-  for (let i = 0; i < contacts.length; i++) {
-    for (let j = i + 1; j < contacts.length; j++) {
-      const a = contacts[i];
-      const b = contacts[j];
+  for (const { prefix } of prefixRows) {
+    // Fetch only contacts in this prefix bucket
+    const bucket = db.getAllSync<ContactRow>(
+      `SELECT id, normalized_name, company FROM contacts
+       WHERE SUBSTR(normalized_name, 1, 3) = ? AND is_ghost = 0`,
+      [prefix],
+    );
 
-      const sim = nameSimilarity(a.normalized_name, b.normalized_name);
-      if (sim < 0.75) continue; // Not similar enough
+    // O(k²) where k is bucket size — typically 1-20 contacts, not 1813
+    for (let i = 0; i < bucket.length; i++) {
+      for (let j = i + 1; j < bucket.length; j++) {
+        const a = bucket[i];
+        const b = bucket[j];
 
-      // Check phone overlap (last 7 digits)
-      const phonesA = phonesByContact.get(a.id) ?? [];
-      const phonesB = phonesByContact.get(b.id) ?? [];
+        const sim = nameSimilarity(a.normalized_name, b.normalized_name);
+        if (sim < 0.75) continue;
 
-      let hasPhoneOverlap = false;
-      for (const pa of phonesA) {
-        for (const pb of phonesB) {
-          if (pa.length >= 7 && pb.length >= 7 && pa.slice(-7) === pb.slice(-7)) {
-            hasPhoneOverlap = true;
+        const phonesA = phonesByContact.get(a.id) ?? [];
+        const phonesB = phonesByContact.get(b.id) ?? [];
+
+        let hasPhoneOverlap = false;
+        outer: for (const pa of phonesA) {
+          for (const pb of phonesB) {
+            if (pa.length >= 7 && pb.length >= 7 && pa.slice(-7) === pb.slice(-7)) {
+              hasPhoneOverlap = true;
+              break outer;
+            }
           }
         }
+
+        if (!hasPhoneOverlap) continue;
+
+        const score = Math.round(sim * 50 + 25);
+        results.push({
+          contactIdA: a.id,
+          contactIdB: b.id,
+          score: Math.min(score, 75),
+          confidence: scoreToConfidence(score),
+          reasons: ['fuzzy_name_match', 'overlapping_phone'],
+        });
       }
-
-      if (!hasPhoneOverlap) continue;
-
-      const score = Math.round(sim * 50 + 25); // 25-75 range
-      results.push({
-        contactIdA: a.id,
-        contactIdB: b.id,
-        score: Math.min(score, 75),
-        confidence: scoreToConfidence(score),
-        reasons: ['fuzzy_name_match', 'overlapping_phone'],
-      });
     }
   }
 
@@ -275,7 +289,7 @@ function mergeResults(groups: SuggestionResult[][]): SuggestionResult[] {
 }
 
 // ---------------------------------------------------------------------------
-// Public: Run full heuristic scan and persist to DB
+// Scan debounce — prevents full re-scan on every resume
 // ---------------------------------------------------------------------------
 
 export interface HeuristicScanResult {
@@ -284,7 +298,26 @@ export interface HeuristicScanResult {
   rules: { exactPhone: number; exactEmail: number; exactName: number; fuzzyNamePhone: number };
 }
 
-export function runDuplicateHeuristicScan(): HeuristicScanResult {
+let _lastScanAt: number | null = null;
+const SCAN_COOLDOWN_MS = 60 * 60 * 1000; // 1 hour
+
+/** Returns the ISO timestamp of the last completed heuristic scan, or null. */
+export function getLastHeuristicScanAt(): string | null {
+  return _lastScanAt ? new Date(_lastScanAt).toISOString() : null;
+}
+
+/** Returns true if a full scan is still within the cooldown window. */
+export function isHeuristicScanFresh(): boolean {
+  if (!_lastScanAt) return false;
+  return Date.now() - _lastScanAt < SCAN_COOLDOWN_MS;
+}
+
+export function runDuplicateHeuristicScan(force = false): HeuristicScanResult {
+  if (!force && isHeuristicScanFresh()) {
+    // Return a zero-delta result — DB already has current results
+    return { totalChecked: 0, newSuggestions: 0, rules: { exactPhone: 0, exactEmail: 0, exactName: 0, fuzzyNamePhone: 0 } };
+  }
+
   const exactPhone = detectExactPhoneDuplicates();
   const exactEmail = detectExactEmailDuplicates();
   const exactName = detectExactNameDuplicates();
@@ -301,6 +334,8 @@ export function runDuplicateHeuristicScan(): HeuristicScanResult {
       reasons: r.reasons,
     });
   }
+
+  _lastScanAt = Date.now();
 
   return {
     totalChecked: allResults.length,

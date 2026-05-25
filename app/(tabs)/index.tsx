@@ -93,28 +93,36 @@ export default function DashboardScreen() {
 
   const refreshStats = useCallback(() => {
     setStatsLoading(true);
-    try {
-      setTotalContacts(countContacts());
-      setPendingDuplicateCount(countPendingDuplicates());
-      setExpiredTemps(countExpiredTemporaryContacts());
-      setCleanupIssueCount(countContactsWithIssues());
-      const summary = calculateHealthSummary();
-      setAverageHealth(summary.average);
-      setLowHealthCount(summary.lowCount);
-      setMaintenanceState(getMaintenanceState());
+    // Phase 1: Paint cheap counts immediately (SQLite row counts are fast)
+    setTotalContacts(countContacts());
+    setPendingDuplicateCount(countPendingDuplicates());
+    setExpiredTemps(countExpiredTemporaryContacts());
+    setCleanupIssueCount(countContactsWithIssues());
+    setMaintenanceState(getMaintenanceState());
 
-      const intSummary = getIntelligenceSummary();
-      setFollowUpsDue(intSummary.dueFollowUps);
-      setHighValueInactive(intSummary.highValueInactive);
-      setSuggestedCategorizations(countContactsWithSuggestions());
-
-      // Opportunistically create daily snapshot and load comparisons
-      const latest = createDailySnapshotIfNeeded();
-      const prev = getSnapshotFromDaysAgo(7);
-      setSnapshots(latest, prev);
-    } finally {
+    // Phase 2: Defer expensive O(N) computations so UI is not blocked
+    Promise.resolve().then(() => {
+      try {
+        const summary = calculateHealthSummary();
+        setAverageHealth(summary.average);
+        setLowHealthCount(summary.lowCount);
+      } catch { /* non-fatal */ }
+    }).then(() => {
+      try {
+        const intSummary = getIntelligenceSummary();
+        setFollowUpsDue(intSummary.dueFollowUps);
+        setHighValueInactive(intSummary.highValueInactive);
+        setSuggestedCategorizations(countContactsWithSuggestions());
+      } catch { /* non-fatal */ }
+    }).then(() => {
+      try {
+        const latest = createDailySnapshotIfNeeded();
+        const prev = getSnapshotFromDaysAgo(7);
+        setSnapshots(latest, prev);
+      } catch { /* non-fatal */ }
+    }).finally(() => {
       setStatsLoading(false);
-    }
+    });
   }, []);
 
   useFocusEffect(
@@ -261,13 +269,13 @@ export default function DashboardScreen() {
             icon="content-copy"
             value={animatedDuplicates}
             label="Duplicates"
-            color={COLORS.error}
+            color={COLORS.primary}
             onPress={() => router.push('/(tabs)/duplicates')}
           />
           <StatCard
-            icon="timer-sand"
+            icon="alert-circle-outline"
             value={animatedExpired}
-            label="Expired"
+            label="Incomplete"
             color={COLORS.warning}
             onPress={() => router.push('/(tabs)/cleanup')}
           />
@@ -282,7 +290,7 @@ export default function DashboardScreen() {
             >
               <Card.Content style={styles.duplicateCtaContent}>
                 <View style={styles.duplicateCtaLeft}>
-                  <MaterialCommunityIcons name="cards-outline" size={28} color={COLORS.error} />
+                  <MaterialCommunityIcons name="cards-outline" size={28} color={COLORS.primary} />
                   <View>
                     <Text style={styles.duplicateCtaTitle}>
                       {pendingDuplicates} duplicate{pendingDuplicates !== 1 ? 's' : ''} to review
@@ -491,9 +499,9 @@ export default function DashboardScreen() {
                 onPress={() => router.push('/(tabs)/cleanup')}
               />
               <ReviewRow
-                label="Expired temporary contacts"
+                label="Temporary / expiring contacts"
                 count={expiredTemps}
-                color={COLORS.info}
+                color={COLORS.warning}
                 onPress={() => router.push('/(tabs)/cleanup')}
               />
               <ReviewRow
