@@ -37,7 +37,7 @@ ContactForge is designed for people who want complete ownership of their network
 
 <br>
 
-<a href="https://expo.dev/accounts/shivansh_98/projects/contactforge/builds/2cae6642-6420-4d19-a1ce-607368cea4b4">
+<a href="https://github.com/Shivanshmishra7275/Contact-Forge/releases/download/v3.2.0/ContactForge.apk">
   <img src="https://img.shields.io/badge/⬇_Download_Latest_APK-000000?style=for-the-badge&logo=android&logoColor=00FF00&labelColor=111111" height="54">
 </a>
 

@@ -26,9 +26,9 @@ import { TelemetryWidget } from '../components/TelemetryWidget';
 // ─── Direct APK download URL ────────────────────────────────────────────────────
 // Currently points to the Expo build page.
 const APK_DOWNLOAD_URL =
-  'https://expo.dev/accounts/shivansh_98/projects/contactforge/builds/2cae6642-6420-4d19-a1ce-607368cea4b4';
+  'https://github.com/Shivanshmishra7275/Contact-Forge/releases/download/v3.2.0/ContactForge.apk';
 const RELEASE_PAGE_URL =
-  'https://github.com/Shivanshmishra7275/Contact-Forge/releases/tag/v3.0.0-beta.1';
+  'https://github.com/Shivanshmishra7275/Contact-Forge/releases/tag/v3.2.0';
 const GITHUB_URL = 'https://github.com/Shivanshmishra7275/Contact-Forge';
 const GITHUB_PROFILE_URL = 'https://github.com/Shivanshmishra7275';
 
@@ -37,7 +37,7 @@ const STATS = [
   { value: '1,800+', label: 'Contacts Handled' },
   { value: '115', label: 'Tests Passing' },
   { value: '100%', label: 'Offline & Private' },
-  { value: 'v3.0.0', label: 'Current Version' },
+  { value: 'v3.2.0', label: 'Current Version' },
 ];
 
 // ─── Founder skills/interests ───────────────────────────────────────────────────
@@ -50,7 +50,7 @@ export default function Home() {
   const [apkError, setApkError] = useState(false);
 
   const handleDirectDownload = (source: 'hero' | 'footer') => {
-    trackEvent('Download APK Direct', { source, version: 'v3.0.0-beta.1' });
+    trackEvent('Download APK Direct', { source, version: 'v3.2.0' });
   };
 
   const handleReleasePageClick = () => {
@@ -129,7 +129,7 @@ export default function Home() {
             <Download className="w-5 h-5 group-hover:animate-bounce" />
             <span>Download APK</span>
             <span className="text-xs font-normal text-slate-500 bg-slate-100 px-2 py-0.5 rounded-full group-hover:bg-slate-200 transition-colors">
-              v3.0.0-beta.1
+              v3.2.0
             </span>
           </a>
 
@@ -452,7 +452,7 @@ export default function Home() {
             className="inline-flex items-center gap-2 text-sm text-teal-500 hover:text-teal-300 transition-colors font-medium group"
           >
             <Download className="w-4 h-4 group-hover:animate-bounce" />
-            <span>Download APK v3.0.0-beta.1 for Android</span>
+            <span>Download APK v3.2.0 for Android</span>
           </a>
 
           <div className="text-slate-600 text-xs flex flex-wrap justify-center gap-4">
