@@ -6,6 +6,8 @@ import { kv } from '@vercel/kv';
 export async function GET() {
   let downloadsCount = 0;
   let visitorsCount = 0;
+  let githubDebug = "OK";
+  let kvDebug = "OK";
 
   // 1. Fetch Downloads via GitHub API
   try {
@@ -20,7 +22,8 @@ export async function GET() {
 
     if (!githubRes.ok) {
       const errorText = await githubRes.text().catch(() => 'Could not read response body');
-      console.error(`GitHub API Fetch Failed: status=${githubRes.status}, statusText="${githubRes.statusText}", body="${errorText}"`);
+      githubDebug = `GitHub API Error Status: ${githubRes.status} (${githubRes.statusText}) - Response: ${errorText}`;
+      console.error(githubDebug);
     } else {
       const githubJson = await githubRes.json();
       console.log("GitHub API Data:", githubJson);
@@ -28,11 +31,13 @@ export async function GET() {
       if (githubJson && Array.isArray(githubJson.assets)) {
         downloadsCount = githubJson.assets.reduce((acc: number, asset: any) => acc + (asset.download_count ?? 0), 0);
       } else {
-        console.warn("GitHub API Response lacks valid assets array:", githubJson);
+        githubDebug = "GitHub API Response lacks valid assets array";
+        console.warn(githubDebug, githubJson);
       }
     }
-  } catch (githubErr) {
-    console.error('Failed to fetch from GitHub API:', githubErr);
+  } catch (githubErr: any) {
+    githubDebug = `GitHub Fetch Exception: ${githubErr?.message || String(githubErr)}`;
+    console.error(githubDebug, githubErr);
   }
 
   // 2. Track Visitors via Vercel KV
@@ -43,11 +48,17 @@ export async function GET() {
     }
     visitorsCount = await kv.incr('contactforge_visitors');
   } catch (kvErr) {
+    kvDebug = String(kvErr);
     console.error('Failed to increment Vercel KV:', kvErr);
     visitorsCount = 0;
   }
 
-  // Return the telemetry payload with explicit names
-  return NextResponse.json({ visitors: visitorsCount, downloads: downloadsCount });
+  // Return the telemetry payload with explicit names and debug context
+  return NextResponse.json({
+    visitors: visitorsCount,
+    downloads: downloadsCount,
+    debug: { github: githubDebug, kv: kvDebug }
+  });
 }
+
 
