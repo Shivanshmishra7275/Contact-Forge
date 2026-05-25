@@ -27,6 +27,7 @@ export function TelemetryWidget() {
   const [error, setError] = useState(false);
 
   useEffect(() => {
+    let active = true;
     const fetchTelemetry = async () => {
       try {
         const res = await fetch('/api/telemetry', { cache: 'no-store' });
@@ -36,16 +37,28 @@ export function TelemetryWidget() {
           throw new Error(json.error || `HTTP error! status: ${res.status}`);
         }
         
-        setData(json);
+        if (active) {
+          setData({
+            visitors: Number(json.visitors ?? 0),
+            downloads: Number(json.downloads ?? 0)
+          });
+        }
       } catch (err) {
         console.error('Telemetry Fetch Failed:', err);
-        setError(true);
+        if (active) {
+          setError(true);
+        }
       } finally {
-        setLoading(false);
+        if (active) {
+          setLoading(false);
+        }
       }
     };
 
     fetchTelemetry();
+    return () => {
+      active = false;
+    };
   }, []);
 
   if (loading || error) {
