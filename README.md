@@ -253,59 +253,42 @@ npm test
 
 ---
 
-# 🚀 Engineering Roadmap
+# 🚀 Version History & Solved Problems
 
-| Feature / Goal | Stage | Focus Area | Description |
-|---|---|---|---|
-| **Local Mirror Engine** | ✅ Done | Core Data | Mirrored device contact tracking layer in SQLite. |
-| **Import Studio** | ✅ Done | Ingestion | Visual CSV/VCF column mapper and parser. |
-| **Smart Merge** | ✅ Done | Deduplication | Granular side-by-side field resolution reviews. |
-| **Undo Engine** | ✅ Done | Safety | Pre-mutation database snapshotting and one-tap restore. |
-| **Cleanup Command Center** | ✅ Done | Quality | Premium filtering dashboard and Safe Preview Modal. |
-| **Offline Categorization** | ✅ Done | AI | Rule-based engine assigning tags based on context/emails without sending data to an LLM. |
-| **Session Insights** | ✅ Done | Analytics | Weekly deterministic network health tracking (active, stale, follow-ups). |
-| **Encrypted Local Backup** | ✅ Done | Foundation | AES-CBC encrypted local exports of all contact and context data. |
-| **WebDAV Sync Transport** | ✅ Done | Growth | Manual, offline-first WebDAV push/pull with end-to-end encryption. |
-| **Flashcard Duplicate Review** | ✅ Done | UX | One-pair-at-a-time flashcard review with undo, snooze, and merge preview. |
+### 🎯 V3: The Relationship Intelligence Release
+*The goal of V3 was to make ContactForge useful every day by surfacing context, follow-ups, and an easier deduplication experience.*
 
----
+**What it solved:** 
+- Deduplication was previously overwhelming. V3 introduces a focused **Flashcard Duplicate Review** flow (one at a time, merge/dismiss/later).
+- Users had opaque duplicate suggestions. V3 introduces a **Deterministic Heuristics Engine** providing human-readable exact match rules.
+- Contacts lacked context. V3 adds **Relationship Intelligence**, tracking "where you met", warmth, next actions, and follow-up reminders.
+- Finding duplicates required manual action. V3 adds **Dashboard Surfacing** with intelligent CTA widgets.
 
-## 🎯 V3 Highlights
+### 🔄 V2: The Data & Sync Foundation
+*The goal of V2 was to make the offline database portable, safe, and visually clean.*
 
-ContactForge v3.0.0 — Relationship Intelligence Release.
+**What it solved:**
+- Cloud lock-in. V2 introduced **WebDAV Sync Transport** for manual, offline-first syncing to private NAS/servers.
+- Data loss fears. V2 built **Encrypted Local Backup**, allowing AES-CBC encrypted exports.
+- Import chaos. V2 created the **Import Studio** with visual CSV/VCF column mapping.
+- Unsafe cleanup. V2 added the **Undo Engine**, an automated snapshotting tool enabling one-tap rollback for destructive merges.
 
-### ✨ Flashcard Duplicate Review
+### 📱 V1: The Local Mirror
+*The initial release focused entirely on establishing the core architecture.*
 
-The Duplicates tab now presents each suspected pair as a focused flashcard — one at a time, never overwhelming:
-
-- **Same Person** → Opens the full field-level merge preview
-- **Not a Match** → Dismisses with one tap (undoable)
-- **Review Later** → Moves to end of queue without resolving
-- **Undo** → Reverses the last dismiss decision
-
-Every flagged pair shows an explainable reason — no black-box scoring:
-> _"Exact phone match after normalization"_
-> _"Similar name detected + Overlapping mobile digits (last 7)"_
-> _"Shared email found in both contacts"_
-
-### ⚡ Deterministic Heuristics Engine
-
-A new SQL-index-based heuristics engine (`duplicateHeuristicsService.ts`) runs four deterministic rules:
-1. Exact normalized phone match
-2. Exact normalized email match
-3. Identical normalized name
-4. High name similarity (≥75%) + overlapping last-7 phone digits
-
-Each rule produces human-readable labels — no neural networks, no opaque scores.
-
-### 🏠 Dashboard Integration
-
-When duplicate candidates exist, the dashboard now surfaces a prominent "N duplicates to review" CTA card directly below the key metrics, tappping straight into the flashcard flow.
+**What it solved:**
+- Reliance on Google/Apple. V1 introduced the **Local SQLite Mirror Engine** that tracked native contacts with zero cloud dependency.
+- Finding bad data. V1 shipped the initial **Cleanup Command Center** for sorting contacts missing names, emails, or valid phones.
 
 ---
 
-- **Privacy**: Your relationships are your most valuable asset. ContactForge never sends your context to a remote LLM.
-- **Speed**: Categorization suggestions are deterministic and instant.
+# 🛣️ Future Roadmap
+
+What remains planned for ContactForge:
+- [ ] **Cross-Platform Release**: Native iOS distribution (currently optimized for Android APK).
+- [ ] **Group Management**: Local offline tags and groups.
+- [ ] **Automated Sync**: Background scheduled WebDAV sync (currently manual only).
+- [ ] **Desktop Companion App**: Shared database management via web/desktop.
 
 # 🤝 Contributing
 
