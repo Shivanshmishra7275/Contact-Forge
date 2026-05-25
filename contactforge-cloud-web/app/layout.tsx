@@ -12,6 +12,9 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" className="dark">
+      <head>
+        <script defer data-domain="contactforge.local" src="https://plausible.io/js/script.tagged-events.js"></script>
+      </head>
       <body className={`${inter.className} bg-slate-950 text-slate-50 selection:bg-teal-500/30`}>
         {children}
       </body>

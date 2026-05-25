@@ -1,17 +1,12 @@
 'use client';
 
-import React, { useActionState } from 'react';
+import React from 'react';
 import { motion } from 'framer-motion';
-import { submitWaitlist, type WaitlistState } from './actions/waitlist';
-import { ShieldCheck, Mail, ArrowRight, Loader2, CheckCircle2 } from 'lucide-react';
-
-const initialState: WaitlistState = { status: 'idle' };
+import { ShieldCheck, Download, Smartphone, Code, Zap, History, Database, Users } from 'lucide-react';
 
 export default function Home() {
-  const [state, formAction, isPending] = useActionState(submitWaitlist, initialState);
-
   return (
-    <main className="min-h-screen bg-[#0a0e1a] flex flex-col items-center justify-center relative overflow-hidden font-sans selection:bg-teal-500/30">
+    <main className="min-h-screen bg-[#0a0e1a] flex flex-col items-center relative overflow-hidden font-sans selection:bg-teal-500/30 pb-24">
       {/* Cinematic Background Glows */}
       <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[600px] bg-teal-500/10 blur-[150px] rounded-full pointer-events-none" />
       <div className="absolute bottom-0 left-1/4 w-[600px] h-[400px] bg-blue-600/10 blur-[120px] rounded-full pointer-events-none" />
@@ -25,7 +20,7 @@ export default function Home() {
         }}
       />
 
-      <div className="z-10 w-full max-w-3xl px-6 flex flex-col items-center text-center">
+      <div className="z-10 w-full max-w-5xl px-6 flex flex-col items-center text-center pt-32">
         
         {/* Security Badge */}
         <motion.div 
@@ -35,7 +30,7 @@ export default function Home() {
           className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-slate-900/50 border border-slate-800 text-sm font-medium text-slate-300 mb-10 shadow-xl backdrop-blur-md"
         >
           <ShieldCheck className="w-4 h-4 text-teal-400" />
-          End-to-End Encrypted Architecture
+          100% Offline & Local-First
         </motion.div>
 
         {/* Headlines */}
@@ -45,107 +40,137 @@ export default function Home() {
           transition={{ duration: 0.8, delay: 0.1, ease: "easeOut" }}
           className="text-5xl md:text-7xl font-extrabold tracking-tight text-white mb-6 leading-[1.1]"
         >
-          The Zero-Knowledge<br />
+          Your Contacts,<br />
           <span className="text-transparent bg-clip-text bg-gradient-to-br from-teal-400 via-emerald-300 to-blue-500 drop-shadow-sm">
-            Contact Vault
-          </span><br />
-          for Professionals.
+            Intelligently Secured.
+          </span>
         </motion.h1>
 
         <motion.p 
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.8, delay: 0.2, ease: "easeOut" }}
-          className="text-lg md:text-xl text-slate-400 mb-12 max-w-xl mx-auto leading-relaxed font-light"
+          className="text-lg md:text-xl text-slate-400 mb-12 max-w-2xl mx-auto leading-relaxed font-light"
         >
-          Google mines your contacts. We encrypt them. Join the waitlist for ContactForge Cloud.
+          ContactForge V3 is a privacy-first mobile app for cleaning contacts, tracking relationships, and safely managing your real-world network—all on your device.
         </motion.p>
 
-        {/* Waitlist Form */}
+        {/* CTAs */}
         <motion.div 
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.8, delay: 0.3, ease: "easeOut" }}
-          className="w-full max-w-md relative"
+          className="flex flex-col sm:flex-row gap-4 items-center justify-center mb-24"
         >
-          {state.status === 'success' || state.status === 'duplicate' ? (
-            <div className="flex flex-col items-center justify-center p-8 bg-slate-900/40 border border-teal-500/30 rounded-2xl backdrop-blur-xl shadow-2xl">
-              <CheckCircle2 className="w-12 h-12 text-teal-400 mb-4" />
-              <h3 className="text-xl font-bold text-white mb-2">You&apos;re on the list!</h3>
-              <p className="text-slate-400 text-center">
-                {state.status === 'duplicate' 
-                  ? "We already have your email safely stored." 
-                  : "We'll notify you the moment early access opens."}
-              </p>
-            </div>
-          ) : (
-            <form action={formAction} className="relative group">
-              {/* Anti-spam honeypot — hidden from users, triggers bot detection */}
-              <input
-                type="text"
-                name="website"
-                tabIndex={-1}
-                autoComplete="off"
-                aria-hidden="true"
-                className="absolute opacity-0 -z-10 w-0 h-0"
-              />
-
-              <div className="absolute inset-0 bg-teal-500/20 rounded-2xl blur-xl transition-all duration-500 group-hover:bg-teal-500/30 group-focus-within:bg-teal-500/40 pointer-events-none" />
-              
-              <div className="relative flex items-center bg-slate-950 border border-slate-800 rounded-2xl p-2 shadow-2xl focus-within:border-teal-500/50 transition-colors duration-300 overflow-hidden">
-                <div className="pl-4 pr-2 text-slate-500">
-                  <Mail className="w-5 h-5" />
-                </div>
-                
-                <input 
-                  type="email" 
-                  name="email"
-                  id="waitlist-email"
-                  placeholder="Enter your email address"
-                  required
-                  disabled={isPending}
-                  className="flex-1 bg-transparent border-none outline-none text-white placeholder:text-slate-600 text-base py-3 disabled:opacity-50"
-                />
-
-                <button 
-                  type="submit"
-                  id="waitlist-submit"
-                  disabled={isPending}
-                  className="flex items-center justify-center gap-2 bg-white hover:bg-slate-100 text-slate-950 font-semibold px-6 py-3 rounded-xl transition-all duration-200 disabled:opacity-70 disabled:cursor-not-allowed group/btn"
-                >
-                  {isPending ? (
-                    <>
-                      <Loader2 className="w-5 h-5 animate-spin" />
-                      <span>Joining...</span>
-                    </>
-                  ) : (
-                    <>
-                      <span>Join</span>
-                      <ArrowRight className="w-4 h-4 transition-transform duration-200 group-hover/btn:translate-x-1" />
-                    </>
-                  )}
-                </button>
-              </div>
-
-              {state.status === 'error' && (
-                <p className="absolute -bottom-8 left-0 right-0 text-red-400 text-sm text-center font-medium animate-in fade-in slide-in-from-top-2">
-                  {state.message}
-                </p>
-              )}
-            </form>
-          )}
+          <a
+            href="https://github.com/Shivanshmishra7275/Contact-Forge/releases"
+            className="plausible-event-name=Download+APK flex items-center justify-center gap-2 bg-white hover:bg-slate-100 text-slate-950 font-semibold px-8 py-4 rounded-xl transition-all duration-200"
+          >
+            <Download className="w-5 h-5" />
+            <span>Download APK</span>
+          </a>
+          <a
+            href="https://github.com/Shivanshmishra7275/Contact-Forge"
+            className="plausible-event-name=View+GitHub flex items-center justify-center gap-2 bg-slate-900 hover:bg-slate-800 border border-slate-700 text-white font-semibold px-8 py-4 rounded-xl transition-all duration-200"
+          >
+            <Code className="w-5 h-5" />
+            <span>View on GitHub</span>
+          </a>
         </motion.div>
 
-        {/* Footer/Trust markers */}
+        {/* V3 Highlights Grid */}
+        <div className="w-full text-left mb-24">
+          <h2 className="text-3xl font-bold text-white mb-10 text-center">What's New in V3</h2>
+          <div className="grid md:grid-cols-3 gap-6">
+            <div className="bg-slate-900/40 border border-slate-800 p-6 rounded-2xl backdrop-blur-sm">
+              <div className="bg-teal-500/20 w-12 h-12 flex items-center justify-center rounded-xl mb-6">
+                <Users className="w-6 h-6 text-teal-400" />
+              </div>
+              <h3 className="text-xl font-semibold text-white mb-3">Flashcard Duplicates</h3>
+              <p className="text-slate-400 text-sm leading-relaxed">
+                Review duplicate contacts one pair at a time using a focused flashcard UI. No overwhelming lists, just clear reasons and simple actions: Merge, Not a Match, or Review Later.
+              </p>
+            </div>
+            <div className="bg-slate-900/40 border border-slate-800 p-6 rounded-2xl backdrop-blur-sm">
+              <div className="bg-blue-500/20 w-12 h-12 flex items-center justify-center rounded-xl mb-6">
+                <Zap className="w-6 h-6 text-blue-400" />
+              </div>
+              <h3 className="text-xl font-semibold text-white mb-3">Deterministic Engine</h3>
+              <p className="text-slate-400 text-sm leading-relaxed">
+                Our new heuristic engine uses precise exact-matching and fuzzy rules to detect duplicates. Every suggestion comes with an explainable, human-readable reason.
+              </p>
+            </div>
+            <div className="bg-slate-900/40 border border-slate-800 p-6 rounded-2xl backdrop-blur-sm">
+              <div className="bg-purple-500/20 w-12 h-12 flex items-center justify-center rounded-xl mb-6">
+                <Database className="w-6 h-6 text-purple-400" />
+              </div>
+              <h3 className="text-xl font-semibold text-white mb-3">Smarter Dashboard</h3>
+              <p className="text-slate-400 text-sm leading-relaxed">
+                Instantly see actionable insights. A new call-to-action widget surfaces duplicate candidates directly on your home screen, keeping your network pristine.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {/* Version History */}
+        <div className="w-full max-w-4xl bg-slate-900/60 border border-slate-800 rounded-3xl p-8 md:p-12 text-left backdrop-blur-md">
+          <div className="flex items-center gap-3 mb-8">
+            <History className="w-6 h-6 text-slate-300" />
+            <h2 className="text-2xl font-bold text-white">The Journey to V3</h2>
+          </div>
+          
+          <div className="space-y-10 relative before:absolute before:inset-0 before:ml-5 before:-translate-x-px md:before:mx-auto md:before:translate-x-0 before:h-full before:w-0.5 before:bg-gradient-to-b before:from-transparent before:via-slate-700 before:to-transparent">
+            
+            {/* V3 */}
+            <div className="relative flex items-center justify-between md:justify-normal md:odd:flex-row-reverse group is-active">
+              <div className="flex items-center justify-center w-10 h-10 rounded-full border-4 border-slate-900 bg-teal-500 text-slate-900 font-bold z-10 shrink-0 md:order-1 md:group-odd:-translate-x-1/2 md:group-even:translate-x-1/2 shadow-[0_0_15px_rgba(20,184,166,0.4)]">
+                V3
+              </div>
+              <div className="w-[calc(100%-4rem)] md:w-[calc(50%-2.5rem)] bg-slate-800/50 p-5 rounded-2xl border border-teal-500/30">
+                <h4 className="text-lg font-bold text-teal-400 mb-1">Relationship Intelligence</h4>
+                <p className="text-sm text-slate-300">
+                  Introduced the deterministic flashcard duplicate review flow, smart dashboard surfacing, local offline categorization, network health insights, and a premium UX redesign.
+                </p>
+              </div>
+            </div>
+            
+            {/* V2 */}
+            <div className="relative flex items-center justify-between md:justify-normal md:odd:flex-row-reverse group">
+              <div className="flex items-center justify-center w-10 h-10 rounded-full border-4 border-slate-900 bg-slate-700 text-slate-300 font-bold z-10 shrink-0 md:order-1 md:group-odd:-translate-x-1/2 md:group-even:translate-x-1/2">
+                V2
+              </div>
+              <div className="w-[calc(100%-4rem)] md:w-[calc(50%-2.5rem)] bg-slate-800/30 p-5 rounded-2xl border border-slate-700">
+                <h4 className="text-lg font-bold text-slate-200 mb-1">Data & Sync Foundation</h4>
+                <p className="text-sm text-slate-400">
+                  Added manual WebDAV sync transport, encrypted local backups, a visual Import Studio, safe undo-engine for merges, and the cleanup command center.
+                </p>
+              </div>
+            </div>
+
+            {/* V1 */}
+            <div className="relative flex items-center justify-between md:justify-normal md:odd:flex-row-reverse group">
+              <div className="flex items-center justify-center w-10 h-10 rounded-full border-4 border-slate-900 bg-slate-800 text-slate-400 font-bold z-10 shrink-0 md:order-1 md:group-odd:-translate-x-1/2 md:group-even:translate-x-1/2">
+                V1
+              </div>
+              <div className="w-[calc(100%-4rem)] md:w-[calc(50%-2.5rem)] bg-slate-800/20 p-5 rounded-2xl border border-slate-700/50">
+                <h4 className="text-lg font-bold text-slate-300 mb-1">The Local Mirror</h4>
+                <p className="text-sm text-slate-500">
+                  The initial release. Established the offline-first SQLite mirror engine tracking the device's native contacts with zero cloud dependency.
+                </p>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+        {/* Footer */}
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ duration: 1, delay: 0.6 }}
-          className="mt-20 text-slate-500 text-sm flex items-center justify-center gap-4"
+          className="mt-20 text-slate-500 text-sm flex items-center justify-center gap-2"
         >
-          <span>Offline-first mobile app</span>
-          <span className="w-1 h-1 rounded-full bg-slate-700" />
-          <span>Zero-knowledge cloud sync</span>
+          <span>Crafted by Shivansh Mishra</span>
         </motion.div>
 
       </div>
