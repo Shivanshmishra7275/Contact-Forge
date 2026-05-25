@@ -201,12 +201,8 @@ export default function Home() {
           className="w-full max-w-4xl bg-gradient-to-br from-slate-900/60 to-slate-900/20 border border-slate-800/60 rounded-[2.5rem] p-8 md:p-12 text-left backdrop-blur-md mb-32 flex flex-col md:flex-row items-center gap-10"
         >
           <div className="shrink-0">
-            {/* 
-              TODO: Insert actual founder image here. 
-              If the image exists at /public/founder.jpg, replace the inner div with an <img src="/founder.jpg" />.
-            */}
             <div className="w-32 h-32 md:w-40 md:h-40 rounded-full bg-slate-800 border-4 border-slate-700/50 flex items-center justify-center shadow-xl overflow-hidden">
-              <span className="text-slate-500 text-sm font-medium">Image</span>
+              <img src="/founder.jpg" alt="Shivansh Mishra" className="w-full h-full object-cover" />
             </div>
           </div>
           <div>
