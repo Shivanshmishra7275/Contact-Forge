@@ -273,6 +273,31 @@ export default function DashboardScreen() {
           />
         </Animated.View>
 
+        {/* V3: Duplicate Review CTA — shown when candidates exist */}
+        {pendingDuplicates > 0 && (
+          <Animated.View style={getEntranceStyle(entranceValues[0])}>
+            <Card
+              style={styles.duplicateCta}
+              onPress={() => router.push('/(tabs)/duplicates')}
+            >
+              <Card.Content style={styles.duplicateCtaContent}>
+                <View style={styles.duplicateCtaLeft}>
+                  <MaterialCommunityIcons name="cards-outline" size={28} color={COLORS.error} />
+                  <View>
+                    <Text style={styles.duplicateCtaTitle}>
+                      {pendingDuplicates} duplicate{pendingDuplicates !== 1 ? 's' : ''} to review
+                    </Text>
+                    <Text style={styles.duplicateCtaHint}>
+                      Tap to review each pair as a flashcard
+                    </Text>
+                  </View>
+                </View>
+                <MaterialCommunityIcons name="chevron-right" size={20} color={COLORS.textSecondary} />
+              </Card.Content>
+            </Card>
+          </Animated.View>
+        )}
+
         <Animated.View style={getEntranceStyle(entranceValues[1])}>
           <Card style={styles.healthCard}>
             <Card.Content style={styles.healthContent}>
@@ -774,4 +799,20 @@ const styles = StyleSheet.create({
   reviewLabel: { color: COLORS.textSecondary, fontSize: FONT_SIZE.sm },
   reviewRight: { flexDirection: 'row', alignItems: 'center', gap: SPACING.xs },
   reviewCount: { color: COLORS.textPrimary, fontSize: FONT_SIZE.sm, fontWeight: '600' },
+  // V3: Duplicate Review CTA
+  duplicateCta: {
+    backgroundColor: COLORS.surface,
+    marginBottom: SPACING.md,
+    borderWidth: 1,
+    borderColor: COLORS.error + '44',
+    borderRadius: 12,
+  },
+  duplicateCtaContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  duplicateCtaLeft: { flexDirection: 'row', alignItems: 'center', gap: SPACING.md, flex: 1 },
+  duplicateCtaTitle: { color: COLORS.textPrimary, fontSize: FONT_SIZE.md, fontWeight: '700' },
+  duplicateCtaHint: { color: COLORS.textSecondary, fontSize: FONT_SIZE.xs, marginTop: 2 },
 });
