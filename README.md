@@ -130,9 +130,15 @@ Lightweight local scheduling for pending interactions (one-shot or recurring lik
 
 </div>
 
-| 🚫 No Backend | 🛑 No Analytics | ☁️ No Cloud Sync | 🔇 No Silent Uploads |
+| 🚫 No Backend | 🛑 No App Analytics | ☁️ No Cloud Sync | 🔇 No Silent Uploads |
 |---|---|---|---|
-| No server dependency for core workflows | No telemetry or tracking layer | No automatic cloud contact sync | No hidden contact uploads |
+| No server dependency for core workflows | No telemetry or tracking layer in the app | No automatic cloud contact sync | No hidden contact uploads |
+
+### 🌐 Website Analytics Note
+To understand interest in ContactForge, the project landing page uses **Plausible Analytics**, a privacy-first, cookie-less tracking solution. 
+- **What is tracked:** Basic page views, "Download APK" clicks, and "View GitHub" clicks.
+- **What is NOT tracked:** Personal data, IP addresses, or cross-site tracking.
+- **Data Display:** Analytics data is available internally. In the future, a public dashboard or admin-only view will be provided depending on API key availability.
 
 ---
 
