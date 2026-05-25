@@ -1,42 +1,52 @@
 import { NextResponse } from 'next/server';
+import { kv } from '@vercel/kv';
 
 export const dynamic = 'force-dynamic';
 
 export async function GET() {
-  const PLAUSIBLE_API_KEY = process.env.PLAUSIBLE_API_KEY;
-  const SITE_ID = process.env.PLAUSIBLE_SITE_ID;
-
-  if (!PLAUSIBLE_API_KEY || !SITE_ID) {
-    console.error('Telemetry Error: Missing PLAUSIBLE_API_KEY or PLAUSIBLE_SITE_ID in environment variables.');
-    return NextResponse.json({ error: 'Server Configuration Error' }, { status: 500 });
-  }
-
   try {
-    const visitorsRes = await fetch(`https://plausible.io/api/v1/stats/aggregate?site_id=${SITE_ID}&period=all&metrics=visitors`, {
-      headers: { Authorization: `Bearer ${PLAUSIBLE_API_KEY}` },
-    });
-    
-    const downloadsRes = await fetch(`https://plausible.io/api/v1/stats/aggregate?site_id=${SITE_ID}&period=all&metrics=events&filters=event:name==Download%20APK%20Direct`, {
-      headers: { Authorization: `Bearer ${PLAUSIBLE_API_KEY}` },
-    });
+    // 1. Fetch Downloads via GitHub API
+    // We fetch the latest release of the Contact-Forge repository
+    let downloads = 0;
+    try {
+      const githubRes = await fetch('https://api.github.com/repos/Shivanshmishra7275/Contact-Forge/releases/latest', {
+        headers: {
+          'User-Agent': 'ContactForge-Telemetry-Widget',
+          // Optional: 'Authorization': `Bearer ${process.env.GITHUB_TOKEN}` if rate limits are hit
+        },
+        next: { revalidate: 60 } // Cache GitHub response for 60 seconds
+      });
 
-    if (!visitorsRes.ok || !downloadsRes.ok) {
-      const vBody = await visitorsRes.text();
-      const dBody = await downloadsRes.text();
-      console.error('Plausible API Error - Visitors:', visitorsRes.status, vBody);
-      console.error('Plausible API Error - Downloads:', downloadsRes.status, dBody);
-      throw new Error(`Plausible API responded with an error. V:${visitorsRes.status} D:${downloadsRes.status}`);
+      if (!githubRes.ok) {
+        console.error('GitHub API Error:', githubRes.status, await githubRes.text());
+        // We won't throw here to ensure visitors still increments even if GitHub fails
+      } else {
+        const latestRelease = await githubRes.json();
+        // Sum the download counts of all assets in the latest release
+        if (latestRelease && latestRelease.assets) {
+          downloads = latestRelease.assets.reduce((acc: number, asset: any) => acc + asset.download_count, 0);
+        }
+      }
+    } catch (githubErr) {
+      console.error('Failed to fetch from GitHub API:', githubErr);
     }
 
-    const visitorsData = JSON.parse(await visitorsRes.text());
-    const downloadsData = JSON.parse(await downloadsRes.text());
+    // 2. Track Visitors via Vercel KV
+    let visitors = 0;
+    try {
+      // Increment the counter and return the new value
+      visitors = await kv.incr('contactforge_visitors');
+    } catch (kvErr) {
+      console.error('Failed to increment Vercel KV:', kvErr);
+      // Fallback to a default if KV is misconfigured (e.g., missing KV_REST_API_URL)
+      visitors = 0;
+    }
 
-    const visitors = visitorsData.results?.visitors?.value || 0;
-    const downloads = downloadsData.results?.events?.value || 0;
-
+    // Return the telemetry payload
     return NextResponse.json({ visitors, downloads });
+
   } catch (error) {
-    console.error('Error fetching telemetry:', error);
-    return NextResponse.json({ error: 'Failed to fetch telemetry' }, { status: 500 });
+    console.error('Fatal error in telemetry route:', error);
+    return NextResponse.json({ error: 'Failed to process telemetry' }, { status: 500 });
   }
 }
