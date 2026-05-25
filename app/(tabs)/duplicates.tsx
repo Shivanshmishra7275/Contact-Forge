@@ -1,16 +1,10 @@
 /**
  * ContactForge — Flashcard Duplicate Review Screen
  *
- * Gesture-first, Reanimated-powered duplicate review.
- * Swipe right → Same Person (merge preview)
- * Swipe left  → Not a Match (dismiss)
- * Swipe down  → Review Later (move to end of queue)
- * Buttons also available for accessibility.
- *
- * Motion: worklet-driven, 60fps, threshold-based accept/reject.
+ * Gesture-first, Reanimated-powered duplicate review with 3D stacking.
  */
 
-import { memo, useCallback, useRef, useState } from 'react';
+import { memo, useCallback, useState, useRef, useEffect } from 'react';
 import {
   View,
   StyleSheet,
@@ -22,6 +16,7 @@ import { router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
+import * as Haptics from 'expo-haptics';
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
@@ -45,6 +40,7 @@ import {
 import { useAppStore } from '../../src/store/appStore';
 import { COLORS, SPACING, FONT_SIZE, RADIUS } from '../../src/constants';
 import { REASON_LABELS } from '../../src/services/duplicateHeuristicsService';
+import { AuroraBackground } from '../../src/components/AuroraBackground';
 import type {
   DuplicateCandidate,
   LocalContact,
@@ -52,10 +48,6 @@ import type {
   EmailAddress,
   DuplicateReason,
 } from '../../src/types';
-
-// ---------------------------------------------------------------------------
-// Types
-// ---------------------------------------------------------------------------
 
 interface ContactDetails {
   contact: LocalContact;
@@ -74,12 +66,11 @@ interface UndoEntry {
   action: 'ignored';
 }
 
-// Swipe thresholds
 const SWIPE_THRESHOLD = 90;
 const SWIPE_DOWN_THRESHOLD = 80;
-const MAX_ROTATION = 12;
+const MAX_ROTATION = 10;
 const CARD_EXIT_X = 460;
-const CARD_EXIT_Y = 200;
+const CARD_EXIT_Y = 300;
 
 const CONFIDENCE_CONFIG: Record<string, { label: string; color: string }> = {
   very_high: { label: 'Very likely duplicate', color: COLORS.success },
@@ -87,10 +78,6 @@ const CONFIDENCE_CONFIG: Record<string, { label: string; color: string }> = {
   medium: { label: 'Possible duplicate', color: COLORS.warning },
   low: { label: 'Weak signal', color: COLORS.textSecondary },
 };
-
-// ---------------------------------------------------------------------------
-// Helper
-// ---------------------------------------------------------------------------
 
 function loadContactDetails(id: number): ContactDetails | null {
   const contact = getContactById(id);
@@ -103,30 +90,84 @@ function loadContactDetails(id: number): ContactDetails | null {
 }
 
 // ---------------------------------------------------------------------------
-// Swipeable Card
+// Text Diff Helper
 // ---------------------------------------------------------------------------
 
-interface SwipeableCardProps {
-  pair: DuplicatePair;
+function DiffText({ a, b, isSideA }: { a: string; b: string; isSideA: boolean }) {
+  if (a === b) {
+    return <Text style={styles.diffSame}>{isSideA ? a : b}</Text>;
+  }
+  
+  const text = isSideA ? a : b;
+  const other = isSideA ? b : a;
+
+  let start = 0;
+  while (start < text.length && start < other.length && text[start] === other[start]) {
+    start++;
+  }
+
+  let endT = text.length - 1;
+  let endO = other.length - 1;
+  while (endT >= start && endO >= start && text[endT] === other[endO]) {
+    endT--;
+    endO--;
+  }
+
+  const prefix = text.slice(0, start);
+  const diff = text.slice(start, endT + 1);
+  const suffix = text.slice(endT + 1);
+
+  return (
+    <Text style={styles.diffSame}>
+      {prefix}
+      {diff.length > 0 && <Text style={styles.diffDifferent}>{diff}</Text>}
+      {suffix}
+    </Text>
+  );
+}
+
+
+// ---------------------------------------------------------------------------
+// Swipeable Card Stack
+// ---------------------------------------------------------------------------
+
+interface CardStackProps {
+  currentPair: DuplicatePair;
+  nextPair: DuplicatePair | null;
   onSwipeLeft: () => void;
   onSwipeRight: () => void;
   onSwipeDown: () => void;
+  cardKey: number;
 }
 
-function SwipeableCard({ pair, onSwipeLeft, onSwipeRight, onSwipeDown }: SwipeableCardProps) {
+function CardStack({ currentPair, nextPair, onSwipeLeft, onSwipeRight, onSwipeDown, cardKey }: CardStackProps) {
   const translateX = useSharedValue(0);
   const translateY = useSharedValue(0);
   const isAnimatingOut = useSharedValue(false);
+  const hapticFired = useSharedValue(false);
+
+  // Remount state tracking
+  useEffect(() => {
+    translateX.value = 0;
+    translateY.value = 0;
+    isAnimatingOut.value = false;
+    hapticFired.value = false;
+  }, [cardKey]);
+
+  const triggerHaptic = (style: Haptics.ImpactFeedbackStyle) => {
+    runOnJS(Haptics.impactAsync)(style);
+  };
 
   const exitCard = useCallback(
     (direction: 'left' | 'right' | 'down', callback: () => void) => {
       isAnimatingOut.value = true;
+      triggerHaptic(Haptics.ImpactFeedbackStyle.Medium);
       const toX = direction === 'left' ? -CARD_EXIT_X : direction === 'right' ? CARD_EXIT_X : 0;
       const toY = direction === 'down' ? CARD_EXIT_Y : 0;
-      translateX.value = withTiming(toX, { duration: 260 }, () => runOnJS(callback)());
-      translateY.value = withTiming(toY, { duration: 260 });
+      translateX.value = withTiming(toX, { duration: 250 }, () => runOnJS(callback)());
+      translateY.value = withTiming(toY, { duration: 250 });
     },
-    [translateX, translateY, isAnimatingOut],
+    [translateX, translateY, isAnimatingOut]
   );
 
   const gesture = Gesture.Pan()
@@ -134,93 +175,97 @@ function SwipeableCard({ pair, onSwipeLeft, onSwipeRight, onSwipeDown }: Swipeab
       if (isAnimatingOut.value) return;
       translateX.value = e.translationX;
       translateY.value = e.translationY;
+
+      const isOverThreshold = Math.abs(e.translationX) > SWIPE_THRESHOLD || e.translationY > SWIPE_DOWN_THRESHOLD;
+      if (isOverThreshold && !hapticFired.value) {
+        hapticFired.value = true;
+        runOnJS(triggerHaptic)(Haptics.ImpactFeedbackStyle.Light);
+      } else if (!isOverThreshold && hapticFired.value) {
+        hapticFired.value = false;
+      }
     })
     .onEnd((e) => {
       if (isAnimatingOut.value) return;
       const vx = e.velocityX;
-      const vy = e.velocityY;
 
-      // Swipe down: dismiss to later
       if (e.translationY > SWIPE_DOWN_THRESHOLD && Math.abs(e.translationX) < 80) {
         runOnJS(exitCard)('down', onSwipeDown);
         return;
       }
-
-      // Swipe right: same person
       if (e.translationX > SWIPE_THRESHOLD || vx > 600) {
         runOnJS(exitCard)('right', onSwipeRight);
         return;
       }
-
-      // Swipe left: not a match
       if (e.translationX < -SWIPE_THRESHOLD || vx < -600) {
         runOnJS(exitCard)('left', onSwipeLeft);
         return;
       }
 
-      // Spring back
-      translateX.value = withSpring(0, { damping: 18, stiffness: 200 });
-      translateY.value = withSpring(0, { damping: 18, stiffness: 200 });
+      translateX.value = withSpring(0, { damping: 15, stiffness: 150 });
+      translateY.value = withSpring(0, { damping: 15, stiffness: 150 });
+      hapticFired.value = false;
     });
 
-  const cardStyle = useAnimatedStyle(() => {
-    const rotate = interpolate(
-      translateX.value,
-      [-200, 0, 200],
-      [-MAX_ROTATION, 0, MAX_ROTATION],
-      Extrapolation.CLAMP,
-    );
-    const scale = interpolate(
-      Math.abs(translateX.value) + Math.abs(translateY.value),
-      [0, 200],
-      [1, 0.96],
-      Extrapolation.CLAMP,
-    );
+  // Foreground card styles
+  const frontCardStyle = useAnimatedStyle(() => {
+    const rotate = interpolate(translateX.value, [-200, 0, 200], [-MAX_ROTATION, 0, MAX_ROTATION], Extrapolation.CLAMP);
     return {
       transform: [
         { translateX: translateX.value },
         { translateY: translateY.value },
         { rotate: `${rotate}deg` },
-        { scale },
       ],
+      zIndex: 10,
     };
   });
 
-  // Green overlay when swiping right
-  const rightOverlayStyle = useAnimatedStyle(() => ({
-    opacity: interpolate(translateX.value, [20, SWIPE_THRESHOLD], [0, 1], Extrapolation.CLAMP),
-  }));
+  // Background card styles (scale up as foreground moves)
+  const backCardStyle = useAnimatedStyle(() => {
+    const moveDist = Math.abs(translateX.value) + Math.abs(translateY.value);
+    const scale = interpolate(moveDist, [0, 150], [0.93, 1], Extrapolation.CLAMP);
+    const opacity = interpolate(moveDist, [0, 150], [0.5, 1], Extrapolation.CLAMP);
+    const translateYBack = interpolate(moveDist, [0, 150], [-25, 0], Extrapolation.CLAMP);
+    
+    return {
+      transform: [{ scale }, { translateY: translateYBack }],
+      opacity,
+      zIndex: 1,
+    };
+  });
 
-  // Red overlay when swiping left
-  const leftOverlayStyle = useAnimatedStyle(() => ({
-    opacity: interpolate(translateX.value, [-20, -SWIPE_THRESHOLD], [0, 1], Extrapolation.CLAMP),
-  }));
-
-  // Down overlay when swiping down
-  const downOverlayStyle = useAnimatedStyle(() => ({
-    opacity: interpolate(translateY.value, [20, SWIPE_DOWN_THRESHOLD], [0, 0.85], Extrapolation.CLAMP),
-  }));
+  const rightOverlayStyle = useAnimatedStyle(() => ({ opacity: interpolate(translateX.value, [20, SWIPE_THRESHOLD], [0, 1], Extrapolation.CLAMP) }));
+  const leftOverlayStyle = useAnimatedStyle(() => ({ opacity: interpolate(translateX.value, [-20, -SWIPE_THRESHOLD], [0, 1], Extrapolation.CLAMP) }));
+  const downOverlayStyle = useAnimatedStyle(() => ({ opacity: interpolate(translateY.value, [20, SWIPE_DOWN_THRESHOLD], [0, 0.9], Extrapolation.CLAMP) }));
 
   return (
-    <GestureDetector gesture={gesture}>
-      <Animated.View style={[styles.cardWrapper, cardStyle]} entering={FadeIn.duration(220).springify()}>
-        {/* Directional hint overlays */}
-        <Animated.View style={[styles.swipeOverlay, styles.swipeOverlayRight, rightOverlayStyle]}>
-          <MaterialCommunityIcons name="merge" size={36} color={COLORS.success} />
-          <Text style={[styles.overlayLabel, { color: COLORS.success }]}>Same Person</Text>
+    <View style={styles.cardStackContainer}>
+      {nextPair && (
+        <Animated.View style={[styles.cardWrapper, styles.backgroundCard, backCardStyle]}>
+          <FlashCard pair={nextPair} />
+          {/* Glass frost overlay for the background card */}
+          <View style={[StyleSheet.absoluteFill, { backgroundColor: 'rgba(0,0,0,0.4)', borderRadius: RADIUS.lg }]} />
         </Animated.View>
-        <Animated.View style={[styles.swipeOverlay, styles.swipeOverlayLeft, leftOverlayStyle]}>
-          <MaterialCommunityIcons name="close-circle" size={36} color={COLORS.error} />
-          <Text style={[styles.overlayLabel, { color: COLORS.error }]}>Not a Match</Text>
-        </Animated.View>
-        <Animated.View style={[styles.swipeOverlay, styles.swipeOverlayDown, downOverlayStyle]}>
-          <MaterialCommunityIcons name="clock-outline" size={32} color={COLORS.warning} />
-          <Text style={[styles.overlayLabel, { color: COLORS.warning }]}>Review Later</Text>
-        </Animated.View>
+      )}
 
-        <FlashCard pair={pair} />
-      </Animated.View>
-    </GestureDetector>
+      <GestureDetector gesture={gesture}>
+        <Animated.View style={[styles.cardWrapper, frontCardStyle]} entering={FadeIn.duration(200)}>
+          <Animated.View style={[styles.swipeOverlay, styles.swipeOverlayRight, rightOverlayStyle]}>
+            <MaterialCommunityIcons name="merge" size={32} color={COLORS.success} />
+            <Text style={[styles.overlayLabel, { color: COLORS.success }]}>Merge</Text>
+          </Animated.View>
+          <Animated.View style={[styles.swipeOverlay, styles.swipeOverlayLeft, leftOverlayStyle]}>
+            <MaterialCommunityIcons name="close-circle" size={32} color={COLORS.error} />
+            <Text style={[styles.overlayLabel, { color: COLORS.error }]}>Discard</Text>
+          </Animated.View>
+          <Animated.View style={[styles.swipeOverlay, styles.swipeOverlayDown, downOverlayStyle]}>
+            <MaterialCommunityIcons name="clock-outline" size={32} color={COLORS.warning} />
+            <Text style={[styles.overlayLabel, { color: COLORS.warning }]}>Snooze</Text>
+          </Animated.View>
+
+          <FlashCard pair={currentPair} />
+        </Animated.View>
+      </GestureDetector>
+    </View>
   );
 }
 
@@ -234,7 +279,6 @@ export default function DuplicateFlashcardsScreen() {
   const [isLoading, setIsLoading] = useState(true);
   const [undoStack, setUndoStack] = useState<UndoEntry[]>([]);
   const setPendingDuplicateCount = useAppStore((s) => s.setPendingDuplicateCount);
-  // Key changes force React to remount SwipeableCard, resetting gesture state
   const [cardKey, setCardKey] = useState(0);
 
   const loadQueue = useCallback(() => {
@@ -285,6 +329,7 @@ export default function DuplicateFlashcardsScreen() {
   const handleSamePerson = useCallback(() => {
     const pair = queue[currentIndex];
     if (!pair) return;
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     router.push(`/merge/${pair.candidate.id}`);
   }, [queue, currentIndex]);
 
@@ -298,7 +343,8 @@ export default function DuplicateFlashcardsScreen() {
   if (isLoading) {
     return (
       <View style={styles.center}>
-        <ActivityIndicator color={COLORS.primary} />
+        <AuroraBackground />
+        <ActivityIndicator color={COLORS.primaryLight} size="large" />
       </View>
     );
   }
@@ -308,102 +354,62 @@ export default function DuplicateFlashcardsScreen() {
   if (remaining <= 0) {
     return (
       <View style={styles.center}>
-        <MaterialCommunityIcons name="check-circle-outline" size={64} color={COLORS.success} />
-        <Text style={styles.doneTitle}>All caught up!</Text>
+        <AuroraBackground />
+        <MaterialCommunityIcons name="check-decagram" size={80} color={COLORS.success} />
+        <Text style={styles.doneTitle}>Library Clean</Text>
         <Text style={styles.doneSubtitle}>
-          No pending duplicates to review.{'\n'}Run a scan from the dashboard to detect more.
+          No pending duplicates found.{'\n'}Your contacts are fully organized.
         </Text>
-        <Button
-          mode="outlined"
-          onPress={loadQueue}
-          textColor={COLORS.primary}
-          style={{ marginTop: SPACING.lg }}
-        >
-          Refresh
+        <Button mode="contained" onPress={() => router.push('/')} buttonColor={COLORS.surfaceElevated} textColor={COLORS.textPrimary} style={{ marginTop: SPACING.lg, borderRadius: RADIUS.lg }}>
+          Return to Dashboard
         </Button>
       </View>
     );
   }
 
   const current = queue[currentIndex];
+  const next = currentIndex + 1 < queue.length ? queue[currentIndex + 1] : null;
   const progress = currentIndex / Math.max(queue.length, 1);
 
   return (
     <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
+      <AuroraBackground />
+      
       {/* Header */}
       <View style={styles.header}>
         <View>
-          <Text style={styles.queueText}>
-            {currentIndex + 1} / {queue.length}
-          </Text>
-          <Text style={styles.gestureHint}>← Swipe to review →</Text>
+          <Text style={styles.queueText}>Reviewing {currentIndex + 1} of {queue.length}</Text>
         </View>
         <View style={styles.headerRight}>
           {undoStack.length > 0 && (
-            <Button
-              mode="text"
-              onPress={handleUndo}
-              textColor={COLORS.primary}
-              compact
-              icon="undo"
-            >
+            <Button mode="text" onPress={handleUndo} textColor={COLORS.primaryLight} compact icon="undo" contentStyle={{ flexDirection: 'row-reverse' }}>
               Undo
             </Button>
           )}
         </View>
       </View>
 
-      {/* Progress bar */}
       <View style={styles.progressBar}>
         <Animated.View style={[styles.progressFill, { width: `${progress * 100}%` as any }]} />
       </View>
 
-      {/* Card — remounted on each action to reset gesture state cleanly */}
-      <ScrollView
-        style={styles.scrollArea}
-        contentContainerStyle={styles.scrollContent}
-        showsVerticalScrollIndicator={false}
-        scrollEnabled={false}
-      >
-        <SwipeableCard
-          key={cardKey}
-          pair={current}
+      <View style={styles.stackArea}>
+        <CardStack
+          cardKey={cardKey}
+          currentPair={current}
+          nextPair={next}
           onSwipeLeft={handleNotAMatch}
           onSwipeRight={handleSamePerson}
           onSwipeDown={handleReviewLater}
         />
-      </ScrollView>
+      </View>
 
-      {/* Action bar — always visible, mirrors swipe actions */}
       <View style={styles.actionBar}>
-        <Button
-          mode="outlined"
-          onPress={handleNotAMatch}
-          textColor={COLORS.textSecondary}
-          style={styles.actionBtn}
-          contentStyle={styles.actionBtnContent}
-          icon="close-circle-outline"
-        >
-          Not a match
+        <Button mode="outlined" onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); handleNotAMatch(); }} textColor={COLORS.error} style={[styles.actionBtn, { borderColor: COLORS.error + '44' }]} contentStyle={styles.actionBtnContent} icon="close">
+          Discard
         </Button>
-        <Button
-          mode="contained"
-          onPress={handleSamePerson}
-          buttonColor={COLORS.primary}
-          style={styles.actionBtn}
-          contentStyle={styles.actionBtnContent}
-          icon="merge"
-        >
-          Same person
-        </Button>
-        <Button
-          mode="text"
-          onPress={handleReviewLater}
-          textColor={COLORS.textSecondary}
-          compact
-          icon="clock-outline"
-        >
-          Later
+        <Button mode="contained" onPress={handleSamePerson} buttonColor={COLORS.primary} style={styles.actionBtn} contentStyle={styles.actionBtnContent} icon="merge">
+          Merge
         </Button>
       </View>
     </SafeAreaView>
@@ -420,36 +426,20 @@ const FlashCard = memo(function FlashCard({ pair }: { pair: DuplicatePair }) {
 
   return (
     <View style={styles.flashCard}>
-      {/* Confidence badge */}
-      <View
-        style={[
-          styles.confidenceBadge,
-          { backgroundColor: conf.color + '22', borderColor: conf.color + '55' },
-        ]}
-      >
-        <View style={[styles.confidenceDot, { backgroundColor: conf.color }]} />
+      <View style={[styles.confidenceBadge, { backgroundColor: conf.color + '1A', borderColor: conf.color + '40' }]}>
+        <View style={[styles.confidenceDot, { backgroundColor: conf.color, shadowColor: conf.color, shadowOpacity: 0.8, shadowRadius: 4 }]} />
         <Text style={[styles.confidenceText, { color: conf.color }]}>{conf.label}</Text>
         <Text style={[styles.scoreText, { color: conf.color }]}>{candidate.score}%</Text>
       </View>
 
-      {/* Reason pills */}
       <View style={styles.reasonsRow}>
         {candidate.reasons.map((r) => (
           <ReasonPill key={r} reason={r} />
         ))}
       </View>
 
-      {/* Contact comparison */}
-      <View style={styles.compareRow}>
-        <ContactColumn details={a} label="Contact A" />
-        <View style={styles.compareVs}>
-          <MaterialCommunityIcons
-            name="approximately-equal"
-            size={22}
-            color={COLORS.textSecondary}
-          />
-        </View>
-        <ContactColumn details={b} label="Contact B" />
+      <View style={styles.compareContainer}>
+        <ContactDiff detailsA={a} detailsB={b} />
       </View>
     </View>
   );
@@ -459,58 +449,40 @@ const ReasonPill = memo(function ReasonPill({ reason }: { reason: DuplicateReaso
   const label = REASON_LABELS[reason] ?? reason.replace(/_/g, ' ');
   return (
     <View style={styles.reasonPill}>
+      <MaterialCommunityIcons name="lightning-bolt" size={12} color={COLORS.secondary} />
       <Text style={styles.reasonPillText}>{label}</Text>
     </View>
   );
 });
 
-const ContactColumn = memo(function ContactColumn({
-  details,
-  label,
-}: {
-  details: ContactDetails | null;
-  label: string;
-}) {
-  if (!details) {
-    return (
-      <View style={styles.contactColumn}>
-        <Text style={styles.contactLabel}>{label}</Text>
-        <Text style={styles.contactName}>(Deleted)</Text>
-      </View>
-    );
-  }
+// Refactored ContactColumn into a single Diff view for better visual diffing
+const ContactDiff = memo(function ContactDiff({ detailsA, detailsB }: { detailsA: ContactDetails | null, detailsB: ContactDetails | null }) {
+  const nameA = detailsA?.contact.displayName || '(Deleted)';
+  const nameB = detailsB?.contact.displayName || '(Deleted)';
+  
+  const phoneA = detailsA?.phones[0]?.number || '';
+  const phoneB = detailsB?.phones[0]?.number || '';
 
-  const { contact, phones, emails } = details;
+  const emailA = detailsA?.emails[0]?.email || '';
+  const emailB = detailsB?.emails[0]?.email || '';
 
   return (
-    <View style={styles.contactColumn}>
-      <Text style={styles.contactLabel}>{label}</Text>
-      <Text style={styles.contactName} numberOfLines={2}>
-        {contact.displayName}
-      </Text>
-      {contact.company ? (
-        <Text style={styles.contactMeta} numberOfLines={1}>
-          {contact.company}
-        </Text>
-      ) : null}
-      {phones.slice(0, 2).map((p) => (
-        <View key={p.id} style={styles.dataRow}>
-          <MaterialCommunityIcons name="phone-outline" size={12} color={COLORS.textTertiary} />
-          <Text style={[styles.contactPhone]} numberOfLines={1}>
-            {' '}
-            {p.number}
-          </Text>
+    <View style={styles.diffWrapper}>
+      <View style={styles.diffRow}>
+        <View style={styles.diffSide}>
+          <Text style={styles.diffHeader}>Contact A</Text>
+          <Text style={styles.diffName}><DiffText a={nameA} b={nameB} isSideA={true} /></Text>
+          {phoneA ? <Text style={styles.diffSub}><DiffText a={phoneA} b={phoneB} isSideA={true} /></Text> : null}
+          {emailA ? <Text style={styles.diffSub}><DiffText a={emailA} b={emailB} isSideA={true} /></Text> : null}
         </View>
-      ))}
-      {emails.slice(0, 1).map((e) => (
-        <View key={e.id} style={styles.dataRow}>
-          <MaterialCommunityIcons name="email-outline" size={12} color={COLORS.textTertiary} />
-          <Text style={styles.contactMeta} numberOfLines={1}>
-            {' '}
-            {e.email}
-          </Text>
+        <View style={styles.diffDivider} />
+        <View style={styles.diffSide}>
+          <Text style={styles.diffHeader}>Contact B</Text>
+          <Text style={styles.diffName}><DiffText a={nameA} b={nameB} isSideA={false} /></Text>
+          {phoneB ? <Text style={styles.diffSub}><DiffText a={phoneA} b={phoneB} isSideA={false} /></Text> : null}
+          {emailB ? <Text style={styles.diffSub}><DiffText a={emailA} b={emailB} isSideA={false} /></Text> : null}
         </View>
-      ))}
+      </View>
     </View>
   );
 });
@@ -521,168 +493,65 @@ const ContactColumn = memo(function ContactColumn({
 
 const styles = StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: COLORS.background },
-  center: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: SPACING.xl,
-    gap: SPACING.lg,
-    backgroundColor: COLORS.background,
-  },
-  doneTitle: {
-    fontSize: FONT_SIZE.xxl,
-    fontWeight: '700',
-    color: COLORS.textPrimary,
-    textAlign: 'center',
-  },
-  doneSubtitle: {
-    fontSize: FONT_SIZE.sm,
-    color: COLORS.textSecondary,
-    textAlign: 'center',
-    lineHeight: 20,
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: SPACING.lg,
-    paddingTop: SPACING.md,
-    paddingBottom: SPACING.sm,
-  },
+  center: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: SPACING.xl },
+  doneTitle: { fontSize: FONT_SIZE.xxxl, fontWeight: '800', color: COLORS.textPrimary, marginTop: 16 },
+  doneSubtitle: { fontSize: FONT_SIZE.md, color: COLORS.textSecondary, textAlign: 'center', marginTop: 8, lineHeight: 22 },
+  
+  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: SPACING.lg, paddingTop: SPACING.md, paddingBottom: SPACING.sm },
   headerRight: { flexDirection: 'row', alignItems: 'center' },
-  queueText: { fontSize: FONT_SIZE.md, color: COLORS.textSecondary, fontWeight: '600' },
-  gestureHint: { fontSize: FONT_SIZE.xs, color: COLORS.textDisabled, marginTop: 1 },
-  progressBar: {
-    height: 3,
-    backgroundColor: COLORS.surfaceVariant,
-    marginHorizontal: SPACING.lg,
-    borderRadius: RADIUS.full,
-    overflow: 'hidden',
-  },
-  progressFill: {
-    height: '100%',
-    backgroundColor: COLORS.primary,
-    borderRadius: RADIUS.full,
-  },
-  scrollArea: { flex: 1 },
-  scrollContent: {
-    padding: SPACING.lg,
-    paddingBottom: SPACING.xxl,
-  },
-  // Wrapper that the gesture hits
-  cardWrapper: {
-    position: 'relative',
-  },
-  // Directional overlay hints shown while dragging
-  swipeOverlay: {
-    position: 'absolute',
-    top: 16,
-    zIndex: 10,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    borderRadius: RADIUS.full,
-    borderWidth: 2,
-    pointerEvents: 'none',
-  },
-  swipeOverlayRight: {
-    left: 16,
-    backgroundColor: COLORS.success + '18',
-    borderColor: COLORS.success + '55',
-  },
-  swipeOverlayLeft: {
-    right: 16,
-    backgroundColor: COLORS.error + '18',
-    borderColor: COLORS.error + '55',
-  },
-  swipeOverlayDown: {
-    alignSelf: 'center',
-    left: '25%',
-    top: 60,
-    backgroundColor: COLORS.warning + '18',
-    borderColor: COLORS.warning + '55',
-  },
-  overlayLabel: { fontSize: FONT_SIZE.sm, fontWeight: '700' },
+  queueText: { fontSize: FONT_SIZE.md, color: COLORS.textPrimary, fontWeight: '700' },
+  
+  progressBar: { height: 2, backgroundColor: 'rgba(255,255,255,0.05)', marginHorizontal: SPACING.lg, borderRadius: RADIUS.full, overflow: 'hidden', marginBottom: SPACING.lg },
+  progressFill: { height: '100%', backgroundColor: COLORS.secondary, borderRadius: RADIUS.full },
+  
+  stackArea: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+  cardStackContainer: { width: '100%', height: '100%', paddingHorizontal: SPACING.lg, alignItems: 'center', justifyContent: 'center' },
+  
+  cardWrapper: { position: 'absolute', width: '100%', maxHeight: 500 },
+  backgroundCard: { top: '50%', marginTop: -250 }, // Center hack
+  
+  swipeOverlay: { position: 'absolute', top: 20, zIndex: 20, flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 16, paddingVertical: 8, borderRadius: RADIUS.full, borderWidth: 1, pointerEvents: 'none', backgroundColor: 'rgba(0,0,0,0.6)' },
+  swipeOverlayRight: { left: 20, borderColor: COLORS.success },
+  swipeOverlayLeft: { right: 20, borderColor: COLORS.error },
+  swipeOverlayDown: { alignSelf: 'center', left: '35%', top: 60, borderColor: COLORS.warning },
+  overlayLabel: { fontSize: FONT_SIZE.md, fontWeight: '800', textTransform: 'uppercase', letterSpacing: 1 },
+  
   flashCard: {
-    backgroundColor: COLORS.surface,
+    backgroundColor: 'rgba(20, 20, 30, 0.7)',
     borderRadius: RADIUS.lg,
     padding: SPACING.lg,
-    gap: SPACING.lg,
     borderWidth: 1,
-    borderColor: COLORS.border,
+    borderColor: 'rgba(255,255,255,0.1)',
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.3,
-    shadowRadius: 12,
-    elevation: 6,
+    shadowOffset: { width: 0, height: 20 },
+    shadowOpacity: 0.5,
+    shadowRadius: 30,
+    elevation: 10,
+    height: 480, // Fixed height for consistent stacking
   },
-  confidenceBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: SPACING.sm,
-    paddingHorizontal: SPACING.md,
-    paddingVertical: SPACING.sm,
-    borderRadius: RADIUS.full,
-    borderWidth: 1,
-    alignSelf: 'flex-start',
-  },
+  
+  confidenceBadge: { flexDirection: 'row', alignItems: 'center', gap: SPACING.sm, paddingHorizontal: SPACING.md, paddingVertical: 6, borderRadius: RADIUS.full, borderWidth: 1, alignSelf: 'flex-start', marginBottom: SPACING.md },
   confidenceDot: { width: 8, height: 8, borderRadius: 4 },
-  confidenceText: { fontSize: FONT_SIZE.sm, fontWeight: '600' },
-  scoreText: { fontSize: FONT_SIZE.xs, fontWeight: '500', marginLeft: SPACING.xs },
-  reasonsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: SPACING.sm },
-  reasonPill: {
-    backgroundColor: COLORS.surfaceVariant,
-    borderRadius: RADIUS.full,
-    paddingHorizontal: SPACING.md,
-    paddingVertical: 3,
-  },
-  reasonPillText: { fontSize: FONT_SIZE.xs, color: COLORS.textSecondary },
-  compareRow: {
-    flexDirection: 'row',
-    gap: SPACING.sm,
-    alignItems: 'flex-start',
-  },
-  contactColumn: {
-    flex: 1,
-    backgroundColor: COLORS.surfaceVariant,
-    borderRadius: RADIUS.md,
-    padding: SPACING.md,
-    gap: 6,
-  },
-  contactLabel: {
-    fontSize: FONT_SIZE.xs,
-    color: COLORS.textDisabled,
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-    marginBottom: 2,
-  },
-  contactName: {
-    fontSize: FONT_SIZE.md,
-    fontWeight: '700',
-    color: COLORS.textPrimary,
-    lineHeight: 22,
-  },
-  contactMeta: { fontSize: FONT_SIZE.xs, color: COLORS.textSecondary, lineHeight: 17 },
-  contactPhone: {
-    fontSize: FONT_SIZE.xs,
-    color: COLORS.textSecondary,
-    lineHeight: 17,
-    fontVariant: ['tabular-nums'],
-  },
-  dataRow: { flexDirection: 'row', alignItems: 'center', flexWrap: 'nowrap' },
-  compareVs: { alignSelf: 'center', paddingTop: SPACING.xl },
-  actionBar: {
-    padding: SPACING.lg,
-    paddingTop: SPACING.md,
-    backgroundColor: COLORS.surface,
-    borderTopWidth: 1,
-    borderTopColor: COLORS.border,
-    flexDirection: 'row',
-    gap: SPACING.sm,
-    alignItems: 'center',
-  },
-  actionBtn: { flex: 1 },
-  actionBtnContent: { paddingVertical: 4 },
+  confidenceText: { fontSize: FONT_SIZE.xs, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 0.5 },
+  scoreText: { fontSize: FONT_SIZE.xs, fontWeight: '500', marginLeft: 4, opacity: 0.8 },
+  
+  reasonsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: SPACING.sm, marginBottom: SPACING.lg },
+  reasonPill: { backgroundColor: 'rgba(255,255,255,0.05)', borderRadius: RADIUS.full, paddingHorizontal: 12, paddingVertical: 6, flexDirection: 'row', alignItems: 'center', gap: 4, borderWidth: 1, borderColor: 'rgba(255,255,255,0.05)' },
+  reasonPillText: { fontSize: FONT_SIZE.xs, color: COLORS.textSecondary, fontWeight: '600' },
+  
+  compareContainer: { flex: 1, backgroundColor: 'rgba(0,0,0,0.3)', borderRadius: RADIUS.md, borderWidth: 1, borderColor: 'rgba(255,255,255,0.05)' },
+  diffWrapper: { flex: 1 },
+  diffRow: { flexDirection: 'row', flex: 1 },
+  diffSide: { flex: 1, padding: SPACING.md, gap: SPACING.sm },
+  diffDivider: { width: 1, backgroundColor: 'rgba(255,255,255,0.05)' },
+  diffHeader: { fontSize: FONT_SIZE.xs, color: COLORS.textDisabled, textTransform: 'uppercase', letterSpacing: 1, fontWeight: '700', marginBottom: 4 },
+  diffName: { fontSize: FONT_SIZE.lg, fontWeight: '700', color: COLORS.textPrimary, lineHeight: 24 },
+  diffSub: { fontSize: FONT_SIZE.sm, color: COLORS.textSecondary, fontFamily: 'monospace' },
+  
+  diffSame: { color: COLORS.textSecondary },
+  diffDifferent: { color: '#FFF', backgroundColor: 'rgba(239, 68, 68, 0.2)', fontWeight: '700' },
+  
+  actionBar: { padding: SPACING.lg, flexDirection: 'row', gap: SPACING.md, alignItems: 'center', backgroundColor: 'rgba(0,0,0,0.4)', borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.05)' },
+  actionBtn: { flex: 1, borderRadius: RADIUS.lg },
+  actionBtnContent: { paddingVertical: 6 },
 });

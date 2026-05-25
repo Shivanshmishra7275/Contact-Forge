@@ -17,16 +17,15 @@ import {
   GitBranch,
   Star,
   Coffee,
-  ExternalLink,
-  MessageSquare,
-} from 'lucide-react';
+import { ExternalLink, MessageSquare } from 'lucide-react';
 import { trackEvent } from '../lib/analytics';
+import { TelemetryWidget } from '../components/TelemetryWidget';
 
 // ─── Direct APK download URL ────────────────────────────────────────────────────
-// This points directly to the APK asset on the v3.0.0-beta.1 GitHub release.
-// When a new APK is uploaded to the release, update this constant.
+// Currently points to the release page. Once the APK is uploaded to GitHub Releases, 
+// update this to the direct asset URL (e.g. .../download/v3.0.0-beta.1/contactforge-v3.0.0-beta1.apk)
 const APK_DOWNLOAD_URL =
-  'https://github.com/Shivanshmishra7275/Contact-Forge/releases/download/v3.0.0-beta.1/contactforge-v3.0.0-beta1.apk';
+  'https://github.com/Shivanshmishra7275/Contact-Forge/releases/tag/v3.0.0-beta.1';
 const RELEASE_PAGE_URL =
   'https://github.com/Shivanshmishra7275/Contact-Forge/releases/tag/v3.0.0-beta.1';
 const GITHUB_URL = 'https://github.com/Shivanshmishra7275/Contact-Forge';
@@ -168,13 +167,12 @@ export default function Home() {
           </span>
         </motion.div>
 
-        {/* ── Stats Row ───────────────────────────────────────────────────────── */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true, margin: '-80px' }}
           transition={{ duration: 0.8 }}
-          className="w-full grid grid-cols-2 md:grid-cols-4 gap-4 mb-32"
+          className="w-full grid grid-cols-2 md:grid-cols-4 gap-4 mb-16"
         >
           {STATS.map((stat) => (
             <div
@@ -188,6 +186,9 @@ export default function Home() {
             </div>
           ))}
         </motion.div>
+
+        {/* ── Telemetry Widget ─────────────────────────────────────────────────── */}
+        <TelemetryWidget />
 
         {/* ── Why ContactForge ────────────────────────────────────────────────── */}
         <motion.div

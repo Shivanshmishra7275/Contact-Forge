@@ -66,41 +66,41 @@ export const CONTACT_TAGS = [
 
 // --- PHASE 8: PREMIUM DESIGN TOKENS ---
 
-// Premium Color Palette (Dark Mode First)
+// Premium Color Palette (Cinematic Dark Mode)
 export const COLORS = {
   // Neutral layers
-  background: '#0a0e1a',
-  backgroundAlt: '#0f1219',
-  surface: '#121722',
-  surfaceElevated: '#161d2e',
-  surfaceHover: '#1a2234',
-  surfaceVariant: '#1a2234',
-  surfaceOverlay: '#0a0e1a88',
+  background: '#05050A',
+  backgroundAlt: '#0A0A12',
+  surface: 'rgba(20, 20, 30, 0.4)', // Frosted glass default
+  surfaceElevated: 'rgba(30, 30, 45, 0.6)',
+  surfaceHover: 'rgba(40, 40, 60, 0.8)',
+  surfaceVariant: 'rgba(255, 255, 255, 0.03)',
+  surfaceOverlay: 'rgba(5, 5, 10, 0.7)',
 
   // Brand accent colors (refined)
-  primary: '#8b7eff',
-  primaryDim: '#6a5dd0',
-  primaryLight: '#a9a1ff',
+  primary: '#4C1D95',
+  primaryDim: '#3B1578',
+  primaryLight: '#6D28D9',
 
-  secondary: '#5ed9c9',
-  accent: '#f5a85d',
+  secondary: '#0891B2',
+  accent: '#10B981',
 
   // Semantic colors (muted)
-  success: '#5cba82',
-  warning: '#f5c842',
-  error: '#e86c6c',
-  info: '#6db3e8',
+  success: '#10B981',
+  warning: '#F59E0B',
+  error: '#EF4444',
+  info: '#3B82F6',
 
   // Text hierarchy
-  textPrimary: '#f5f7fa',
+  textPrimary: '#F8FAFC',
   textSecondary: '#a8b3c1',
   textTertiary: '#707a88',
   textDisabled: '#50576a',
 
   // Borders and dividers
-  border: '#1f2a3a',
-  divider: '#161d2e',
-  borderFocus: '#8b7eff44',
+  border: 'rgba(255, 255, 255, 0.1)',
+  divider: 'rgba(255, 255, 255, 0.05)',
+  borderFocus: 'rgba(76, 29, 149, 0.5)',
 
   // Feedback and overlays
   overlay: 'rgba(0,0,0,0.5)',

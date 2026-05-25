@@ -261,14 +261,22 @@ npm test
 
 # 🚀 Version History & Solved Problems
 
-### 🎯 V3: The Relationship Intelligence Release
-*The goal of V3 was to make ContactForge useful every day by surfacing context, follow-ups, and an easier deduplication experience.*
+### 🎨 V3.1: The "Mission Control" UI Overhaul
+*The goal of V3.1 was to transform the app into a premium, cinematic SaaS-grade experience using advanced Reanimated physics and Skia-like mesh gradients.*
+
+**What it solved:**
+- The Dashboard was flat. V3.1 introduces a **Cinematic Dark Mode**, glassmorphism monitors, neon pulsing indicators, and a staggering spring entrance choreography.
+- Duplicate review felt static. V3.1 adds **3D Flashcard Stacking** (the background card scales and brightens as you swipe) and integrates **Haptics** on gesture thresholds.
+- Conflict review was hard to read. V3.1 replaces standard elements with **Character-Level Visual Diffing**, Accordion layouts for matches, and **Glowing Segmented Controls** for conflict resolution.
+
+### 🎯 V3.0: The Relationship Intelligence Release
+*The goal of V3.0 was to make ContactForge useful every day by surfacing context, follow-ups, and an easier deduplication experience.*
 
 **What it solved:** 
-- Deduplication was previously overwhelming. V3 introduces a focused **Flashcard Duplicate Review** flow (one at a time, merge/dismiss/later).
-- Users had opaque duplicate suggestions. V3 introduces a **Deterministic Heuristics Engine** providing human-readable exact match rules.
-- Contacts lacked context. V3 adds **Relationship Intelligence**, tracking "where you met", warmth, next actions, and follow-up reminders.
-- Finding duplicates required manual action. V3 adds **Dashboard Surfacing** with intelligent CTA widgets.
+- Deduplication was previously overwhelming. V3.0 introduces a focused **Flashcard Duplicate Review** flow (one at a time, merge/dismiss/later).
+- Users had opaque duplicate suggestions. V3.0 introduces a **Deterministic Heuristics Engine** providing human-readable exact match rules.
+- Contacts lacked context. V3.0 adds **Relationship Intelligence**, tracking "where you met", warmth, next actions, and follow-up reminders.
+- Finding duplicates required manual action. V3.0 adds **Dashboard Surfacing** with intelligent CTA widgets.
 
 ### 🔄 V2: The Data & Sync Foundation
 *The goal of V2 was to make the offline database portable, safe, and visually clean.*
