@@ -24,10 +24,9 @@ import { trackEvent } from '../lib/analytics';
 import { TelemetryWidget } from '../components/TelemetryWidget';
 
 // ─── Direct APK download URL ────────────────────────────────────────────────────
-// Currently points to the release page. Once the APK is uploaded to GitHub Releases, 
-// update this to the direct asset URL (e.g. .../download/v3.0.0-beta.1/contactforge-v3.0.0-beta1.apk)
+// Currently points to the Expo build page.
 const APK_DOWNLOAD_URL =
-  'https://github.com/Shivanshmishra7275/Contact-Forge/releases/tag/v3.0.0-beta.1';
+  'https://expo.dev/accounts/shivansh_98/projects/contactforge/builds/2cae6642-6420-4d19-a1ce-607368cea4b4';
 const RELEASE_PAGE_URL =
   'https://github.com/Shivanshmishra7275/Contact-Forge/releases/tag/v3.0.0-beta.1';
 const GITHUB_URL = 'https://github.com/Shivanshmishra7275/Contact-Forge';
