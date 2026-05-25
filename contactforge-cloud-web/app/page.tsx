@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import Image from 'next/image';
 import { motion } from 'framer-motion';
 import { ShieldCheck, Download, Code, Zap, History, Database, Users, ChevronRight } from 'lucide-react';
 import { trackEvent } from '../lib/analytics';
@@ -202,7 +203,7 @@ export default function Home() {
         >
           <div className="shrink-0">
             <div className="w-32 h-32 md:w-40 md:h-40 rounded-full bg-slate-800 border-4 border-slate-700/50 flex items-center justify-center shadow-xl overflow-hidden">
-              <img src="/founder.jpg" alt="Shivansh Mishra" className="w-full h-full object-cover" />
+              <Image src="/founder.jpg" alt="Shivansh Mishra" width={160} height={160} className="w-full h-full object-cover" />
             </div>
           </div>
           <div>
