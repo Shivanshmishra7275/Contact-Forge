@@ -29,13 +29,16 @@ export function TelemetryWidget() {
   useEffect(() => {
     const fetchTelemetry = async () => {
       try {
-        const res = await fetch('/api/telemetry');
-        if (!res.ok) throw new Error('Failed to fetch telemetry');
+        const res = await fetch('/api/telemetry', { cache: 'no-store' });
         const json = await res.json();
-        if (json.error) throw new Error(json.error);
+        
+        if (!res.ok || json.error) {
+          throw new Error(json.error || `HTTP error! status: ${res.status}`);
+        }
+        
         setData(json);
       } catch (err) {
-        console.error(err);
+        console.error('Telemetry Fetch Failed:', err);
         setError(true);
       } finally {
         setLoading(false);

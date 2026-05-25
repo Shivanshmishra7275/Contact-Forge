@@ -1,40 +1,35 @@
 import { NextResponse } from 'next/server';
 
-export async function GET() {
-  // Use environment variables for the Plausible API
-  // Add these to your .env.local: PLAUSIBLE_API_KEY and PLAUSIBLE_SITE_ID
-  const PLAUSIBLE_API_KEY = process.env.PLAUSIBLE_API_KEY;
-  const SITE_ID = process.env.PLAUSIBLE_SITE_ID || 'contactforge.app'; // Replace with actual site ID if env is missing
+export const dynamic = 'force-dynamic';
 
-  if (!PLAUSIBLE_API_KEY) {
-    // If no key is configured, we return an error so the frontend can handle it or show a loading/error state
-    return NextResponse.json({ error: 'Missing PLAUSIBLE_API_KEY' }, { status: 500 });
+export async function GET() {
+  const PLAUSIBLE_API_KEY = process.env.PLAUSIBLE_API_KEY;
+  const SITE_ID = process.env.PLAUSIBLE_SITE_ID;
+
+  if (!PLAUSIBLE_API_KEY || !SITE_ID) {
+    console.error('Telemetry Error: Missing PLAUSIBLE_API_KEY or PLAUSIBLE_SITE_ID in environment variables.');
+    return NextResponse.json({ error: 'Server Configuration Error' }, { status: 500 });
   }
 
   try {
-    // Fetch Total Visitors (Unique Visitors)
-    // Plausible API: GET /api/v1/stats/aggregate
     const visitorsRes = await fetch(`https://plausible.io/api/v1/stats/aggregate?site_id=${SITE_ID}&period=all&metrics=visitors`, {
-      headers: {
-        Authorization: `Bearer ${PLAUSIBLE_API_KEY}`,
-      },
-      next: { revalidate: 60 } // Cache for 60 seconds
+      headers: { Authorization: `Bearer ${PLAUSIBLE_API_KEY}` },
     });
     
-    // Fetch Total Downloads (Custom Event: "Download APK Direct")
     const downloadsRes = await fetch(`https://plausible.io/api/v1/stats/aggregate?site_id=${SITE_ID}&period=all&metrics=events&filters=event:name==Download%20APK%20Direct`, {
-      headers: {
-        Authorization: `Bearer ${PLAUSIBLE_API_KEY}`,
-      },
-      next: { revalidate: 60 } // Cache for 60 seconds
+      headers: { Authorization: `Bearer ${PLAUSIBLE_API_KEY}` },
     });
 
     if (!visitorsRes.ok || !downloadsRes.ok) {
-      throw new Error('Plausible API responded with an error');
+      const vBody = await visitorsRes.text();
+      const dBody = await downloadsRes.text();
+      console.error('Plausible API Error - Visitors:', visitorsRes.status, vBody);
+      console.error('Plausible API Error - Downloads:', downloadsRes.status, dBody);
+      throw new Error(`Plausible API responded with an error. V:${visitorsRes.status} D:${downloadsRes.status}`);
     }
 
-    const visitorsData = await visitorsRes.json();
-    const downloadsData = await downloadsRes.json();
+    const visitorsData = JSON.parse(await visitorsRes.text());
+    const downloadsData = JSON.parse(await downloadsRes.text());
 
     const visitors = visitorsData.results?.visitors?.value || 0;
     const downloads = downloadsData.results?.events?.value || 0;
