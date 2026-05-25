@@ -7,8 +7,8 @@ import { ShieldCheck, Download, Code, Zap, History, Database, Users, ChevronRigh
 import { trackEvent } from '../lib/analytics';
 
 export default function Home() {
-  const handleDownloadClick = () => {
-    trackEvent('Download APK', { source: 'hero' });
+  const handleDownloadClick = (source: 'hero' | 'footer' = 'hero') => {
+    trackEvent('Open Release Page', { source });
   };
 
   const handleGitHubClick = () => {
@@ -74,7 +74,9 @@ export default function Home() {
         >
           <a
             href="https://github.com/Shivanshmishra7275/Contact-Forge/releases"
-            onClick={handleDownloadClick}
+            target="_blank"
+            rel="noopener noreferrer"
+            onClick={() => handleDownloadClick('hero')}
             className="group flex items-center justify-center gap-3 bg-white hover:bg-slate-100 text-slate-950 font-semibold px-8 py-4 rounded-xl transition-all duration-300 w-full sm:w-auto hover:shadow-[0_0_30px_rgba(255,255,255,0.2)] hover:-translate-y-0.5"
           >
             <Download className="w-5 h-5" />
@@ -82,6 +84,8 @@ export default function Home() {
           </a>
           <a
             href="https://github.com/Shivanshmishra7275/Contact-Forge"
+            target="_blank"
+            rel="noopener noreferrer"
             onClick={handleGitHubClick}
             className="group flex items-center justify-center gap-3 bg-slate-900/50 hover:bg-slate-800/80 border border-slate-700/50 text-white font-semibold px-8 py-4 rounded-xl transition-all duration-300 w-full sm:w-auto backdrop-blur-md hover:border-slate-600 hover:-translate-y-0.5"
           >
@@ -234,8 +238,18 @@ export default function Home() {
           <p className="text-slate-600 text-sm mb-6">
             Offline-first • Zero Telemetry • No Cloud
           </p>
+          <a
+            href="https://github.com/Shivanshmishra7275/Contact-Forge/releases"
+            target="_blank"
+            rel="noopener noreferrer"
+            onClick={() => handleDownloadClick('footer')}
+            className="inline-flex items-center gap-2 text-sm text-teal-500 hover:text-teal-300 transition-colors mb-6 font-medium"
+          >
+            <Download className="w-4 h-4" />
+            <span>Download APK from GitHub Releases</span>
+          </a>
           <div className="text-slate-600 text-xs flex gap-4">
-            <a href="https://github.com/Shivanshmishra7275/Contact-Forge" onClick={() => trackEvent('Footer GitHub')} className="hover:text-slate-400 transition-colors">GitHub Repository</a>
+            <a href="https://github.com/Shivanshmishra7275/Contact-Forge" target="_blank" rel="noopener noreferrer" onClick={() => trackEvent('Footer GitHub')} className="hover:text-slate-400 transition-colors">GitHub Repository</a>
             <span>•</span>
             <span className="text-slate-500">Crafted by Shivansh Mishra</span>
           </div>
