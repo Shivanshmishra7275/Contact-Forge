@@ -15,6 +15,7 @@ import {
   AppState,
   InteractionManager,
   Platform,
+  Alert,
 } from 'react-native';
 import { Text, Chip, FAB, ActivityIndicator, Button } from 'react-native-paper';
 import { router, useLocalSearchParams } from 'expo-router';
@@ -26,9 +27,11 @@ import {
   countContacts,
   listContactsByIds,
   countContactsByIds,
+  deleteContactsBulk,
 } from '../../src/db/repositories/contactRepository';
 import { getContactsNeedingCuration } from '../../src/services/contactHealthService';
-import { COLORS, SPACING, FONT_SIZE, PAGE_SIZE } from '../../src/constants';
+import { exportToVCF, shareFile } from '../../src/services/exportService';
+import { COLORS, SPACING, FONT_SIZE, PAGE_SIZE, RADIUS } from '../../src/constants';
 import type { LocalContact } from '../../src/types';
 
 type Filter = 'all' | 'temporary' | 'ghost' | 'low_health';
@@ -48,6 +51,10 @@ export default function ContactsScreen() {
   const searchRef = useRef(search);
   const filterRef = useRef(filter);
   const lowHealthIdsRef = useRef<number[] | null>(null);
+
+  // Bulk selection state
+  const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
+  const isSelectionMode = selectedIds.size > 0;
 
   const loadLowHealthIds = useCallback(() => {
     const ids = getContactsNeedingCuration();
@@ -165,11 +172,79 @@ export default function ContactsScreen() {
     loadContacts(search, filter, nextPage, true);
   }, [isLoading, page, total, search, filter, loadContacts]);
 
+  const toggleSelection = useCallback((id: number) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }, []);
+
+  const clearSelection = useCallback(() => setSelectedIds(new Set()), []);
+
+  const handleBulkDelete = useCallback(() => {
+    if (selectedIds.size === 0) return;
+    Alert.alert(
+      'Delete Contacts',
+      `Are you sure you want to delete ${selectedIds.size} contacts?`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: () => {
+            deleteContactsBulk(Array.from(selectedIds));
+            clearSelection();
+            refreshContacts();
+          },
+        },
+      ]
+    );
+  }, [selectedIds, clearSelection, refreshContacts]);
+
+  const handleBulkExport = useCallback(async () => {
+    if (selectedIds.size === 0) return;
+    setIsLoading(true);
+    try {
+      const ids = Array.from(selectedIds);
+      const ts = new Date().toISOString().replace(/[:.]/g, '-');
+      const filename = `contactforge-export-${ts}.vcf`;
+      const result = await exportToVCF({
+        format: 'vcf',
+        contactIds: ids,
+        includeNotes: true,
+        filename,
+      });
+      await shareFile(result.filePath);
+      clearSelection();
+    } catch (err) {
+      Alert.alert('Export Failed', err instanceof Error ? err.message : 'Unknown error');
+    } finally {
+      setIsLoading(false);
+    }
+  }, [selectedIds, clearSelection]);
+
   const renderItem = useCallback(
-    ({ item }: { item: LocalContact }) => (
-      <ContactRow contact={item} onPress={() => router.push(`/contact/${item.id}`)} />
-    ),
-    [],
+    ({ item }: { item: LocalContact }) => {
+      const isSelected = selectedIds.has(item.id);
+      return (
+        <ContactRow 
+          contact={item} 
+          selected={isSelected}
+          selectionMode={isSelectionMode}
+          onLongPress={() => toggleSelection(item.id)}
+          onPress={() => {
+            if (isSelectionMode) {
+              toggleSelection(item.id);
+            } else {
+              router.push(`/contact/${item.id}`);
+            }
+          }} 
+        />
+      );
+    },
+    [selectedIds, isSelectionMode, toggleSelection],
   );
 
   const isLowHealth = filter === 'low_health';
@@ -248,7 +323,11 @@ export default function ContactsScreen() {
         onEndReachedThreshold={0.5}
         ListEmptyComponent={isLoading ? null : <EmptyState />}
         ListFooterComponent={isLoading ? <ActivityIndicator style={styles.loader} color={COLORS.primary} /> : null}
-        contentContainerStyle={contacts.length === 0 ? styles.listEmpty : undefined}
+        contentContainerStyle={
+          contacts.length === 0 
+            ? styles.listEmpty 
+            : isSelectionMode ? { paddingBottom: 100 } : undefined
+        }
         style={styles.list}
         // getItemLayout removed — row heights vary by company/tags presence
         initialNumToRender={10}
@@ -257,13 +336,44 @@ export default function ContactsScreen() {
         removeClippedSubviews
       />
 
-      <FAB
-        icon="plus"
-        style={styles.fab}
-        onPress={() => router.push('/contact/new')}
-        color={COLORS.textPrimary}
-        accessibilityLabel="Add new contact"
-      />
+      {isSelectionMode ? (
+        <View style={styles.actionBar}>
+          <View style={styles.actionBarTop}>
+            <Text style={styles.actionBarTitle}>{selectedIds.size} Selected</Text>
+            <TouchableOpacity onPress={clearSelection} style={styles.actionIconBtn}>
+              <MaterialCommunityIcons name="close" size={24} color={COLORS.textPrimary} />
+            </TouchableOpacity>
+          </View>
+          <View style={styles.actionBarButtons}>
+            <Button
+              mode="outlined"
+              icon="export"
+              onPress={handleBulkExport}
+              style={[styles.actionBtn, { borderColor: COLORS.primary }]}
+              textColor={COLORS.primary}
+            >
+              Export
+            </Button>
+            <Button
+              mode="contained"
+              icon="delete"
+              onPress={handleBulkDelete}
+              style={styles.actionBtn}
+              buttonColor={COLORS.error}
+            >
+              Delete
+            </Button>
+          </View>
+        </View>
+      ) : (
+        <FAB
+          icon="plus"
+          style={styles.fab}
+          onPress={() => router.push('/contact/new')}
+          color={COLORS.textPrimary}
+          accessibilityLabel="Add new contact"
+        />
+      )}
     </SafeAreaView>
   );
 }
@@ -271,17 +381,36 @@ export default function ContactsScreen() {
 interface ContactRowProps {
   contact: LocalContact;
   onPress: () => void;
+  onLongPress?: () => void;
+  selected?: boolean;
+  selectionMode?: boolean;
 }
 
-const ContactRow = memo(function ContactRow({ contact, onPress }: ContactRowProps) {
+const ContactRow = memo(function ContactRow({ contact, onPress, onLongPress, selected, selectionMode }: ContactRowProps) {
   const initials = getInitials(contact.displayName);
   const tags: string[] = (() => { try { return JSON.parse(contact.tags) as string[]; } catch { return []; } })();
 
   return (
-    <TouchableOpacity onPress={onPress} style={styles.row} accessibilityLabel={`Contact: ${contact.displayName}`}>
-      <View style={styles.avatar}>
-        <Text style={styles.avatarText}>{initials}</Text>
-      </View>
+    <TouchableOpacity
+      onPress={onPress}
+      onLongPress={onLongPress}
+      delayLongPress={350}
+      style={[styles.row, selected && styles.rowSelected]}
+      accessibilityLabel={`Contact: ${contact.displayName}`}
+    >
+      {selectionMode && (
+        <MaterialCommunityIcons
+          name={selected ? "check-circle" : "checkbox-blank-circle-outline"}
+          size={24}
+          color={selected ? COLORS.primary : COLORS.textDisabled}
+          style={{ marginRight: SPACING.md }}
+        />
+      )}
+      {!selectionMode && (
+        <View style={styles.avatar}>
+          <Text style={styles.avatarText}>{initials}</Text>
+        </View>
+      )}
       <View style={styles.rowContent}>
         <Text style={styles.name} numberOfLines={1}>{contact.displayName}</Text>
         {contact.company && (
@@ -294,7 +423,9 @@ const ContactRow = memo(function ContactRow({ contact, onPress }: ContactRowProp
       {contact.isTemporary && (
         <MaterialCommunityIcons name="clock-outline" color={COLORS.warning} size={16} />
       )}
-      <MaterialCommunityIcons name="chevron-right" color={COLORS.textDisabled} size={20} />
+      {!selectionMode && (
+        <MaterialCommunityIcons name="chevron-right" color={COLORS.textDisabled} size={20} />
+      )}
     </TouchableOpacity>
   );
 });
@@ -390,5 +521,47 @@ const styles = StyleSheet.create({
     right: SPACING.lg,
     bottom: SPACING.lg,
     backgroundColor: COLORS.primary,
+  },
+  rowSelected: {
+    backgroundColor: COLORS.primary + '11',
+  },
+  actionBar: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    backgroundColor: COLORS.surfaceElevated,
+    borderTopWidth: 1,
+    borderTopColor: COLORS.border,
+    paddingHorizontal: SPACING.md,
+    paddingTop: SPACING.sm,
+    paddingBottom: Platform.OS === 'ios' ? 32 : SPACING.md,
+    elevation: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: -2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+  },
+  actionBarTop: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: SPACING.sm,
+  },
+  actionBarTitle: {
+    color: COLORS.textPrimary,
+    fontSize: FONT_SIZE.md,
+    fontWeight: '600',
+  },
+  actionIconBtn: {
+    padding: SPACING.xs,
+  },
+  actionBarButtons: {
+    flexDirection: 'row',
+    gap: SPACING.sm,
+  },
+  actionBtn: {
+    flex: 1,
+    borderRadius: RADIUS.md,
   },
 });
