@@ -433,8 +433,16 @@ export function listContacts(params: ContactListParams = {}): LocalContact[] {
     args.push(isGhost ? 1 : 0);
   }
   if (tag) {
-    conditions.push("tags LIKE ?");
-    args.push(`%${tag}%`);
+    // Match the tag as a complete JSON string value, not a substring
+    // Tags are stored as JSON array e.g. ["client","vip"] — match "tag" as a full element
+    const escapedTag = tag.replace(/"/g, '""');
+    conditions.push("(tags LIKE ? OR tags LIKE ? OR tags LIKE ? OR tags LIKE ?)");
+    args.push(
+      `["${escapedTag}"]`,        // sole element
+      `["${escapedTag}",%`,       // first element
+      `%,"${escapedTag}"]`,       // last element
+      `%,"${escapedTag}",%`       // middle element
+    );
   }
 
   const where = conditions.length ? `WHERE ${conditions.join(' AND ')}` : '';
@@ -480,8 +488,14 @@ export function countContacts(params: Omit<ContactListParams, 'page' | 'pageSize
     args.push(isGhost ? 1 : 0);
   }
   if (tag) {
-    conditions.push('tags LIKE ?');
-    args.push(`%${tag}%`);
+    const escapedTag = tag.replace(/"/g, '""');
+    conditions.push("(tags LIKE ? OR tags LIKE ? OR tags LIKE ? OR tags LIKE ?)");
+    args.push(
+      `["${escapedTag}"]`,
+      `["${escapedTag}",%`,
+      `%,"${escapedTag}"]`,
+      `%,"${escapedTag}",%`
+    );
   }
 
   const where = conditions.length ? `WHERE ${conditions.join(' AND ')}` : '';

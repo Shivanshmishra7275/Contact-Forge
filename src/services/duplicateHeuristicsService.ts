@@ -109,7 +109,7 @@ function detectExactEmailDuplicates(): SuggestionResult[] {
   const db = getDatabase();
   const rows = db.getAllSync<EmailRow>(
     `SELECT e.contact_id, e.normalized_email
-     FROM email_addresses e
+     FROM emails e
      WHERE e.normalized_email != ''
      ORDER BY e.normalized_email, e.contact_id`,
     [],

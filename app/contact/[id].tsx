@@ -3,7 +3,7 @@
  */
 
 import { useCallback, useEffect, useState } from 'react';
-import { ScrollView, StyleSheet, View, Alert } from 'react-native';
+import { ScrollView, StyleSheet, View, Alert, Linking, Clipboard, TouchableOpacity } from 'react-native';
 import { Text, Button, Card, Chip, Divider, Portal, Dialog, RadioButton, Modal } from 'react-native-paper';
 import { router, useLocalSearchParams } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -287,6 +287,49 @@ export default function ContactDetailScreen() {
                     <Text style={styles.fieldLabel}>{p.label ?? 'mobile'}</Text>
                     <Text style={styles.fieldValue}>{p.number}</Text>
                   </View>
+                  <View style={styles.actionRow}>
+                    <TouchableOpacity
+                      style={styles.actionBtn}
+                      onPress={() => Linking.openURL(`tel:${p.number}`)}
+                      accessibilityLabel={`Call ${p.number}`}
+                    >
+                      <MaterialCommunityIcons name="phone" size={16} color={COLORS.secondary} />
+                      <Text style={[styles.actionLabel, { color: COLORS.secondary }]}>Call</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={styles.actionBtn}
+                      onPress={() => Linking.openURL(`sms:${p.number}`)}
+                      accessibilityLabel={`SMS ${p.number}`}
+                    >
+                      <MaterialCommunityIcons name="message-text" size={16} color={COLORS.primary} />
+                      <Text style={[styles.actionLabel, { color: COLORS.primary }]}>SMS</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={styles.actionBtn}
+                      onPress={async () => {
+                        const digits = p.number.replace(/\D/g, '');
+                        const url = `https://wa.me/${digits}`;
+                        const supported = await Linking.canOpenURL(url);
+                        if (supported) Linking.openURL(url);
+                        else Alert.alert('WhatsApp not installed', 'Could not open WhatsApp.');
+                      }}
+                      accessibilityLabel={`WhatsApp ${p.number}`}
+                    >
+                      <MaterialCommunityIcons name="whatsapp" size={16} color="#25D366" />
+                      <Text style={[styles.actionLabel, { color: '#25D366' }]}>WhatsApp</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={styles.actionBtn}
+                      onPress={() => {
+                        Clipboard.setString(p.number);
+                        Alert.alert('Copied', 'Phone number copied to clipboard.');
+                      }}
+                      accessibilityLabel={`Copy ${p.number}`}
+                    >
+                      <MaterialCommunityIcons name="content-copy" size={16} color={COLORS.textDisabled} />
+                      <Text style={[styles.actionLabel, { color: COLORS.textDisabled }]}>Copy</Text>
+                    </TouchableOpacity>
+                  </View>
                 </View>
               ))}
             </Card.Content>
@@ -307,7 +350,28 @@ export default function ContactDetailScreen() {
                   {i > 0 && <Divider style={styles.divider} />}
                   <View style={styles.fieldRow}>
                     <Text style={styles.fieldLabel}>{e.label ?? 'home'}</Text>
-                    <Text style={styles.fieldValue}>{e.email}</Text>
+                    <Text style={styles.fieldValue} numberOfLines={1}>{e.email}</Text>
+                  </View>
+                  <View style={styles.actionRow}>
+                    <TouchableOpacity
+                      style={styles.actionBtn}
+                      onPress={() => Linking.openURL(`mailto:${e.email}`)}
+                      accessibilityLabel={`Email ${e.email}`}
+                    >
+                      <MaterialCommunityIcons name="email-fast" size={16} color={COLORS.primary} />
+                      <Text style={[styles.actionLabel, { color: COLORS.primary }]}>Email</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={styles.actionBtn}
+                      onPress={() => {
+                        Clipboard.setString(e.email);
+                        Alert.alert('Copied', 'Email address copied to clipboard.');
+                      }}
+                      accessibilityLabel={`Copy ${e.email}`}
+                    >
+                      <MaterialCommunityIcons name="content-copy" size={16} color={COLORS.textDisabled} />
+                      <Text style={[styles.actionLabel, { color: COLORS.textDisabled }]}>Copy</Text>
+                    </TouchableOpacity>
                   </View>
                 </View>
               ))}
@@ -720,6 +784,22 @@ const styles = StyleSheet.create({
   fieldRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: SPACING.xs },
   fieldLabel: { color: COLORS.textDisabled, fontSize: FONT_SIZE.sm, textTransform: 'capitalize', flex: 1 },
   fieldValue: { color: COLORS.textPrimary, fontSize: FONT_SIZE.md, flex: 2, textAlign: 'right' },
+  actionRow: {
+    flexDirection: 'row',
+    gap: SPACING.sm,
+    paddingBottom: SPACING.xs,
+    flexWrap: 'wrap',
+  },
+  actionBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: COLORS.surfaceVariant,
+    borderRadius: 20,
+    paddingHorizontal: SPACING.sm,
+    paddingVertical: 5,
+  },
+  actionLabel: { fontSize: FONT_SIZE.xs, fontWeight: '600' },
   notes: { color: COLORS.textSecondary, fontSize: FONT_SIZE.sm, lineHeight: 20 },
   meta: { color: COLORS.textDisabled, fontSize: FONT_SIZE.xs, marginBottom: 2 },
   deleteBtn: { marginTop: SPACING.md, borderColor: COLORS.error },

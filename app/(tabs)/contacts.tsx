@@ -27,9 +27,9 @@ import {
   listContactsByIds,
   countContactsByIds,
 } from '../../src/db/repositories/contactRepository';
-import { calculateContactHealthScore, getContactsNeedingCuration } from '../../src/services/contactHealthService';
+import { getContactsNeedingCuration } from '../../src/services/contactHealthService';
 import { COLORS, SPACING, FONT_SIZE, PAGE_SIZE } from '../../src/constants';
-import type { LocalContact, ContactHealthScore } from '../../src/types';
+import type { LocalContact } from '../../src/types';
 
 type Filter = 'all' | 'temporary' | 'ghost' | 'low_health';
 
@@ -250,7 +250,7 @@ export default function ContactsScreen() {
         ListFooterComponent={isLoading ? <ActivityIndicator style={styles.loader} color={COLORS.primary} /> : null}
         contentContainerStyle={contacts.length === 0 ? styles.listEmpty : undefined}
         style={styles.list}
-        getItemLayout={(_, index) => ({ length: 72, offset: 72 * index, index })}
+        // getItemLayout removed — row heights vary by company/tags presence
         initialNumToRender={10}
         maxToRenderPerBatch={12}
         windowSize={7}
@@ -276,28 +276,6 @@ interface ContactRowProps {
 const ContactRow = memo(function ContactRow({ contact, onPress }: ContactRowProps) {
   const initials = getInitials(contact.displayName);
   const tags: string[] = (() => { try { return JSON.parse(contact.tags) as string[]; } catch { return []; } })();
-  const [health, setHealth] = useState<ContactHealthScore | null>(null);
-
-  useEffect(() => {
-    const h = calculateContactHealthScore(contact.id);
-    setHealth(h);
-  }, [contact.id]);
-
-  const getHealthColor = (score: number): string => {
-    if (score >= 90) return '#4caf50';
-    if (score >= 80) return '#8bc34a';
-    if (score >= 70) return '#ffc107';
-    if (score >= 50) return '#ff9800';
-    return '#f23645';
-  };
-
-  const getHealthGrade = (score: number): string => {
-    if (score >= 90) return 'A';
-    if (score >= 80) return 'B';
-    if (score >= 70) return 'C';
-    if (score >= 50) return 'D';
-    return 'F';
-  };
 
   return (
     <TouchableOpacity onPress={onPress} style={styles.row} accessibilityLabel={`Contact: ${contact.displayName}`}>
@@ -313,21 +291,6 @@ const ContactRow = memo(function ContactRow({ contact, onPress }: ContactRowProp
           <Text style={styles.tags} numberOfLines={1}>{tags.join(' · ')}</Text>
         )}
       </View>
-      
-      {/* Health Score Indicator */}
-      {health && (
-        <View
-          style={[
-            styles.healthIndicator,
-            { backgroundColor: `${getHealthColor(health.score)}30` },
-          ]}
-        >
-          <Text style={[styles.healthGrade, { color: getHealthColor(health.score) }]}>
-            {getHealthGrade(health.score)}
-          </Text>
-        </View>
-      )}
-      
       {contact.isTemporary && (
         <MaterialCommunityIcons name="clock-outline" color={COLORS.warning} size={16} />
       )}

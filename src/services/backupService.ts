@@ -103,11 +103,36 @@ export async function restoreEncryptedBackup(passphrase: string): Promise<{ succ
 export function importBackupBundle(bundle: ContactForgeBackup): void {
   const db = getDatabase();
   
-  // Safely insert data using INSERT OR IGNORE
+  /**
+   * Merge semantics: "newer updated_at wins"
+   * - For contacts: if the incoming row is NEWER than local, replace it.
+   *   If local is newer (or same), keep local. This prevents a stale pull
+   *   from silently overwriting local edits.
+   * - For phone/email/notes/etc.: INSERT OR IGNORE (they are append-safe;
+   *   explicit edits already went through the write path which handles IDs).
+   * - Soft-deleted / merged contacts: handled via the undo/archive tables,
+   *   not this path. This is a backup restore, not a delta sync.
+   */
   db.withTransactionSync(() => {
     for (const c of bundle.contacts) {
-      db.runSync(`INSERT OR IGNORE INTO contacts (id, native_id, first_name, last_name, display_name, normalized_name, company, job_title, notes, birthday, image_uri, has_thumbnail, is_temporary, is_ghost, tags, synced_at, created_at, updated_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`, 
-        [c.id, c.native_id, c.first_name, c.last_name, c.display_name, c.normalized_name, c.company, c.job_title, c.notes, c.birthday, c.image_uri, c.has_thumbnail, c.is_temporary, c.is_ghost, c.tags, c.synced_at, c.created_at, c.updated_at]);
+      // Only upsert if incoming is newer than local (or local doesn't exist)
+      const existing = db.getFirstSync<{ updated_at: string } | null>(
+        'SELECT updated_at FROM contacts WHERE id = ?',
+        [c.id]
+      );
+      if (!existing || (c.updated_at && c.updated_at > existing.updated_at)) {
+        db.runSync(
+          `INSERT OR REPLACE INTO contacts
+           (id, native_id, first_name, last_name, display_name, normalized_name,
+            company, job_title, notes, birthday, image_uri, has_thumbnail,
+            is_temporary, is_ghost, tags, synced_at, created_at, updated_at)
+           VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
+          [c.id, c.native_id, c.first_name, c.last_name, c.display_name,
+           c.normalized_name, c.company, c.job_title, c.notes, c.birthday,
+           c.image_uri, c.has_thumbnail, c.is_temporary, c.is_ghost,
+           c.tags, c.synced_at, c.created_at, c.updated_at]
+        );
+      }
     }
     for (const e of bundle.emails) {
       db.runSync(`INSERT OR IGNORE INTO emails (id, contact_id, label, email, normalized_email) VALUES (?,?,?,?,?)`, [e.id, e.contact_id, e.label, e.email, e.normalized_email]);
