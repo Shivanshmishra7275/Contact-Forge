@@ -26,7 +26,7 @@ import { TelemetryWidget } from '../components/TelemetryWidget';
 // ─── Direct APK download URL ────────────────────────────────────────────────────
 // Currently points to the Expo build page.
 const APK_DOWNLOAD_URL =
-  'https://github.com/Shivanshmishra7275/Contact-Forge/releases/download/v3.2.0/ContactForge.apk';
+  'https://github.com/Shivanshmishra7275/Contact-Forge/releases/latest';
 const RELEASE_PAGE_URL =
   'https://github.com/Shivanshmishra7275/Contact-Forge/releases/tag/v3.2.0';
 const GITHUB_URL = 'https://github.com/Shivanshmishra7275/Contact-Forge';
@@ -127,10 +127,7 @@ export default function Home() {
             className="group flex items-center justify-center gap-3 bg-white hover:bg-slate-100 text-slate-950 font-semibold px-8 py-4 rounded-xl transition-all duration-300 w-full sm:w-auto hover:shadow-[0_0_30px_rgba(255,255,255,0.2)] hover:-translate-y-0.5"
           >
             <Download className="w-5 h-5 group-hover:animate-bounce" />
-            <span>Download APK</span>
-            <span className="text-xs font-normal text-slate-500 bg-slate-100 px-2 py-0.5 rounded-full group-hover:bg-slate-200 transition-colors">
-              v3.2.0
-            </span>
+            <span>Download latest APK from GitHub</span>
           </a>
 
           {/* Secondary: view source */}
@@ -452,7 +449,7 @@ export default function Home() {
             className="inline-flex items-center gap-2 text-sm text-teal-500 hover:text-teal-300 transition-colors font-medium group"
           >
             <Download className="w-4 h-4 group-hover:animate-bounce" />
-            <span>Download APK v3.2.0 for Android</span>
+            <span>Download latest APK from GitHub</span>
           </a>
 
           <div className="text-slate-600 text-xs flex flex-wrap justify-center gap-4">
