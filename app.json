@@ -2,7 +2,7 @@
   "expo": {
     "name": "ContactForge",
     "slug": "contactforge",
-    "version": "3.2.0",
+    "version": "3.3.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "dark",
@@ -14,7 +14,7 @@
       "backgroundColor": "#0a0a1a"
     },
     "ios": {
-      "buildNumber": "4",
+      "buildNumber": "5",
       "supportsTablet": false,
       "infoPlist": {
         "NSContactsUsageDescription": "ContactForge needs access to your contacts to help you organize, clean, and manage them locally on your device. No data is ever sent to any server.",
@@ -24,7 +24,7 @@
       }
     },
     "android": {
-      "versionCode": 4,
+      "versionCode": 5,
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#0a0a1a"
