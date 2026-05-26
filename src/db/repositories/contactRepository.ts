@@ -252,7 +252,15 @@ export function deleteContact(id: number): void {
     });
     useUndoStore.getState().setUndoableAction(`Contact "${contact.displayName}" deleted.`);
   }
-  // Remove from FTS before hard delete (contact row still exists here)
+  // Write tombstone so sync bundles can propagate this delete to other devices.
+  // The hard DELETE still runs — the tombstone is captured in the backup bundle
+  // generated AFTER deleteContact completes.
+  const tombstoneAt = now();
+  getDatabase().runSync(
+    'UPDATE contacts SET is_deleted = 1, deleted_at = ?, updated_at = ? WHERE id = ?',
+    [tombstoneAt, tombstoneAt, id]
+  );
+  // Remove from FTS (contact row still exists briefly)
   removeContactFts(id);
   getDatabase().runSync('DELETE FROM contacts WHERE id = ?', [id]);
 }
@@ -272,8 +280,13 @@ export function deleteContactsBulk(ids: number[]): void {
     useUndoStore.getState().setUndoableAction(`${contacts.length} contacts deleted.`);
   }
 
+  const tombstoneAt = now();
   db.withTransactionSync(() => {
     for (const id of ids) {
+      db.runSync(
+        'UPDATE contacts SET is_deleted = 1, deleted_at = ?, updated_at = ? WHERE id = ?',
+        [tombstoneAt, tombstoneAt, id]
+      );
       removeContactFts(id);
       db.runSync('DELETE FROM contacts WHERE id = ?', [id]);
     }
@@ -472,7 +485,9 @@ export function listContacts(params: ContactListParams = {}): LocalContact[] {
     );
   }
 
-  const where = conditions.length ? `WHERE ${conditions.join(' AND ')}` : '';
+  const where = conditions.length
+    ? `WHERE ${conditions.join(' AND ')} AND is_deleted = 0`
+    : 'WHERE is_deleted = 0';
   const offset = page * pageSize;
 
   return getDatabase()
@@ -533,7 +548,9 @@ export function countContacts(params: Omit<ContactListParams, 'page' | 'pageSize
     );
   }
 
-  const where = conditions.length ? `WHERE ${conditions.join(' AND ')}` : '';
+  const where = conditions.length
+    ? `WHERE ${conditions.join(' AND ')} AND is_deleted = 0`
+    : 'WHERE is_deleted = 0';
   const row = getDatabase().getFirstSync<{ count: number }>(
     `SELECT COUNT(*) as count FROM contacts ${where}`,
     args,

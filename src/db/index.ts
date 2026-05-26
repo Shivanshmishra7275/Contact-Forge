@@ -16,6 +16,18 @@ import { ALL_CREATE_STATEMENTS } from './schema';
 import { probeFtsMode, type FtsMode } from './ftsProbe';
 import { createFtsTable, populateFtsFromExisting } from './repositories/searchRepository';
 
+/**
+ * ALTER TABLE migrations: columns added after initial schema release.
+ * Each is wrapped in try/catch — SQLite throws if the column already exists.
+ * This is intentional; "IF NOT EXISTS" is not supported for ADD COLUMN
+ * in all SQLite versions we target.
+ */
+const COLUMN_MIGRATIONS: string[] = [
+  // v3.3: soft-delete support for cross-device delete propagation
+  'ALTER TABLE contacts ADD COLUMN is_deleted INTEGER NOT NULL DEFAULT 0',
+  'ALTER TABLE contacts ADD COLUMN deleted_at TEXT',
+];
+
 let _db: SQLite.SQLiteDatabase | null = null;
 let _ftsMode: FtsMode = 'none';
 
@@ -65,6 +77,15 @@ function initSchema(db: SQLite.SQLiteDatabase): void {
       VALUES (1, 'idle', NULL, 0, 0)
     `);
   });
+
+  // Column migrations (outside transaction for SQLite compatibility)
+  for (const migration of COLUMN_MIGRATIONS) {
+    try {
+      db.execSync(migration);
+    } catch {
+      // Column already exists — safe to ignore
+    }
+  }
 }
 
 
@@ -103,6 +124,14 @@ export function resetDatabaseForTesting(): void {
       DROP TABLE IF EXISTS phone_numbers;
       DROP TABLE IF EXISTS contacts;
     `);
+    // Also drop FTS virtual table if it exists
+    try { _db.execSync('DROP TABLE IF EXISTS contacts_fts'); } catch { /* ok */ }
+
     initSchema(_db);
+    // Re-run column migrations so tests see the same schema as the real app
+    for (const migration of COLUMN_MIGRATIONS) {
+      try { _db.execSync(migration); } catch { /* column already exists */ }
+    }
   }
 }
+

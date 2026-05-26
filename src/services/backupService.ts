@@ -104,35 +104,64 @@ export function importBackupBundle(bundle: ContactForgeBackup): void {
   const db = getDatabase();
   
   /**
-   * Merge semantics: "newer updated_at wins"
-   * - For contacts: if the incoming row is NEWER than local, replace it.
-   *   If local is newer (or same), keep local. This prevents a stale pull
-   *   from silently overwriting local edits.
-   * - For phone/email/notes/etc.: INSERT OR IGNORE (they are append-safe;
-   *   explicit edits already went through the write path which handles IDs).
-   * - Soft-deleted / merged contacts: handled via the undo/archive tables,
-   *   not this path. This is a backup restore, not a delta sync.
+   * Merge semantics: "newer updated_at wins" with tombstone propagation.
+   *
+   * Contacts:
+   *   - If incoming is NEWER → apply it (INSERT OR REPLACE).
+   *   - If incoming is_deleted=1 AND newer than local → hard-delete locally.
+   *     This propagates deletes across devices without resurrecting contacts.
+   *   - If local is newer (or same updated_at) → keep local; skip remote.
+   *   - Idempotent: repeated imports of the same bundle are safe.
+   *
+   * Related entities (phones, emails, notes, etc.):
+   *   - INSERT OR IGNORE: append-safe for new data; existing rows are kept.
+   *   - Explicit edit paths already handle updates via replacePhones/Emails.
+   *
+   * Limitation (documented):
+   *   - Sub-entity conflicts (e.g. two devices edited the same note) are NOT
+   *     resolved here — the note added locally wins on IGNORE. Full sub-entity
+   *     delta sync is a future milestone.
    */
   db.withTransactionSync(() => {
     for (const c of bundle.contacts) {
-      // Only upsert if incoming is newer than local (or local doesn't exist)
-      const existing = db.getFirstSync<{ updated_at: string } | null>(
-        'SELECT updated_at FROM contacts WHERE id = ?',
+      const existing = db.getFirstSync<{ updated_at: string; is_deleted: number } | null>(
+        'SELECT updated_at, is_deleted FROM contacts WHERE id = ?',
         [c.id]
       );
-      if (!existing || (c.updated_at && c.updated_at > existing.updated_at)) {
-        db.runSync(
-          `INSERT OR REPLACE INTO contacts
-           (id, native_id, first_name, last_name, display_name, normalized_name,
-            company, job_title, notes, birthday, image_uri, has_thumbnail,
-            is_temporary, is_ghost, tags, synced_at, created_at, updated_at)
-           VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
-          [c.id, c.native_id, c.first_name, c.last_name, c.display_name,
-           c.normalized_name, c.company, c.job_title, c.notes, c.birthday,
-           c.image_uri, c.has_thumbnail, c.is_temporary, c.is_ghost,
-           c.tags, c.synced_at, c.created_at, c.updated_at]
-        );
+
+      const remoteIsNewer = !existing || (c.updated_at && c.updated_at > existing.updated_at);
+      if (!remoteIsNewer) continue; // local is newer or equal — keep local
+
+      const remoteIsDeleted = (c as any).is_deleted === 1 || (c as any).is_deleted === true;
+
+      if (remoteIsDeleted && existing) {
+        // Remote tombstone is newer → propagate the delete locally.
+        // FTS cleanup: the row is about to go, delete from index first.
+        db.runSync('DELETE FROM contacts_fts WHERE rowid = ?', [c.id]);
+        db.runSync('DELETE FROM contacts WHERE id = ?', [c.id]);
+        // Cascade takes care of phones/emails/notes; skip the rest for this contact.
+        continue;
       }
+
+      if (remoteIsDeleted && !existing) {
+        // Remote deleted something that doesn't exist locally — nothing to do.
+        continue;
+      }
+
+      // Remote row is newer and not deleted → upsert it
+      db.runSync(
+        `INSERT OR REPLACE INTO contacts
+         (id, native_id, first_name, last_name, display_name, normalized_name,
+          company, job_title, notes, birthday, image_uri, has_thumbnail,
+          is_temporary, is_ghost, tags, synced_at, created_at, updated_at,
+          is_deleted, deleted_at)
+         VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
+        [c.id, c.native_id, c.first_name, c.last_name, c.display_name,
+         c.normalized_name, c.company, c.job_title, c.notes, c.birthday,
+         c.image_uri, c.has_thumbnail, c.is_temporary, c.is_ghost,
+         c.tags, c.synced_at, c.created_at, c.updated_at,
+         (c as any).is_deleted ?? 0, (c as any).deleted_at ?? null]
+      );
     }
     for (const e of bundle.emails) {
       db.runSync(`INSERT OR IGNORE INTO emails (id, contact_id, label, email, normalized_email) VALUES (?,?,?,?,?)`, [e.id, e.contact_id, e.label, e.email, e.normalized_email]);
