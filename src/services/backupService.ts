@@ -9,6 +9,7 @@ import * as Sharing from 'expo-sharing';
 import * as DocumentPicker from 'expo-document-picker';
 import { getDatabase } from '../db';
 import { encryptPayload, decryptPayload } from './encryptionService';
+import { upsertContactFts } from '../db/repositories/searchRepository';
 import type { ContactForgeBackup } from '../types';
 
 export async function generateBackupBundle(): Promise<ContactForgeBackup> {
@@ -123,6 +124,8 @@ export function importBackupBundle(bundle: ContactForgeBackup): void {
    *     delta sync is a future milestone.
    */
   db.withTransactionSync(() => {
+    const importedContactIds = new Set<number>();
+
     for (const c of bundle.contacts) {
       const existing = db.getFirstSync<{ updated_at: string; is_deleted: number } | null>(
         'SELECT updated_at, is_deleted FROM contacts WHERE id = ?',
@@ -136,10 +139,12 @@ export function importBackupBundle(bundle: ContactForgeBackup): void {
 
       if (remoteIsDeleted && existing) {
         // Remote tombstone is newer → propagate the delete locally.
-        // FTS cleanup: the row is about to go, delete from index first.
+        // FTS cleanup: the row is about to go (logically), delete from index first.
         db.runSync('DELETE FROM contacts_fts WHERE rowid = ?', [c.id]);
-        db.runSync('DELETE FROM contacts WHERE id = ?', [c.id]);
-        // Cascade takes care of phones/emails/notes; skip the rest for this contact.
+        db.runSync(
+          'UPDATE contacts SET is_deleted = 1, deleted_at = ?, updated_at = ? WHERE id = ?',
+          [(c as any).deleted_at ?? null, (c as any).updated_at ?? null, c.id]
+        );
         continue;
       }
 
@@ -162,6 +167,7 @@ export function importBackupBundle(bundle: ContactForgeBackup): void {
          c.tags, c.synced_at, c.created_at, c.updated_at,
          (c as any).is_deleted ?? 0, (c as any).deleted_at ?? null]
       );
+      importedContactIds.add(c.id);
     }
     for (const e of bundle.emails) {
       db.runSync(`INSERT OR IGNORE INTO emails (id, contact_id, label, email, normalized_email) VALUES (?,?,?,?,?)`, [e.id, e.contact_id, e.label, e.email, e.normalized_email]);
@@ -183,6 +189,11 @@ export function importBackupBundle(bundle: ContactForgeBackup): void {
     }
     for (const s of bundle.snapshots) {
       db.runSync(`INSERT OR IGNORE INTO network_snapshots (id, total_contacts, important_contacts, stale_contacts, overdue_follow_ups, active_relationships, warm_relationships, cold_relationships, created_at) VALUES (?,?,?,?,?,?,?,?,?)`, [s.id, s.total_contacts, s.important_contacts, s.stale_contacts, s.overdue_follow_ups, s.active_relationships, s.warm_relationships, s.cold_relationships, s.created_at]);
+    }
+    
+    // Update FTS index for all successfully imported/updated non-deleted contacts
+    for (const contactId of importedContactIds) {
+      upsertContactFts(contactId);
     }
   });
 }

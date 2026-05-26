@@ -178,6 +178,9 @@ export function restoreContactWithDetailsSync(contact: ContactWithDetails): void
       [email.id, contact.id, email.label ?? null, email.email, email.normalizedEmail],
     );
   }
+
+  // Ensure restored contact appears in search
+  upsertContactFts(contact.id);
 }
 
 export function updateContact(
@@ -253,16 +256,13 @@ export function deleteContact(id: number): void {
     useUndoStore.getState().setUndoableAction(`Contact "${contact.displayName}" deleted.`);
   }
   // Write tombstone so sync bundles can propagate this delete to other devices.
-  // The hard DELETE still runs — the tombstone is captured in the backup bundle
-  // generated AFTER deleteContact completes.
   const tombstoneAt = now();
   getDatabase().runSync(
     'UPDATE contacts SET is_deleted = 1, deleted_at = ?, updated_at = ? WHERE id = ?',
     [tombstoneAt, tombstoneAt, id]
   );
-  // Remove from FTS (contact row still exists briefly)
+  // Remove from FTS (contact row still exists as tombstone)
   removeContactFts(id);
-  getDatabase().runSync('DELETE FROM contacts WHERE id = ?', [id]);
 }
 
 export function deleteContactsBulk(ids: number[]): void {
@@ -288,7 +288,6 @@ export function deleteContactsBulk(ids: number[]): void {
         [tombstoneAt, tombstoneAt, id]
       );
       removeContactFts(id);
-      db.runSync('DELETE FROM contacts WHERE id = ?', [id]);
     }
   });
 }

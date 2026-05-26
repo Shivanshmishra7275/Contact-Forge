@@ -205,6 +205,18 @@ export default function SmartMergeScreen() {
     [candidate, setPendingDuplicateCount],
   );
 
+  const handleIgnore = useCallback(() => {
+    if (!candidate) return;
+    try {
+      resolveDuplicateCandidate(candidate.id, 'ignored');
+      const newCount = getPendingDuplicates().length;
+      setPendingDuplicateCount(newCount);
+      router.back();
+    } catch (err) {
+      Alert.alert('Error', 'Could not ignore this pair.');
+    }
+  }, [candidate, setPendingDuplicateCount]);
+
   if (!candidate || !comparison) {
     return (
       <View style={styles.center}>
@@ -270,9 +282,19 @@ export default function SmartMergeScreen() {
             disabled={isMerging}
             icon="merge"
             buttonColor={COLORS.primary}
-            style={styles.mergeBtn}
+            style={styles.actionBtn}
           >
             Confirm Merge
+        </Button>
+        <Button
+            mode="outlined"
+            onPress={handleIgnore}
+            disabled={isMerging}
+            icon="eye-off"
+            textColor={COLORS.textSecondary}
+            style={styles.actionBtn}
+          >
+            Not a Duplicate
         </Button>
         <Button
             mode="text"
@@ -354,7 +376,7 @@ const styles = StyleSheet.create({
       borderTopColor: COLORS.surfaceVariant,
       gap: SPACING.sm,
   },
-  mergeBtn: { 
+  actionBtn: { 
       paddingVertical: 4,
   },
   notFound: { color: COLORS.textSecondary, fontSize: FONT_SIZE.md },

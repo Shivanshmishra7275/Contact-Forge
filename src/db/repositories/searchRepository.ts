@@ -145,11 +145,17 @@ export function upsertContactFts(contactId: number): void {
       company: string | null;
       tags: string;
       notes: string | null;
+      is_deleted: number;
     }>(
-      'SELECT display_name, company, tags, notes FROM contacts WHERE id = ?',
+      'SELECT display_name, company, tags, notes, is_deleted FROM contacts WHERE id = ?',
       [contactId]
     );
     if (!contact) return;
+
+    if (contact.is_deleted === 1) {
+      removeContactFts(contactId);
+      return;
+    }
 
     const phones = db.getAllSync<{ normalized_number: string }>(
       'SELECT normalized_number FROM phone_numbers WHERE contact_id = ?',

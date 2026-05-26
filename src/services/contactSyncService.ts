@@ -23,6 +23,7 @@ import {
   deleteContact,
   listNativeContactIds,
 } from '../db/repositories/contactRepository';
+import { upsertContactFts } from '../db/repositories/searchRepository';
 import { getDatabase } from '../db';
 import { logAction } from '../db/repositories/auditRepository';
 import { normalizeEmail, normalizePhone, now } from '../utils/normalization';
@@ -281,6 +282,9 @@ function upsertNativeContact(
           insertEmail({ contactId: existing.id, label: e.label ?? undefined, email: e.email });
         }
       }
+      
+      // Update FTS after all sub-entities are added
+      upsertContactFts(existing.id);
     }
 
     return changed ? 'updated' : 'unchanged';
@@ -308,6 +312,9 @@ function upsertNativeContact(
         insertEmail({ contactId, label: e.label ?? undefined, email: e.email });
       }
     }
+
+    // Update FTS after all sub-entities are added
+    upsertContactFts(contactId);
 
     return 'added';
   }
