@@ -18,7 +18,9 @@
       "supportsTablet": false,
       "infoPlist": {
         "NSContactsUsageDescription": "ContactForge needs access to your contacts to help you organize, clean, and manage them locally on your device. No data is ever sent to any server.",
-        "UIBackgroundModes": ["fetch"]
+        "UIBackgroundModes": [
+          "fetch"
+        ]
       }
     },
     "android": {
@@ -50,7 +52,8 @@
         {
           "contactsPermission": "ContactForge needs access to your contacts to help you organize, clean, and manage them locally on your device. No data is ever sent to any server."
         }
-      ]
+      ],
+      "expo-secure-store"
     ],
     "experiments": {
       "typedRoutes": true

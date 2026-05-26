@@ -30,6 +30,10 @@ import {
   registerBackgroundMaintenance,
   unregisterBackgroundMaintenance,
 } from '../src/services/backgroundMaintenance';
+import {
+  registerBackgroundSync,
+  unregisterBackgroundSync,
+} from '../src/services/BackgroundSyncService';
 
 /**
  * Premium dark theme with Shivansh Mishra's ContactForge brand colours
@@ -109,10 +113,19 @@ export default function RootLayout() {
     let active = true;
     const configure = async () => {
       if (!active) return;
+      
+      // Maintenance
       if (settings.enableBackgroundMaintenance) {
         await registerBackgroundMaintenance();
       } else {
         await unregisterBackgroundMaintenance();
+      }
+      
+      // WebDAV Sync
+      if (settings.enableBackgroundWebDavSync) {
+        await registerBackgroundSync();
+      } else {
+        await unregisterBackgroundSync();
       }
     };
 
@@ -120,7 +133,7 @@ export default function RootLayout() {
     return () => {
       active = false;
     };
-  }, [settings.enableBackgroundMaintenance]);
+  }, [settings.enableBackgroundMaintenance, settings.enableBackgroundWebDavSync]);
 
   useEffect(() => {
     const subscription = AppState.addEventListener('change', (state) => {

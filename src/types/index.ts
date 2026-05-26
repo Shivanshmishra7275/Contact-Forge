@@ -182,6 +182,9 @@ export interface AppSettings {
   syncWebDavUser: string;
   syncWebDavPass: string;
   lastSyncTime: string | null;
+  hasAcceptedTerms: boolean;
+  enableBackgroundWebDavSync: boolean;
+  lastAutomatedSyncTime: string | null;
 }
 
 // ---------------------------------------------------------------------------

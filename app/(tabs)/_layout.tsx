@@ -2,13 +2,18 @@
  * ContactForge — Tab Navigator Layout
  */
 
-import { Tabs } from 'expo-router';
+import { Tabs, Redirect } from 'expo-router';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useAppStore } from '../../src/store/appStore';
 import { COLORS } from '../../src/constants';
 
 export default function TabLayout() {
   const pendingDuplicates = useAppStore((s) => s.pendingDuplicateCount);
+  const settings = useAppStore((s) => s.settings);
+
+  if (!settings.hasAcceptedTerms) {
+    return <Redirect href="/legal/terms" />;
+  }
 
   return (
     <Tabs

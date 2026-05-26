@@ -25,6 +25,8 @@ import { getMaintenanceState, runMaintenance } from '../../src/services/maintena
 import { checkForUpdates, getUpdateState } from '../../src/services/updateService';
 import { exportEncryptedBackup, restoreEncryptedBackup } from '../../src/services/backupService';
 import { syncAdapter } from '../../src/services/syncAdapter';
+import { registerBackgroundSync, unregisterBackgroundSync } from '../../src/services/BackgroundSyncService';
+import * as SecureStore from 'expo-secure-store';
 import { useAppStore } from '../../src/store/appStore';
 import { COLORS, SPACING, FONT_SIZE, APP_NAME, APP_VERSION, DEFAULT_SETTINGS, RELEASES_URL } from '../../src/constants';
 import { EXPORT_WARNING_DIALOG } from '../../src/constants/legalContent';
@@ -492,9 +494,41 @@ export default function SettingsScreen() {
                 Pull
               </Button>
             </View>
+            <Divider style={[styles.divider, { marginVertical: SPACING.md }]} />
+            <SettingRow label="Automated Background Sync">
+              <Switch
+                value={settings.enableBackgroundWebDavSync}
+                onValueChange={async (v) => {
+                  if (v) {
+                    if (!passphrase || !settings.syncWebDavEndpoint || !settings.syncWebDavUser || !settings.syncWebDavPass) {
+                      Alert.alert('Configuration Error', 'Please enter your WebDAV credentials and backup passphrase before enabling background sync.');
+                      return;
+                    }
+                    try {
+                      await SecureStore.setItemAsync('webdav_user', settings.syncWebDavUser);
+                      await SecureStore.setItemAsync('webdav_pass', settings.syncWebDavPass);
+                      await SecureStore.setItemAsync('webdav_passphrase', passphrase);
+                      await registerBackgroundSync();
+                      update('enableBackgroundWebDavSync', true);
+                    } catch (e) {
+                      Alert.alert('Error', 'Failed to enable background sync.');
+                    }
+                  } else {
+                    await unregisterBackgroundSync();
+                    update('enableBackgroundWebDavSync', false);
+                  }
+                }}
+                color={COLORS.primary}
+              />
+            </SettingRow>
             {settings.lastSyncTime && (
               <Text style={[styles.maintenanceNote, { marginTop: SPACING.md }]}>
-                Last successful sync: {isoToDisplay(settings.lastSyncTime)}
+                Last manual sync: {isoToDisplay(settings.lastSyncTime)}
+              </Text>
+            )}
+            {settings.lastAutomatedSyncTime && (
+              <Text style={styles.maintenanceNote}>
+                Last automated sync: {isoToDisplay(settings.lastAutomatedSyncTime)}
               </Text>
             )}
           </Card.Content>

@@ -68,6 +68,9 @@ export function getAllSettings(): AppSettings {
     syncWebDavUser: map.syncWebDavUser ?? DEFAULT_SETTINGS.syncWebDavUser,
     syncWebDavPass: map.syncWebDavPass ?? DEFAULT_SETTINGS.syncWebDavPass,
     lastSyncTime: map.lastSyncTime ?? DEFAULT_SETTINGS.lastSyncTime,
+    hasAcceptedTerms: (map.hasAcceptedTerms ?? String(DEFAULT_SETTINGS.hasAcceptedTerms)) === 'true',
+    enableBackgroundWebDavSync: (map.enableBackgroundWebDavSync ?? String(DEFAULT_SETTINGS.enableBackgroundWebDavSync)) === 'true',
+    lastAutomatedSyncTime: map.lastAutomatedSyncTime ?? DEFAULT_SETTINGS.lastAutomatedSyncTime,
   };
 }
 

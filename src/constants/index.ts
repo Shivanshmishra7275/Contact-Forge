@@ -51,6 +51,9 @@ export const DEFAULT_SETTINGS = {
   syncWebDavUser: '',
   syncWebDavPass: '',
   lastSyncTime: null,
+  hasAcceptedTerms: false,
+  enableBackgroundWebDavSync: false,
+  lastAutomatedSyncTime: null,
 } as const;
 
 export const MAINTENANCE_MIN_INTERVAL_MINUTES = 60;
