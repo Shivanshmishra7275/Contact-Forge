@@ -13,8 +13,16 @@
 import * as SQLite from 'expo-sqlite';
 import { DB_NAME } from '../constants';
 import { ALL_CREATE_STATEMENTS } from './schema';
+import { probeFtsMode, type FtsMode } from './ftsProbe';
+import { createFtsTable, populateFtsFromExisting } from './repositories/searchRepository';
 
 let _db: SQLite.SQLiteDatabase | null = null;
+let _ftsMode: FtsMode = 'none';
+
+/** Returns the FTS mode determined at last DB open. */
+export function getFtsMode(): FtsMode {
+  return _ftsMode;
+}
 
 /**
  * Returns the open database instance, initialising schema on first call.
@@ -31,6 +39,12 @@ export function getDatabase(): SQLite.SQLiteDatabase {
   _db.execSync('PRAGMA foreign_keys = ON;');
 
   initSchema(_db);
+
+  // ── FTS: probe runtime support AFTER regular tables exist ───────────────
+  // Must run outside initSchema's transaction so virtual table DDL is safe
+  _ftsMode = probeFtsMode(_db);
+  createFtsTable(_db, _ftsMode);
+  populateFtsFromExisting(_db);
 
   return _db;
 }
@@ -52,6 +66,7 @@ function initSchema(db: SQLite.SQLiteDatabase): void {
     `);
   });
 }
+
 
 /**
  * Tears down the database connection.

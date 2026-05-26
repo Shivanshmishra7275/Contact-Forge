@@ -18,6 +18,11 @@ import { PAGE_SIZE } from '../../constants';
 import { recordUndoAction } from './undoRepository';
 import type { UndoDeletePayload, UndoBulkDeletePayload } from '../../features/undo/types';
 import { useUndoStore } from '../../store/undoStore';
+import {
+  upsertContactFts,
+  removeContactFts,
+  searchContactIdsFts,
+} from './searchRepository';
 
 // ---------------------------------------------------------------------------
 // Row mapper helpers
@@ -120,7 +125,11 @@ export function insertContact(params: {
     ],
   );
 
-  return result.lastInsertRowId;
+  const id = result.lastInsertRowId;
+  // Update FTS index for this new contact (phones/emails not yet added;
+  // caller must call upsertContactFts again after phone/email inserts).
+  upsertContactFts(id);
+  return id;
 }
 
 export function restoreContactWithDetailsSync(contact: ContactWithDetails): void {
@@ -228,6 +237,8 @@ export function updateContact(
   values.push(id);
 
   db.runSync(`UPDATE contacts SET ${fields.join(', ')} WHERE id = ?`, values);
+  // Rebuild FTS entry — phones/emails may also have changed via replacePhones/Emails
+  upsertContactFts(id);
 }
 
 export function deleteContact(id: number): void {
@@ -241,6 +252,8 @@ export function deleteContact(id: number): void {
     });
     useUndoStore.getState().setUndoableAction(`Contact "${contact.displayName}" deleted.`);
   }
+  // Remove from FTS before hard delete (contact row still exists here)
+  removeContactFts(id);
   getDatabase().runSync('DELETE FROM contacts WHERE id = ?', [id]);
 }
 
@@ -261,6 +274,7 @@ export function deleteContactsBulk(ids: number[]): void {
 
   db.withTransactionSync(() => {
     for (const id of ids) {
+      removeContactFts(id);
       db.runSync('DELETE FROM contacts WHERE id = ?', [id]);
     }
   });
@@ -339,6 +353,8 @@ export function replacePhonesByContactIdSync(
       [contactId, phone.label ?? null, phone.number, normalizePhone(phone.number)],
     );
   }
+  // Rebuild FTS after phone change
+  upsertContactFts(contactId);
 }
 
 export function deleteEmailsByContactId(contactId: number): void {
@@ -359,6 +375,8 @@ export function replaceEmailsByContactIdSync(
       [contactId, email.label ?? null, email.email, normalizeEmail(email.email)],
     );
   }
+  // Rebuild FTS after email change
+  upsertContactFts(contactId);
 }
 
 export function getPhonesByContactId(contactId: number): PhoneNumber[] {
@@ -407,22 +425,33 @@ export function listContacts(params: ContactListParams = {}): LocalContact[] {
   const args: (string | number)[] = [];
 
   if (search) {
-    const normalizedPattern = `%${normalizeName(search)}%`;
-    const digitPattern = `%${search.replace(/\D/g, '')}%`;
-    const lowerPattern = `%${search.toLowerCase()}%`;
-    conditions.push(
-      `(
-        normalized_name LIKE ?
-        OR EXISTS (SELECT 1 FROM phone_numbers WHERE contact_id = contacts.id AND normalized_number LIKE ?)
-        OR EXISTS (SELECT 1 FROM emails WHERE contact_id = contacts.id AND normalized_email LIKE ?)
-        OR EXISTS (
-          SELECT 1 FROM contact_notes
-           WHERE contact_id = contacts.id
-             AND (LOWER(content) LIKE ? OR LOWER(COALESCE(title, '')) LIKE ?)
-        )
-      )`,
-    );
-    args.push(normalizedPattern, digitPattern, lowerPattern, lowerPattern, lowerPattern);
+    // Try FTS first for indexed, ranked search
+    const ftsIds = searchContactIdsFts(search);
+    if (ftsIds.length > 0) {
+      // FTS found results — restrict to those IDs. Additional filters still apply.
+      const placeholders = ftsIds.map(() => '?').join(',');
+      conditions.push(`id IN (${placeholders})`);
+      args.push(...ftsIds);
+    } else if (ftsIds.length === 0) {
+      // FTS mode is active but returned no results — could be empty query or
+      // truly no matches. Fall back to LIKE for safety.
+      const normalizedPattern = `%${normalizeName(search)}%`;
+      const digitPattern = `%${search.replace(/\D/g, '')}%`;
+      const lowerPattern = `%${search.toLowerCase()}%`;
+      conditions.push(
+        `(
+          normalized_name LIKE ?
+          OR EXISTS (SELECT 1 FROM phone_numbers WHERE contact_id = contacts.id AND normalized_number LIKE ?)
+          OR EXISTS (SELECT 1 FROM emails WHERE contact_id = contacts.id AND normalized_email LIKE ?)
+          OR EXISTS (
+            SELECT 1 FROM contact_notes
+             WHERE contact_id = contacts.id
+               AND (LOWER(content) LIKE ? OR LOWER(COALESCE(title, '')) LIKE ?)
+          )
+        )`,
+      );
+      args.push(normalizedPattern, digitPattern, lowerPattern, lowerPattern, lowerPattern);
+    }
   }
   if (typeof isTemporary === 'boolean') {
     conditions.push('is_temporary = ?');
@@ -433,15 +462,13 @@ export function listContacts(params: ContactListParams = {}): LocalContact[] {
     args.push(isGhost ? 1 : 0);
   }
   if (tag) {
-    // Match the tag as a complete JSON string value, not a substring
-    // Tags are stored as JSON array e.g. ["client","vip"] — match "tag" as a full element
     const escapedTag = tag.replace(/"/g, '""');
     conditions.push("(tags LIKE ? OR tags LIKE ? OR tags LIKE ? OR tags LIKE ?)");
     args.push(
-      `["${escapedTag}"]`,        // sole element
-      `["${escapedTag}",%`,       // first element
-      `%,"${escapedTag}"]`,       // last element
-      `%,"${escapedTag}",%`       // middle element
+      `["${escapedTag}"]`,
+      `["${escapedTag}",%`,
+      `%,"${escapedTag}"]`,
+      `%,"${escapedTag}",%`
     );
   }
 
@@ -462,22 +489,30 @@ export function countContacts(params: Omit<ContactListParams, 'page' | 'pageSize
   const args: (string | number)[] = [];
 
   if (search) {
-    const normalizedPattern = `%${normalizeName(search)}%`;
-    const digitPattern = `%${search.replace(/\D/g, '')}%`;
-    const lowerPattern = `%${search.toLowerCase()}%`;
-    conditions.push(
-      `(
-        normalized_name LIKE ?
-        OR EXISTS (SELECT 1 FROM phone_numbers WHERE contact_id = contacts.id AND normalized_number LIKE ?)
-        OR EXISTS (SELECT 1 FROM emails WHERE contact_id = contacts.id AND normalized_email LIKE ?)
-        OR EXISTS (
-          SELECT 1 FROM contact_notes
-           WHERE contact_id = contacts.id
-             AND (LOWER(content) LIKE ? OR LOWER(COALESCE(title, '')) LIKE ?)
-        )
-      )`,
-    );
-    args.push(normalizedPattern, digitPattern, lowerPattern, lowerPattern, lowerPattern);
+    const ftsIds = searchContactIdsFts(search);
+    if (ftsIds.length > 0) {
+      const placeholders = ftsIds.map(() => '?').join(',');
+      conditions.push(`id IN (${placeholders})`);
+      args.push(...ftsIds);
+    } else {
+      // LIKE fallback
+      const normalizedPattern = `%${normalizeName(search)}%`;
+      const digitPattern = `%${search.replace(/\D/g, '')}%`;
+      const lowerPattern = `%${search.toLowerCase()}%`;
+      conditions.push(
+        `(
+          normalized_name LIKE ?
+          OR EXISTS (SELECT 1 FROM phone_numbers WHERE contact_id = contacts.id AND normalized_number LIKE ?)
+          OR EXISTS (SELECT 1 FROM emails WHERE contact_id = contacts.id AND normalized_email LIKE ?)
+          OR EXISTS (
+            SELECT 1 FROM contact_notes
+             WHERE contact_id = contacts.id
+               AND (LOWER(content) LIKE ? OR LOWER(COALESCE(title, '')) LIKE ?)
+          )
+        )`,
+      );
+      args.push(normalizedPattern, digitPattern, lowerPattern, lowerPattern, lowerPattern);
+    }
   }
   if (typeof isTemporary === 'boolean') {
     conditions.push('is_temporary = ?');
