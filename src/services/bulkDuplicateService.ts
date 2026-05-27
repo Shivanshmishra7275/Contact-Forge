@@ -45,15 +45,14 @@ export function executeSafeBulkMerge(): BulkMergeResult {
         continue;
       }
 
-      const comparisonModel = buildMergeComparison(contactA, contactB, candidate.reasons);
+      const comparisonModel = buildMergeComparison(contactA, contactB);
+      const mergeResult = buildMergeResult(comparisonModel, candidate.reasons);
       
       // Phase F: Check if it's safe for bulk merge without user review
-      if (!isSafeBulkMerge(comparisonModel)) {
+      if (!mergeResult.isSafeBulkMergeable) {
         skippedCount++;
         continue;
       }
-
-      const mergeResult = buildMergeResult(comparisonModel);
       
       // Determine actual survivor and absorbed based on mergeResult
       const survivor = mergeResult.survivorId === contactA.id ? contactA : contactB;
@@ -83,7 +82,7 @@ export function executeSafeBulkMerge(): BulkMergeResult {
         birthday: mergeResult.birthday,
         imageUri: mergeResult.imageUri,
         hasThumbnail: mergeResult.hasThumbnail,
-        isTemporary: mergeResult.isTemporary,
+        isTemporary: survivor.isTemporary,
         tags: mergeResult.tags,
       };
       updateContact(survivor.id, scalarUpdates);
@@ -107,7 +106,7 @@ export function executeSafeBulkMerge(): BulkMergeResult {
       // 6. Resolve duplicate candidate
       resolveDuplicateCandidate(candidate.id, 'safe');
 
-      logAction('bulk_merge_executed', survivor.id, {
+      logAction('contacts_merged', survivor.id, {
         survivorId: survivor.id,
         absorbedId: absorbed.id,
         movedNotes,
