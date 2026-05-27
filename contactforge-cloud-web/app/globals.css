@@ -11,3 +11,25 @@ body {
   margin: 0;
   -webkit-font-smoothing: antialiased;
 }
+
+@keyframes aurora {
+  0% { transform: translate(0%, 0%) rotate(0deg) scale(1); }
+  33% { transform: translate(15%, -15%) rotate(120deg) scale(1.2); }
+  66% { transform: translate(-10%, 15%) rotate(240deg) scale(0.9); }
+  100% { transform: translate(0%, 0%) rotate(360deg) scale(1); }
+}
+.animate-aurora {
+  animation: aurora 30s infinite linear;
+}
+.animate-aurora-reverse {
+  animation: aurora 25s infinite linear reverse;
+}
+
+@keyframes border-spin {
+  100% {
+    transform: rotate(360deg);
+  }
+}
+.animate-border-spin {
+  animation: border-spin 4s linear infinite;
+}

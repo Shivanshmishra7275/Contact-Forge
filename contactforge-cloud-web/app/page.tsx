@@ -2,7 +2,8 @@
 
 import React, { useState } from 'react';
 import Image from 'next/image';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence, useScroll, useTransform } from 'framer-motion';
+import { useRef } from 'react';
 import {
   ShieldCheck,
   Download,
@@ -60,16 +61,32 @@ export default function Home() {
     trackEvent('View GitHub', { source: 'hero' });
   };
 
+  const containerRef = useRef(null);
+  const { scrollYProgress } = useScroll({
+    target: containerRef,
+    offset: ['start start', 'end start'],
+  });
+
+  // Parallax values
+  const heroY = useTransform(scrollYProgress, [0, 1], [0, 300]);
+  const heroOpacity = useTransform(scrollYProgress, [0, 0.5], [1, 0]);
+  const heroScale = useTransform(scrollYProgress, [0, 0.5], [1, 0.9]);
+
   return (
-    <main className="min-h-screen bg-[#03050B] flex flex-col items-center relative overflow-hidden font-sans selection:bg-teal-500/30 pb-24">
-      {/* ── Background Glows ─────────────────────────────────────────────────── */}
-      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[1000px] h-[600px] bg-gradient-to-b from-teal-500/10 to-transparent blur-[120px] rounded-full pointer-events-none" />
-      <div className="absolute top-1/4 right-0 w-[500px] h-[500px] bg-blue-600/10 blur-[150px] rounded-full pointer-events-none" />
-      <div className="absolute bottom-1/3 left-0 w-[400px] h-[400px] bg-purple-600/8 blur-[150px] rounded-full pointer-events-none" />
+    <main ref={containerRef} className="min-h-screen bg-[#020617] flex flex-col items-center relative overflow-hidden font-sans selection:bg-teal-500/30 pb-24">
+      {/* ── God-Level Fluid Aurora Background ─────────────────────────────────── */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute top-[-10%] left-[-10%] w-[120%] h-[120%] opacity-40">
+          <div className="absolute top-[20%] left-[20%] w-[800px] h-[800px] bg-cyan-600/30 rounded-full blur-[120px] animate-aurora mix-blend-screen" />
+          <div className="absolute top-[30%] right-[10%] w-[700px] h-[700px] bg-violet-700/40 rounded-full blur-[140px] animate-aurora-reverse mix-blend-screen" />
+          <div className="absolute bottom-[20%] left-[30%] w-[900px] h-[900px] bg-indigo-600/30 rounded-full blur-[130px] animate-aurora mix-blend-screen" style={{ animationDelay: '-5s' }} />
+          <div className="absolute bottom-[10%] right-[20%] w-[600px] h-[600px] bg-blue-700/30 rounded-full blur-[100px] animate-aurora-reverse mix-blend-screen" style={{ animationDelay: '-10s' }} />
+        </div>
+      </div>
 
       {/* Noise texture overlay */}
       <div
-        className="absolute inset-0 opacity-[0.02] pointer-events-none mix-blend-overlay"
+        className="absolute inset-0 opacity-[0.03] pointer-events-none mix-blend-overlay"
         style={{
           backgroundImage:
             'url("data:image/svg+xml,%3Csvg viewBox=%220 0 200 200%22 xmlns=%22http://www.w3.org/2000/svg%22%3E%3Cfilter id=%22noiseFilter%22%3E%3CfeTurbulence type=%22fractalNoise%22 baseFrequency=%220.85%22 numOctaves=%223%22 stitchTiles=%22stitch%22/%3E%3C/filter%3E%3Crect width=%22100%25%22 height=%22100%25%22 filter=%22url(%23noiseFilter)%22/%3E%3C/svg%3E")',
@@ -77,6 +94,7 @@ export default function Home() {
       />
 
       <div className="z-10 w-full max-w-5xl px-6 flex flex-col items-center pt-32">
+        <motion.div style={{ y: heroY, opacity: heroOpacity, scale: heroScale }} className="flex flex-col items-center w-full">
 
         {/* ── Security Badge ──────────────────────────────────────────────────── */}
         <motion.div
@@ -163,6 +181,7 @@ export default function Home() {
             </a>
           </span>
         </motion.div>
+        </motion.div>
 
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -189,15 +208,15 @@ export default function Home() {
 
         {/* ── Why ContactForge ────────────────────────────────────────────────── */}
         <motion.div
-          initial={{ opacity: 0 }}
-          whileInView={{ opacity: 1 }}
+          initial={{ opacity: 0, scale: 0.9 }}
+          whileInView={{ opacity: 1, scale: 1 }}
           viewport={{ once: true, margin: '-100px' }}
-          transition={{ duration: 1 }}
-          className="w-full text-center mb-20"
+          transition={{ duration: 1, ease: [0.16, 1, 0.3, 1] }}
+          className="w-full text-center mb-20 relative z-10"
         >
-          <h2 className="text-sm font-bold tracking-widest text-teal-400 uppercase mb-4">Why It Matters</h2>
-          <p className="text-3xl md:text-4xl font-semibold text-slate-200 max-w-4xl mx-auto leading-tight">
-            Built for privacy-first contact cleanup. No silent uploads, no cloud mining, no opaque algorithms.
+          <h2 className="text-sm font-bold tracking-widest text-teal-400 uppercase mb-4 drop-shadow-[0_0_8px_rgba(45,212,191,0.5)]">The Local-First Engine</h2>
+          <p className="text-4xl md:text-5xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-slate-200 to-slate-500 max-w-4xl mx-auto leading-tight">
+            Forging order from chaos. No silent uploads, no cloud mining, no opaque algorithms.
           </p>
         </motion.div>
 
@@ -207,82 +226,112 @@ export default function Home() {
           <div className="grid grid-cols-1 md:grid-cols-6 gap-6 relative z-10">
             {/* Feature 1 (Large) */}
             <motion.div 
+              initial={{ opacity: 0, rotateX: 15, y: 40 }}
+              whileInView={{ opacity: 1, rotateX: 0, y: 0 }}
+              viewport={{ once: true, margin: '-50px' }}
               whileHover={{ scale: 1.02, y: -4 }}
               transition={{ type: "spring", stiffness: 300, damping: 20 }}
-              className="md:col-span-4 bg-slate-900/40 border border-slate-800/60 p-8 rounded-[2rem] backdrop-blur-xl hover:bg-slate-800/40 hover:border-teal-500/30 transition-colors duration-500 group shadow-2xl relative overflow-hidden"
+              className="md:col-span-4 relative rounded-[2rem] p-[1px] group overflow-hidden"
             >
-              <div className="absolute top-0 right-0 w-64 h-64 bg-teal-500/10 blur-[80px] rounded-full pointer-events-none transition-opacity opacity-0 group-hover:opacity-100 duration-700" />
-              <div className="bg-gradient-to-br from-teal-500/20 to-emerald-500/10 w-14 h-14 flex items-center justify-center rounded-2xl mb-6 border border-teal-500/20 group-hover:border-teal-500/40 transition-colors relative z-10">
-                <Users className="w-7 h-7 text-teal-400" />
+              <div className="absolute inset-[-150%] animate-border-spin bg-[conic-gradient(from_0deg,transparent_0_300deg,rgba(45,212,191,0.5)_360deg)] opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+              <div className="relative h-full w-full bg-[#020617]/80 backdrop-blur-xl border border-slate-800/80 p-8 rounded-[2rem] overflow-hidden z-10 shadow-2xl transition-colors duration-500 group-hover:bg-[#020617]/90">
+                <div className="absolute top-0 right-0 w-64 h-64 bg-teal-500/10 blur-[80px] rounded-full pointer-events-none transition-opacity opacity-0 group-hover:opacity-100 duration-700" />
+                <div className="bg-gradient-to-br from-teal-500/20 to-emerald-500/10 w-14 h-14 flex items-center justify-center rounded-2xl mb-6 border border-teal-500/20 group-hover:border-teal-500/40 transition-colors relative z-10">
+                  <Users className="w-7 h-7 text-teal-400" />
+                </div>
+                <h3 className="text-2xl font-bold text-white mb-3 relative z-10">Gesture Flashcard Review</h3>
+                <p className="text-slate-400 text-sm leading-relaxed max-w-lg relative z-10">
+                  Swipe right to merge, left to dismiss, down to snooze. Review every duplicate pair with clear explanations—never guessing why two contacts were flagged.
+                </p>
               </div>
-              <h3 className="text-2xl font-bold text-white mb-3 relative z-10">Gesture Flashcard Review</h3>
-              <p className="text-slate-400 text-sm leading-relaxed max-w-lg relative z-10">
-                Swipe right to merge, left to dismiss, down to snooze. Review every duplicate pair with clear explanations—never guessing why two contacts were flagged.
-              </p>
             </motion.div>
 
             {/* Feature 2 (Medium) */}
             <motion.div 
+              initial={{ opacity: 0, rotateX: 15, y: 40 }}
+              whileInView={{ opacity: 1, rotateX: 0, y: 0 }}
+              viewport={{ once: true, margin: '-50px' }}
               whileHover={{ scale: 1.03, y: -4 }}
               transition={{ type: "spring", stiffness: 300, damping: 20 }}
-              className="md:col-span-2 bg-slate-900/40 border border-slate-800/60 p-8 rounded-[2rem] backdrop-blur-xl hover:bg-slate-800/40 hover:border-blue-500/30 transition-colors duration-500 group shadow-2xl relative overflow-hidden"
+              className="md:col-span-2 relative rounded-[2rem] p-[1px] group overflow-hidden"
             >
-              <div className="absolute bottom-0 right-0 w-48 h-48 bg-blue-500/10 blur-[60px] rounded-full pointer-events-none transition-opacity opacity-0 group-hover:opacity-100 duration-700" />
-              <div className="bg-gradient-to-br from-blue-500/20 to-indigo-500/10 w-14 h-14 flex items-center justify-center rounded-2xl mb-6 border border-blue-500/20 group-hover:border-blue-500/40 transition-colors relative z-10">
-                <Zap className="w-7 h-7 text-blue-400" />
+              <div className="absolute inset-[-150%] animate-border-spin bg-[conic-gradient(from_0deg,transparent_0_300deg,rgba(59,130,246,0.5)_360deg)] opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+              <div className="relative h-full w-full bg-[#020617]/80 backdrop-blur-xl border border-slate-800/80 p-8 rounded-[2rem] overflow-hidden z-10 shadow-2xl transition-colors duration-500 group-hover:bg-[#020617]/90">
+                <div className="absolute bottom-0 right-0 w-48 h-48 bg-blue-500/10 blur-[60px] rounded-full pointer-events-none transition-opacity opacity-0 group-hover:opacity-100 duration-700" />
+                <div className="bg-gradient-to-br from-blue-500/20 to-indigo-500/10 w-14 h-14 flex items-center justify-center rounded-2xl mb-6 border border-blue-500/20 group-hover:border-blue-500/40 transition-colors relative z-10">
+                  <Zap className="w-7 h-7 text-blue-400" />
+                </div>
+                <h3 className="text-xl font-bold text-white mb-3 relative z-10">Deterministic Engine</h3>
+                <p className="text-slate-400 text-sm leading-relaxed relative z-10">
+                  Exact matching with SQL-optimised fuzzy fallback. No black-box AI scoring.
+                </p>
               </div>
-              <h3 className="text-xl font-bold text-white mb-3 relative z-10">Deterministic Engine</h3>
-              <p className="text-slate-400 text-sm leading-relaxed relative z-10">
-                Exact matching with SQL-optimised fuzzy fallback. No black-box AI scoring.
-              </p>
             </motion.div>
 
             {/* Feature 3 (Medium) */}
             <motion.div 
+              initial={{ opacity: 0, rotateX: 15, y: 40 }}
+              whileInView={{ opacity: 1, rotateX: 0, y: 0 }}
+              viewport={{ once: true, margin: '-50px' }}
               whileHover={{ scale: 1.03, y: -4 }}
               transition={{ type: "spring", stiffness: 300, damping: 20 }}
-              className="md:col-span-2 bg-slate-900/40 border border-slate-800/60 p-8 rounded-[2rem] backdrop-blur-xl hover:bg-slate-800/40 hover:border-purple-500/30 transition-colors duration-500 group shadow-2xl relative overflow-hidden"
+              className="md:col-span-2 relative rounded-[2rem] p-[1px] group overflow-hidden"
             >
-              <div className="absolute top-0 left-0 w-48 h-48 bg-purple-500/10 blur-[60px] rounded-full pointer-events-none transition-opacity opacity-0 group-hover:opacity-100 duration-700" />
-              <div className="bg-gradient-to-br from-purple-500/20 to-fuchsia-500/10 w-14 h-14 flex items-center justify-center rounded-2xl mb-6 border border-purple-500/20 group-hover:border-purple-500/40 transition-colors relative z-10">
-                <Lock className="w-7 h-7 text-purple-400" />
+              <div className="absolute inset-[-150%] animate-border-spin bg-[conic-gradient(from_0deg,transparent_0_300deg,rgba(168,85,247,0.5)_360deg)] opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+              <div className="relative h-full w-full bg-[#020617]/80 backdrop-blur-xl border border-slate-800/80 p-8 rounded-[2rem] overflow-hidden z-10 shadow-2xl transition-colors duration-500 group-hover:bg-[#020617]/90">
+                <div className="absolute top-0 left-0 w-48 h-48 bg-purple-500/10 blur-[60px] rounded-full pointer-events-none transition-opacity opacity-0 group-hover:opacity-100 duration-700" />
+                <div className="bg-gradient-to-br from-purple-500/20 to-fuchsia-500/10 w-14 h-14 flex items-center justify-center rounded-2xl mb-6 border border-purple-500/20 group-hover:border-purple-500/40 transition-colors relative z-10">
+                  <Lock className="w-7 h-7 text-purple-400" />
+                </div>
+                <h3 className="text-xl font-bold text-white mb-3 relative z-10">Zero-Upload Privacy</h3>
+                <p className="text-slate-400 text-sm leading-relaxed relative z-10">
+                  Everything runs in SQLite on device. Your contacts never leave your phone.
+                </p>
               </div>
-              <h3 className="text-xl font-bold text-white mb-3 relative z-10">Zero-Upload Privacy</h3>
-              <p className="text-slate-400 text-sm leading-relaxed relative z-10">
-                Everything runs in SQLite on device. Your contacts never leave your phone.
-              </p>
             </motion.div>
 
             {/* Feature 4 (Medium) */}
             <motion.div 
+              initial={{ opacity: 0, rotateX: 15, y: 40 }}
+              whileInView={{ opacity: 1, rotateX: 0, y: 0 }}
+              viewport={{ once: true, margin: '-50px' }}
               whileHover={{ scale: 1.03, y: -4 }}
               transition={{ type: "spring", stiffness: 300, damping: 20 }}
-              className="md:col-span-2 bg-slate-900/40 border border-slate-800/60 p-8 rounded-[2rem] backdrop-blur-xl hover:bg-slate-800/40 hover:border-orange-500/30 transition-colors duration-500 group shadow-2xl relative overflow-hidden"
+              className="md:col-span-2 relative rounded-[2rem] p-[1px] group overflow-hidden"
             >
-              <div className="absolute bottom-0 right-0 w-48 h-48 bg-orange-500/10 blur-[60px] rounded-full pointer-events-none transition-opacity opacity-0 group-hover:opacity-100 duration-700" />
-              <div className="bg-gradient-to-br from-orange-500/20 to-amber-500/10 w-14 h-14 flex items-center justify-center rounded-2xl mb-6 border border-orange-500/20 group-hover:border-orange-500/40 transition-colors relative z-10">
-                <Database className="w-7 h-7 text-orange-400" />
+              <div className="absolute inset-[-150%] animate-border-spin bg-[conic-gradient(from_0deg,transparent_0_300deg,rgba(249,115,22,0.5)_360deg)] opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+              <div className="relative h-full w-full bg-[#020617]/80 backdrop-blur-xl border border-slate-800/80 p-8 rounded-[2rem] overflow-hidden z-10 shadow-2xl transition-colors duration-500 group-hover:bg-[#020617]/90">
+                <div className="absolute bottom-0 right-0 w-48 h-48 bg-orange-500/10 blur-[60px] rounded-full pointer-events-none transition-opacity opacity-0 group-hover:opacity-100 duration-700" />
+                <div className="bg-gradient-to-br from-orange-500/20 to-amber-500/10 w-14 h-14 flex items-center justify-center rounded-2xl mb-6 border border-orange-500/20 group-hover:border-orange-500/40 transition-colors relative z-10">
+                  <Database className="w-7 h-7 text-orange-400" />
+                </div>
+                <h3 className="text-xl font-bold text-white mb-3 relative z-10">Smart Merge Preview</h3>
+                <p className="text-slate-400 text-sm leading-relaxed relative z-10">
+                  Field-by-field conflict resolution. Empty fields are hidden to cut through the noise.
+                </p>
               </div>
-              <h3 className="text-xl font-bold text-white mb-3 relative z-10">Smart Merge Preview</h3>
-              <p className="text-slate-400 text-sm leading-relaxed relative z-10">
-                Field-by-field conflict resolution. Empty fields are hidden to cut through the noise.
-              </p>
             </motion.div>
 
             {/* Feature 5 (Medium) */}
             <motion.div 
+              initial={{ opacity: 0, rotateX: 15, y: 40 }}
+              whileInView={{ opacity: 1, rotateX: 0, y: 0 }}
+              viewport={{ once: true, margin: '-50px' }}
               whileHover={{ scale: 1.03, y: -4 }}
               transition={{ type: "spring", stiffness: 300, damping: 20 }}
-              className="md:col-span-2 bg-slate-900/40 border border-slate-800/60 p-8 rounded-[2rem] backdrop-blur-xl hover:bg-slate-800/40 hover:border-green-500/30 transition-colors duration-500 group shadow-2xl relative overflow-hidden"
+              className="md:col-span-2 relative rounded-[2rem] p-[1px] group overflow-hidden"
             >
-              <div className="absolute top-0 right-0 w-48 h-48 bg-green-500/10 blur-[60px] rounded-full pointer-events-none transition-opacity opacity-0 group-hover:opacity-100 duration-700" />
-              <div className="bg-gradient-to-br from-green-500/20 to-teal-500/10 w-14 h-14 flex items-center justify-center rounded-2xl mb-6 border border-green-500/20 group-hover:border-green-500/40 transition-colors relative z-10">
-                <GitBranch className="w-7 h-7 text-green-400" />
+              <div className="absolute inset-[-150%] animate-border-spin bg-[conic-gradient(from_0deg,transparent_0_300deg,rgba(34,197,94,0.5)_360deg)] opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+              <div className="relative h-full w-full bg-[#020617]/80 backdrop-blur-xl border border-slate-800/80 p-8 rounded-[2rem] overflow-hidden z-10 shadow-2xl transition-colors duration-500 group-hover:bg-[#020617]/90">
+                <div className="absolute top-0 right-0 w-48 h-48 bg-green-500/10 blur-[60px] rounded-full pointer-events-none transition-opacity opacity-0 group-hover:opacity-100 duration-700" />
+                <div className="bg-gradient-to-br from-green-500/20 to-teal-500/10 w-14 h-14 flex items-center justify-center rounded-2xl mb-6 border border-green-500/20 group-hover:border-green-500/40 transition-colors relative z-10">
+                  <GitBranch className="w-7 h-7 text-green-400" />
+                </div>
+                <h3 className="text-xl font-bold text-white mb-3 relative z-10">Resilient Undo Engine</h3>
+                <p className="text-slate-400 text-sm leading-relaxed relative z-10">
+                  Snapshots are captured to SQLite before any destructive action so you can recover.
+                </p>
               </div>
-              <h3 className="text-xl font-bold text-white mb-3 relative z-10">Resilient Undo Engine</h3>
-              <p className="text-slate-400 text-sm leading-relaxed relative z-10">
-                Snapshots are captured to SQLite before any destructive action so you can recover.
-              </p>
             </motion.div>
           </div>
         </div>
