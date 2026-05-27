@@ -11,6 +11,7 @@ import {
   buildDisplayName,
   normalizePhone,
   normalizeEmail,
+  buildInvertedNameKey,
   now,
 } from '../../utils/normalization';
 import type { LocalContact, ContactWithDetails, PhoneNumber, EmailAddress } from '../../types';
@@ -101,16 +102,17 @@ export function insertContact(params: {
 
   const result = db.runSync(
     `INSERT INTO contacts
-       (native_id, first_name, last_name, display_name, normalized_name,
+       (native_id, first_name, last_name, display_name, normalized_name, name_key,
         company, job_title, notes, birthday, image_uri, has_thumbnail,
         is_temporary, tags, synced_at, created_at, updated_at)
-     VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
+     VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
     [
       params.nativeId ?? null,
       params.firstName ?? null,
       params.lastName ?? null,
       displayName,
       normalizedName,
+      buildInvertedNameKey(displayName),
       params.company ?? null,
       params.jobTitle ?? null,
       params.notes ?? null,
@@ -230,8 +232,8 @@ export function updateContact(
         'company' in params ? params.company ?? null : current.company,
         null,
       );
-      fields.push('display_name = ?', 'normalized_name = ?');
-      values.push(newDisplay, normalizeName(newDisplay));
+      fields.push('display_name = ?', 'normalized_name = ?', 'name_key = ?');
+      values.push(newDisplay, normalizeName(newDisplay), buildInvertedNameKey(newDisplay));
     }
   }
 

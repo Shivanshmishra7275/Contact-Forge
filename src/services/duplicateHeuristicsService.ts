@@ -8,8 +8,14 @@
  *   1. Exact normalized phone match across two different contacts
  *   2. Exact normalized email match across two different contacts
  *   3. Exact normalized name match
- *   4. High name similarity + overlapping last-7 phone digits
- *   5. Same company + high name similarity (fuzzy near-duplicate)
+ *   4. Inverted name match (e.g. "John Doe" vs "Doe John") via name_key grouping
+ *   5. High name similarity + overlapping last-7 phone digits
+ *
+ * Safety guarantees:
+ *   - All rules filter is_deleted = 0 (tombstones never surface as candidates)
+ *   - All rules filter is_ghost = 0 (empty unusable contacts are excluded)
+ *   - Ignored pairs (status != 'pending') are preserved by the upsert guard in
+ *     duplicateRepository — they are not re-surfaced to the user
  */
 
 import { getDatabase } from '../db';
@@ -34,6 +40,7 @@ interface EmailRow {
 interface ContactRow {
   id: number;
   normalized_name: string;
+  name_key: string;
   company: string | null;
 }
 
@@ -62,15 +69,19 @@ function makeKey(a: number, b: number): string {
 
 // ---------------------------------------------------------------------------
 // Rule 1 — Exact normalized phone match
+// Filters: is_deleted=0, is_ghost=0, normalized_number != ''
 // ---------------------------------------------------------------------------
 
 function detectExactPhoneDuplicates(): SuggestionResult[] {
   const db = getDatabase();
-  // Find phone numbers shared by 2+ contacts (after normalization)
+  // Only consider phones belonging to active, non-ghost contacts
   const rows = db.getAllSync<PhoneRow>(
     `SELECT p.contact_id, p.normalized_number
      FROM phone_numbers p
+     JOIN contacts c ON c.id = p.contact_id
      WHERE p.normalized_number != ''
+       AND c.is_deleted = 0
+       AND c.is_ghost = 0
      ORDER BY p.normalized_number, p.contact_id`,
     [],
   );
@@ -85,7 +96,6 @@ function detectExactPhoneDuplicates(): SuggestionResult[] {
   const results: SuggestionResult[] = [];
   for (const [, ids] of byPhone) {
     if (ids.length < 2) continue;
-    // Create pairs from the group
     for (let i = 0; i < ids.length; i++) {
       for (let j = i + 1; j < ids.length; j++) {
         results.push({
@@ -103,6 +113,7 @@ function detectExactPhoneDuplicates(): SuggestionResult[] {
 
 // ---------------------------------------------------------------------------
 // Rule 2 — Exact normalized email match
+// Filters: is_deleted=0, is_ghost=0, normalized_email != ''
 // ---------------------------------------------------------------------------
 
 function detectExactEmailDuplicates(): SuggestionResult[] {
@@ -110,7 +121,10 @@ function detectExactEmailDuplicates(): SuggestionResult[] {
   const rows = db.getAllSync<EmailRow>(
     `SELECT e.contact_id, e.normalized_email
      FROM emails e
+     JOIN contacts c ON c.id = e.contact_id
      WHERE e.normalized_email != ''
+       AND c.is_deleted = 0
+       AND c.is_ghost = 0
      ORDER BY e.normalized_email, e.contact_id`,
     [],
   );
@@ -142,13 +156,16 @@ function detectExactEmailDuplicates(): SuggestionResult[] {
 
 // ---------------------------------------------------------------------------
 // Rule 3 — Exact normalized name match
+// Filters: is_deleted=0, is_ghost=0, normalized_name != ''
 // ---------------------------------------------------------------------------
 
 function detectExactNameDuplicates(): SuggestionResult[] {
   const db = getDatabase();
-  const rows = db.getAllSync<ContactRow>(
+  const rows = db.getAllSync<{ id: number; normalized_name: string }>(
     `SELECT id, normalized_name FROM contacts
-     WHERE normalized_name != '' AND is_ghost = 0
+     WHERE normalized_name != ''
+       AND is_ghost = 0
+       AND is_deleted = 0
      ORDER BY normalized_name`,
     [],
   );
@@ -179,26 +196,85 @@ function detectExactNameDuplicates(): SuggestionResult[] {
 }
 
 // ---------------------------------------------------------------------------
-// Rule 4 — Fuzzy name + overlapping phone digits (last 7)
+// Rule 4 — Inverted name match via name_key grouping
+// "John Doe" (name_key="doe john") vs "Doe John" (name_key="doe john")
+// Filters: is_deleted=0, is_ghost=0, name_key != '', normalized_name != same
+//          (same normalized_name already caught by Rule 3)
+// ---------------------------------------------------------------------------
+
+function detectInvertedNameDuplicates(): SuggestionResult[] {
+  const db = getDatabase();
+
+  // Group by name_key to find contacts sharing the same sorted-token form
+  // Exclude contacts whose normalized_name is identical (already covered by Rule 3)
+  const keyRows = db.getAllSync<{ name_key: string; count: number }>(
+    `SELECT name_key, COUNT(*) as count
+     FROM contacts
+     WHERE name_key != ''
+       AND is_ghost = 0
+       AND is_deleted = 0
+     GROUP BY name_key
+     HAVING count >= 2`,
+    [],
+  );
+
+  const results: SuggestionResult[] = [];
+
+  for (const { name_key } of keyRows) {
+    const contacts = db.getAllSync<{ id: number; normalized_name: string }>(
+      `SELECT id, normalized_name FROM contacts
+       WHERE name_key = ?
+         AND is_ghost = 0
+         AND is_deleted = 0`,
+      [name_key],
+    );
+
+    // Only emit pairs where normalized_name differs (same name already handled by Rule 3)
+    for (let i = 0; i < contacts.length; i++) {
+      for (let j = i + 1; j < contacts.length; j++) {
+        const a = contacts[i];
+        const b = contacts[j];
+        // Skip if normalized names are identical — Rule 3 covers that
+        if (a.normalized_name === b.normalized_name) continue;
+        results.push({
+          contactIdA: a.id,
+          contactIdB: b.id,
+          score: 55,
+          confidence: 'medium',
+          reasons: ['inverted_name_match'],
+        });
+      }
+    }
+  }
+
+  return results;
+}
+
+// ---------------------------------------------------------------------------
+// Rule 5 — Fuzzy name + overlapping phone digits (last 7)
 // SQL pre-filtered by 3-char name prefix bucket to reduce O(N²) comparisons
+// Filters: is_deleted=0, is_ghost=0
 // ---------------------------------------------------------------------------
 
 function detectFuzzyNameWithPhoneOverlap(): SuggestionResult[] {
   const db = getDatabase();
 
-  // SQL groups contacts by their first-3-char name prefix.
-  // We only compare within the same prefix bucket — this is a safe
-  // approximation: truly similar names almost always share a prefix.
   const prefixRows = db.getAllSync<{ prefix: string }>(
     `SELECT DISTINCT SUBSTR(normalized_name, 1, 3) AS prefix
      FROM contacts
-     WHERE LENGTH(normalized_name) >= 3 AND is_ghost = 0`,
+     WHERE LENGTH(normalized_name) >= 3
+       AND is_ghost = 0
+       AND is_deleted = 0`,
     [],
   );
 
   const phones = db.getAllSync<PhoneRow>(
-    `SELECT contact_id, normalized_number FROM phone_numbers
-     WHERE normalized_number != ''`,
+    `SELECT p.contact_id, p.normalized_number
+     FROM phone_numbers p
+     JOIN contacts c ON c.id = p.contact_id
+     WHERE p.normalized_number != ''
+       AND c.is_deleted = 0
+       AND c.is_ghost = 0`,
     [],
   );
   const phonesByContact = new Map<number, string[]>();
@@ -211,14 +287,15 @@ function detectFuzzyNameWithPhoneOverlap(): SuggestionResult[] {
   const results: SuggestionResult[] = [];
 
   for (const { prefix } of prefixRows) {
-    // Fetch only contacts in this prefix bucket
     const bucket = db.getAllSync<ContactRow>(
-      `SELECT id, normalized_name, company FROM contacts
-       WHERE SUBSTR(normalized_name, 1, 3) = ? AND is_ghost = 0`,
+      `SELECT id, normalized_name, name_key, company FROM contacts
+       WHERE SUBSTR(normalized_name, 1, 3) = ?
+         AND is_ghost = 0
+         AND is_deleted = 0`,
       [prefix],
     );
 
-    // O(k²) where k is bucket size — typically 1-20 contacts, not 1813
+    // O(k²) where k is bucket size — typically 1-20 contacts
     for (let i = 0; i < bucket.length; i++) {
       for (let j = i + 1; j < bucket.length; j++) {
         const a = bucket[i];
@@ -258,7 +335,7 @@ function detectFuzzyNameWithPhoneOverlap(): SuggestionResult[] {
 }
 
 // ---------------------------------------------------------------------------
-// Merge & deduplicate results
+// Merge & deduplicate results — highest score wins for each pair
 // ---------------------------------------------------------------------------
 
 function mergeResults(groups: SuggestionResult[][]): SuggestionResult[] {
@@ -269,7 +346,6 @@ function mergeResults(groups: SuggestionResult[][]): SuggestionResult[] {
       const key = makeKey(result.contactIdA, result.contactIdB);
       const existing = merged.get(key);
       if (!existing || result.score > existing.score) {
-        // Merge reasons if same pair exists
         const combinedReasons = existing
           ? ([...new Set([...existing.reasons, ...result.reasons])] as DuplicateReason[])
           : result.reasons;
@@ -295,7 +371,13 @@ function mergeResults(groups: SuggestionResult[][]): SuggestionResult[] {
 export interface HeuristicScanResult {
   totalChecked: number;
   newSuggestions: number;
-  rules: { exactPhone: number; exactEmail: number; exactName: number; fuzzyNamePhone: number };
+  rules: {
+    exactPhone: number;
+    exactEmail: number;
+    exactName: number;
+    invertedName: number;
+    fuzzyNamePhone: number;
+  };
 }
 
 let _lastScanAt: number | null = null;
@@ -314,16 +396,20 @@ export function isHeuristicScanFresh(): boolean {
 
 export function runDuplicateHeuristicScan(force = false): HeuristicScanResult {
   if (!force && isHeuristicScanFresh()) {
-    // Return a zero-delta result — DB already has current results
-    return { totalChecked: 0, newSuggestions: 0, rules: { exactPhone: 0, exactEmail: 0, exactName: 0, fuzzyNamePhone: 0 } };
+    return {
+      totalChecked: 0,
+      newSuggestions: 0,
+      rules: { exactPhone: 0, exactEmail: 0, exactName: 0, invertedName: 0, fuzzyNamePhone: 0 },
+    };
   }
 
   const exactPhone = detectExactPhoneDuplicates();
   const exactEmail = detectExactEmailDuplicates();
   const exactName = detectExactNameDuplicates();
+  const invertedName = detectInvertedNameDuplicates();
   const fuzzyNamePhone = detectFuzzyNameWithPhoneOverlap();
 
-  const allResults = mergeResults([exactPhone, exactEmail, exactName, fuzzyNamePhone]);
+  const allResults = mergeResults([exactPhone, exactEmail, exactName, invertedName, fuzzyNamePhone]);
 
   for (const r of allResults) {
     upsertDuplicateCandidate({
@@ -344,6 +430,7 @@ export function runDuplicateHeuristicScan(force = false): HeuristicScanResult {
       exactPhone: exactPhone.length,
       exactEmail: exactEmail.length,
       exactName: exactName.length,
+      invertedName: invertedName.length,
       fuzzyNamePhone: fuzzyNamePhone.length,
     },
   };
@@ -358,6 +445,7 @@ export const REASON_LABELS: Record<DuplicateReason, string> = {
   exact_email_match: 'Shared email found in both contacts',
   exact_name_match: 'Identical normalized name',
   fuzzy_name_match: 'Similar name detected',
+  inverted_name_match: 'Inverted name order (e.g. "John Doe" vs "Doe John")',
   overlapping_phone: 'Overlapping mobile digits (last 7)',
   overlapping_email: 'Overlapping email domain',
   name_phone_combination: 'Same name + similar phone',

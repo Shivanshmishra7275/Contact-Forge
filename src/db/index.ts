@@ -26,6 +26,8 @@ const COLUMN_MIGRATIONS: string[] = [
   // v3.3: soft-delete support for cross-device delete propagation
   'ALTER TABLE contacts ADD COLUMN is_deleted INTEGER NOT NULL DEFAULT 0',
   'ALTER TABLE contacts ADD COLUMN deleted_at TEXT',
+  // v3.4: sorted-token canonical name key for inverted-name duplicate detection
+  "ALTER TABLE contacts ADD COLUMN name_key TEXT NOT NULL DEFAULT ''",
 ];
 
 let _db: SQLite.SQLiteDatabase | null = null;

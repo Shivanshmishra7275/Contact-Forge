@@ -36,6 +36,63 @@ export function normalizeName(value: string | null | undefined): string {
 }
 
 /**
+ * Common honorifics/prefixes to strip before scoring.
+ * We ONLY use this for duplicate scoring — never for display.
+ */
+const HONORIFIC_PATTERN = /^\s*(dr\.?|mr\.?|mrs\.?|ms\.?|miss\.?|prof\.?|sir|rev\.?|capt\.?|cpl\.?)\s+/i;
+
+/**
+ * Returns a normalized name with leading honorifics stripped.
+ * "Dr. John Smith" → "john smith"
+ * "MR  Bob Jones" → "bob jones"
+ *
+ * Use ONLY for duplicate scoring comparisons — not for display or storage.
+ */
+export function normalizeNameForDedup(value: string | null | undefined): string {
+  if (!value) return '';
+  const stripped = value.trim().replace(HONORIFIC_PATTERN, '');
+  return stripped.trim().toLowerCase().replace(/\s+/g, ' ');
+}
+
+/**
+ * Builds an order-independent canonical key from a name by sorting its tokens.
+ * "John Doe" → "doe john"
+ * "Doe John" → "doe john"
+ *
+ * This allows detecting inverted names as duplicate candidates.
+ * Use for storage in the `name_key` column and for scoring comparisons only.
+ */
+export function buildInvertedNameKey(value: string | null | undefined): string {
+  if (!value) return '';
+  const base = normalizeNameForDedup(value);
+  if (!base) return '';
+  return base.split(' ').filter(Boolean).sort().join(' ');
+}
+
+/**
+ * Normalizes a tags array for consistent merge comparison:
+ * - Trims each tag
+ * - Removes empty strings
+ * - Lowercases for deduplication comparison
+ * - Deduplicates case-insensitively, preserving original casing of first occurrence
+ * - Sorts for deterministic order
+ */
+export function normalizeTagsArray(tags: string[]): string[] {
+  const seen = new Set<string>();
+  const result: string[] = [];
+  for (const tag of tags) {
+    const trimmed = tag.trim();
+    if (!trimmed) continue;
+    const lower = trimmed.toLowerCase();
+    if (!seen.has(lower)) {
+      seen.add(lower);
+      result.push(trimmed);
+    }
+  }
+  return result.sort();
+}
+
+/**
  * Builds a display name from parts, falling back gracefully.
  */
 export function buildDisplayName(

@@ -14,6 +14,7 @@ export const CREATE_CONTACTS_TABLE = `
     last_name         TEXT,
     display_name      TEXT NOT NULL DEFAULT '',
     normalized_name   TEXT NOT NULL DEFAULT '',  -- lowercase, stripped for search/dedup
+    name_key          TEXT NOT NULL DEFAULT '',  -- sorted-token canonical key for inverted-name dedup
     company           TEXT,
     job_title         TEXT,
     notes             TEXT,
@@ -334,10 +335,16 @@ export const CREATE_INDEXES = [
      ON duplicate_candidates(contact_id_a)`,
   `CREATE INDEX IF NOT EXISTS idx_dupes_contact_b
      ON duplicate_candidates(contact_id_b)`,
+  // Composite index for fast pair lookup in upsertDuplicateCandidate
+  `CREATE UNIQUE INDEX IF NOT EXISTS idx_dupes_pair
+     ON duplicate_candidates(contact_id_a, contact_id_b)`,
   `CREATE INDEX IF NOT EXISTS idx_dupes_status
      ON duplicate_candidates(status)`,
   `CREATE INDEX IF NOT EXISTS idx_dupes_score
      ON duplicate_candidates(score)`,
+  // contacts name_key for SQL-grouped inverted-name duplicate detection
+  `CREATE INDEX IF NOT EXISTS idx_contacts_name_key
+     ON contacts(name_key)`,
 
   // temporary_contacts
   `CREATE INDEX IF NOT EXISTS idx_temp_contacts_expires_at

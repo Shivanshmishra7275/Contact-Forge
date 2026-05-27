@@ -171,3 +171,42 @@ export function getMergeHistory(): MergeHistory[] {
       mergedAt: row.merged_at as string,
     }));
 }
+
+// ---------------------------------------------------------------------------
+// Ignore memory helpers (Phase D)
+// ---------------------------------------------------------------------------
+
+/**
+ * Returns true if the pair (idA, idB) has already been resolved
+ * (ignored, merged, or marked safe). Order-independent.
+ *
+ * Uses the composite unique index idx_dupes_pair for O(1) lookup.
+ */
+export function isIgnoredPair(idA: number, idB: number): boolean {
+  const [a, b] = idA < idB ? [idA, idB] : [idB, idA];
+  const row = getDatabase().getFirstSync<{ status: string }>(
+    `SELECT status FROM duplicate_candidates
+      WHERE contact_id_a = ? AND contact_id_b = ?`,
+    [a, b],
+  );
+  if (!row) return false;
+  return row.status !== 'pending';
+}
+
+/**
+ * Removes duplicate_candidates rows where either contact has been tombstoned
+ * (is_deleted = 1). Safe to call repeatedly — idempotent.
+ *
+ * Prevents the candidates table from accumulating dead pairs after contacts
+ * are soft-deleted, which would inflate duplicate counts and waste scan work.
+ */
+export function purgeOrphanedCandidates(): number {
+  const db = getDatabase();
+  const result = db.runSync(
+    `DELETE FROM duplicate_candidates
+     WHERE contact_id_a IN (SELECT id FROM contacts WHERE is_deleted = 1)
+        OR contact_id_b IN (SELECT id FROM contacts WHERE is_deleted = 1)`,
+    [],
+  );
+  return result.changes;
+}

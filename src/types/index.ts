@@ -60,6 +60,7 @@ export type DuplicateReason =
   | 'exact_email_match'
   | 'exact_name_match'
   | 'fuzzy_name_match'
+  | 'inverted_name_match'
   | 'overlapping_phone'
   | 'overlapping_email'
   | 'name_phone_combination'
