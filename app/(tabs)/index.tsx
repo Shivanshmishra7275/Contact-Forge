@@ -5,7 +5,7 @@
  * Part of ContactForge Phase 8 Premium Cinematic Upgrade
  */
 
-import { useCallback, useEffect, useMemo, useState, type ComponentProps } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type ComponentProps } from 'react';
 import { View, ScrollView, StyleSheet, Alert, InteractionManager, TouchableOpacity } from 'react-native';
 import { Text, Button, Card, ActivityIndicator, Chip, ProgressBar } from 'react-native-paper';
 import { router } from 'expo-router';
@@ -73,6 +73,9 @@ export default function DashboardScreen() {
   // Force re-render of entrances on focus
   const [entranceKey, setEntranceKey] = useState(0);
 
+  // Prevent redundant DB thrash on rapid tab switches or re-focus within a short window
+  const lastRefreshAtRef = useRef<number>(0);
+
   const needsAttentionCount = pendingDuplicates + cleanupIssueCount + expiredTemps + lowHealthCount + followUpsDue + highValueInactive + suggestedCategorizations;
 
   const syncBadge = useMemo(
@@ -132,13 +135,23 @@ export default function DashboardScreen() {
     useCallback(() => {
       let cancelled = false;
       const task = InteractionManager.runAfterInteractions(() => {
+        if (cancelled) return;
+
+        // PERF: skip full DB refresh if data is less than 2s old (rapid tab switching guard)
+        const now = Date.now();
+        const isStale = now - lastRefreshAtRef.current > 2000;
+
         getContactsPermissionStatus().then((status) => {
           if (!cancelled) {
             setPermissionGranted(status === 'granted');
           }
         });
-        refreshStats();
-        setEntranceKey((k) => k + 1);
+
+        if (isStale) {
+          lastRefreshAtRef.current = now;
+          refreshStats();
+          setEntranceKey((k) => k + 1);
+        }
       });
 
       return () => {

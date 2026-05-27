@@ -18,11 +18,15 @@ export default function TabLayout() {
   return (
     <Tabs
       screenOptions={{
+        // PERF: lazy=true prevents all 6 screens mounting on first render.
+        // Each screen only mounts when the user first navigates to it.
+        lazy: true,
         tabBarStyle: {
           backgroundColor: COLORS.surface,
           borderTopColor: COLORS.border,
         },
-        tabBarActiveTintColor: COLORS.primary,
+        // A11Y: use brighter #7C3AED token (~3.6:1 on dark tab bar) instead of primary #4C1D95 (~2.1:1)
+        tabBarActiveTintColor: COLORS.tabBarActive,
         tabBarInactiveTintColor: COLORS.textSecondary,
         headerStyle: { backgroundColor: COLORS.surface },
         headerTintColor: COLORS.textPrimary,

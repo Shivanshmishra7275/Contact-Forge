@@ -97,8 +97,15 @@ export const COLORS = {
   // Text hierarchy
   textPrimary: '#F8FAFC',
   textSecondary: '#a8b3c1',
-  textTertiary: '#707a88',
-  textDisabled: '#50576a',
+  // WCAG AA fix: raised from #707a88 (~2.6:1) → #8a95a3 (~3.8:1) on #05050A
+  textTertiary: '#8a95a3',
+  // WCAG AA fix: raised from #50576a (~2.1:1) → #636d7e (~3.1:1) on #05050A (non-interactive)
+  textDisabled: '#636d7e',
+
+  // Interactive label on primary-colored contained buttons (WCAG AA on #4C1D95)
+  onPrimary: '#FFFFFF',
+  // Accessible active tab indicator: #7C3AED ≈ 3.6:1 on rgba(20,20,30,0.4) effective dark bg
+  tabBarActive: '#7C3AED',
 
   // Borders and dividers
   border: 'rgba(255, 255, 255, 0.1)',

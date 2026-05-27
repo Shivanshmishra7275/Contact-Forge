@@ -330,7 +330,8 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({ onFinish }) => {
     );
     footerOpacity.value = withDelay(
       700,
-      withTiming(0.4, { duration: 400 }),
+      // A11Y: raised from 0.4 to 0.72 — text was nearly invisible at 40% opacity
+      withTiming(0.72, { duration: 400 }),
     );
 
     // ── 900ms: nodes converge toward center ──────────────────────────────────

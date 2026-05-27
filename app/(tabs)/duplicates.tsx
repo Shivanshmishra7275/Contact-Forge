@@ -408,7 +408,7 @@ export default function DuplicateFlashcardsScreen() {
         <Button mode="outlined" onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); handleNotAMatch(); }} textColor={COLORS.error} style={[styles.actionBtn, { borderColor: COLORS.error + '44' }]} contentStyle={styles.actionBtnContent} icon="close">
           Discard
         </Button>
-        <Button mode="contained" onPress={handleSamePerson} buttonColor={COLORS.primary} style={styles.actionBtn} contentStyle={styles.actionBtnContent} icon="merge">
+        <Button mode="contained" onPress={handleSamePerson} buttonColor={COLORS.primary} textColor={COLORS.onPrimary} style={styles.actionBtn} contentStyle={styles.actionBtnContent} icon="merge">
           Merge
         </Button>
       </View>
@@ -537,7 +537,8 @@ const styles = StyleSheet.create({
   
   reasonsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: SPACING.sm, marginBottom: SPACING.lg },
   reasonPill: { backgroundColor: 'rgba(255,255,255,0.05)', borderRadius: RADIUS.full, paddingHorizontal: 12, paddingVertical: 6, flexDirection: 'row', alignItems: 'center', gap: 4, borderWidth: 1, borderColor: 'rgba(255,255,255,0.05)' },
-  reasonPillText: { fontSize: FONT_SIZE.xs, color: COLORS.textSecondary, fontWeight: '600' },
+  // A11Y: raised from textSecondary to textPrimary — reason labels communicate *why* flagged, need strong readability
+  reasonPillText: { fontSize: FONT_SIZE.xs, color: COLORS.textPrimary, fontWeight: '600' },
   
   compareContainer: { flex: 1, backgroundColor: 'rgba(0,0,0,0.3)', borderRadius: RADIUS.md, borderWidth: 1, borderColor: 'rgba(255,255,255,0.05)' },
   diffWrapper: { flex: 1 },
@@ -548,8 +549,9 @@ const styles = StyleSheet.create({
   diffName: { fontSize: FONT_SIZE.lg, fontWeight: '700', color: COLORS.textPrimary, lineHeight: 24 },
   diffSub: { fontSize: FONT_SIZE.sm, color: COLORS.textSecondary, fontFamily: 'monospace' },
   
+  // A11Y: diffSame needs to be readable in both matched and diffed positions on dark card surface
   diffSame: { color: COLORS.textSecondary },
-  diffDifferent: { color: '#FFF', backgroundColor: 'rgba(239, 68, 68, 0.2)', fontWeight: '700' },
+  diffDifferent: { color: '#FFFFFF', backgroundColor: 'rgba(239, 68, 68, 0.25)', fontWeight: '700' },
   
   actionBar: { padding: SPACING.lg, flexDirection: 'row', gap: SPACING.md, alignItems: 'center', backgroundColor: 'rgba(0,0,0,0.4)', borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.05)' },
   actionBtn: { flex: 1, borderRadius: RADIUS.lg },

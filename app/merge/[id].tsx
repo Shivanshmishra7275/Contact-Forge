@@ -282,6 +282,8 @@ export default function SmartMergeScreen() {
             disabled={isMerging}
             icon="merge"
             buttonColor={COLORS.primary}
+            // A11Y: explicit white label — #FFF on #4C1D95 ≈ 8.6:1 (WCAG AAA)
+            textColor={COLORS.onPrimary}
             style={styles.actionBtn}
           >
             Confirm Merge

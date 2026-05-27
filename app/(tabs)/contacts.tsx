@@ -51,6 +51,8 @@ export default function ContactsScreen() {
   const searchRef = useRef(search);
   const filterRef = useRef(filter);
   const lowHealthIdsRef = useRef<number[] | null>(null);
+  // PERF: prevent redundant DB refresh when app returns from foreground within a short window
+  const lastActiveAtRef = useRef<number>(0);
 
   // Bulk selection state
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
@@ -141,7 +143,12 @@ export default function ContactsScreen() {
 
     const appStateSubscription = AppState.addEventListener('change', (nextState) => {
       if (nextState === 'active') {
-        refreshContacts();
+        // PERF: throttle foreground-resume reloads to max once per 5s
+        const now = Date.now();
+        if (now - lastActiveAtRef.current > 5000) {
+          lastActiveAtRef.current = now;
+          refreshContacts();
+        }
       }
     });
 
