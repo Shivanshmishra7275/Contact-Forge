@@ -216,7 +216,7 @@ export default function Home() {
         >
           <h2 className="text-sm font-bold tracking-widest text-teal-400 uppercase mb-4 drop-shadow-[0_0_8px_rgba(45,212,191,0.5)]">The Local-First Engine</h2>
           <p className="text-4xl md:text-5xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-slate-200 to-slate-500 max-w-4xl mx-auto leading-tight">
-            Forging order from chaos. No silent uploads, no cloud mining, no opaque algorithms.
+            Organize your contacts easily and safely. No internet uploads, no data selling, and no confusing algorithms.
           </p>
         </motion.div>
 
@@ -239,9 +239,9 @@ export default function Home() {
                 <div className="bg-gradient-to-br from-teal-500/20 to-emerald-500/10 w-14 h-14 flex items-center justify-center rounded-2xl mb-6 border border-teal-500/20 group-hover:border-teal-500/40 transition-colors relative z-10">
                   <Users className="w-7 h-7 text-teal-400" />
                 </div>
-                <h3 className="text-2xl font-bold text-white mb-3 relative z-10">Gesture Flashcard Review</h3>
+                <h3 className="text-2xl font-bold text-white mb-3 relative z-10">Tinder for Duplicates</h3>
                 <p className="text-slate-400 text-sm leading-relaxed max-w-lg relative z-10">
-                  Swipe right to merge, left to dismiss, down to snooze. Review every duplicate pair with clear explanations—never guessing why two contacts were flagged.
+                  Just swipe right to merge matching contacts, or left to keep them separate. It's fast, fun, and clearly explains exactly why it thinks two contacts are the same person.
                 </p>
               </div>
             </motion.div>
@@ -261,9 +261,9 @@ export default function Home() {
                 <div className="bg-gradient-to-br from-blue-500/20 to-indigo-500/10 w-14 h-14 flex items-center justify-center rounded-2xl mb-6 border border-blue-500/20 group-hover:border-blue-500/40 transition-colors relative z-10">
                   <Zap className="w-7 h-7 text-blue-400" />
                 </div>
-                <h3 className="text-xl font-bold text-white mb-3 relative z-10">Deterministic Engine</h3>
+                <h3 className="text-xl font-bold text-white mb-3 relative z-10">Smart &amp; Reliable Matching</h3>
                 <p className="text-slate-400 text-sm leading-relaxed relative z-10">
-                  Exact matching with SQL-optimised fuzzy fallback. No black-box AI scoring.
+                  We use clear, reliable rules to find duplicates—like matching identical phone numbers or emails. No unpredictable AI, just straightforward logic you can trust.
                 </p>
               </div>
             </motion.div>
@@ -283,9 +283,9 @@ export default function Home() {
                 <div className="bg-gradient-to-br from-purple-500/20 to-fuchsia-500/10 w-14 h-14 flex items-center justify-center rounded-2xl mb-6 border border-purple-500/20 group-hover:border-purple-500/40 transition-colors relative z-10">
                   <Lock className="w-7 h-7 text-purple-400" />
                 </div>
-                <h3 className="text-xl font-bold text-white mb-3 relative z-10">Zero-Upload Privacy</h3>
+                <h3 className="text-xl font-bold text-white mb-3 relative z-10">100% Private &amp; Secure</h3>
                 <p className="text-slate-400 text-sm leading-relaxed relative z-10">
-                  Everything runs in SQLite on device. Your contacts never leave your phone.
+                  Everything happens directly on your phone. Your private contact list is never uploaded to the internet or stored on our servers.
                 </p>
               </div>
             </motion.div>
@@ -305,9 +305,9 @@ export default function Home() {
                 <div className="bg-gradient-to-br from-orange-500/20 to-amber-500/10 w-14 h-14 flex items-center justify-center rounded-2xl mb-6 border border-orange-500/20 group-hover:border-orange-500/40 transition-colors relative z-10">
                   <Database className="w-7 h-7 text-orange-400" />
                 </div>
-                <h3 className="text-xl font-bold text-white mb-3 relative z-10">Smart Merge Preview</h3>
+                <h3 className="text-xl font-bold text-white mb-3 relative z-10">Clear Merge Previews</h3>
                 <p className="text-slate-400 text-sm leading-relaxed relative z-10">
-                  Field-by-field conflict resolution. Empty fields are hidden to cut through the noise.
+                  Before combining contacts, we show you exactly what the final result will look like. We hide empty fields so it's clean and easy to read.
                 </p>
               </div>
             </motion.div>
@@ -327,58 +327,124 @@ export default function Home() {
                 <div className="bg-gradient-to-br from-green-500/20 to-teal-500/10 w-14 h-14 flex items-center justify-center rounded-2xl mb-6 border border-green-500/20 group-hover:border-green-500/40 transition-colors relative z-10">
                   <GitBranch className="w-7 h-7 text-green-400" />
                 </div>
-                <h3 className="text-xl font-bold text-white mb-3 relative z-10">Resilient Undo Engine</h3>
+                <h3 className="text-xl font-bold text-white mb-3 relative z-10">Safe Undo Button</h3>
                 <p className="text-slate-400 text-sm leading-relaxed relative z-10">
-                  Snapshots are captured to SQLite before any destructive action so you can recover.
+                  Made a mistake? No problem. The app takes a safe backup right before merging, so you can easily undo any action with a single tap.
                 </p>
               </div>
             </motion.div>
           </div>
         </div>
 
-        {/* ── Version History ─────────────────────────────────────────────────── */}
+        {/* ── Version History (Interactive Redesign) ───────────────────────────── */}
         <div className="w-full max-w-4xl bg-slate-900/30 border border-slate-800/60 rounded-[2.5rem] p-8 md:p-14 text-left backdrop-blur-xl relative overflow-hidden mb-32">
-          <div className="absolute top-0 right-0 w-64 h-64 bg-teal-500/5 blur-[100px] rounded-full" />
+          <div className="absolute top-0 right-0 w-64 h-64 bg-teal-500/5 blur-[100px] rounded-full pointer-events-none" />
+          <div className="absolute bottom-0 left-0 w-64 h-64 bg-rose-500/5 blur-[100px] rounded-full pointer-events-none" />
+          
           <div className="flex items-center gap-4 mb-12 relative z-10">
             <div className="p-3 bg-slate-800/50 rounded-xl border border-slate-700/50">
               <History className="w-6 h-6 text-slate-300" />
             </div>
             <h2 className="text-3xl font-bold text-white tracking-tight">The Journey to V3</h2>
           </div>
+          
           <div className="space-y-12 relative before:absolute before:inset-0 before:ml-5 before:-translate-x-px md:before:mx-auto md:before:translate-x-0 before:h-full before:w-px before:bg-gradient-to-b before:from-teal-500/50 before:via-slate-700/50 before:to-transparent z-10">
-            <div className="relative flex items-center justify-between md:justify-normal md:odd:flex-row-reverse group">
-              <div className="flex items-center justify-center w-10 h-10 rounded-full border-4 border-[#060813] bg-teal-500 text-slate-900 font-bold shrink-0 md:order-1 md:group-odd:-translate-x-1/2 md:group-even:translate-x-1/2 shadow-[0_0_20px_rgba(20,184,166,0.3)]">
+            
+            {/* V3 */}
+            <div className="relative flex items-center justify-between md:justify-normal md:odd:flex-row-reverse group cursor-pointer">
+              <div className="flex items-center justify-center w-10 h-10 rounded-full border-4 border-[#060813] bg-teal-500 text-slate-900 font-bold shrink-0 md:order-1 md:group-odd:-translate-x-1/2 md:group-even:translate-x-1/2 shadow-[0_0_20px_rgba(20,184,166,0.3)] transition-transform group-hover:scale-110">
                 V3
               </div>
-              <div className="w-[calc(100%-4rem)] md:w-[calc(50%-3rem)] bg-slate-800/40 p-6 rounded-3xl border border-teal-500/20 hover:border-teal-500/40 transition-colors">
-                <h4 className="text-xl font-bold text-white mb-2">Contact Intelligence</h4>
-                <p className="text-sm text-slate-400 leading-relaxed">
-                  Gesture-driven flashcard review, cinematic splash, SQL-optimised duplicate engine, smart merge preview, and actionable dashboard metrics. Beta APK available now.
+              <div className="w-[calc(100%-4rem)] md:w-[calc(50%-3rem)] relative overflow-hidden rounded-3xl border border-teal-500/20 group-hover:border-teal-400/50 transition-all duration-500 bg-slate-800/40 p-6 shadow-lg group-hover:shadow-[0_0_30px_rgba(20,184,166,0.15)]">
+                {/* Background glow on hover */}
+                <div className="absolute inset-0 bg-gradient-to-br from-teal-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none" />
+                
+                <h4 className="text-xl font-bold text-white mb-2 relative z-10">Contact Intelligence</h4>
+                
+                <div className="relative z-10 grid grid-rows-[0fr] group-hover:grid-rows-[1fr] transition-[grid-template-rows] duration-500 ease-in-out">
+                  <div className="overflow-hidden">
+                    <div className="pt-4 pb-2 space-y-4">
+                      <div>
+                        <span className="text-xs font-bold tracking-widest text-rose-400 uppercase drop-shadow-[0_0_5px_rgba(244,63,94,0.4)]">The Problem</span>
+                        <p className="text-sm text-slate-400 leading-relaxed mt-1">Dealing with massive contact duplicates manually is tedious, opaque, and error-prone.</p>
+                      </div>
+                      <div>
+                        <span className="text-xs font-bold tracking-widest text-teal-400 uppercase drop-shadow-[0_0_5px_rgba(45,212,191,0.4)]">The Solution</span>
+                        <p className="text-sm text-slate-300 leading-relaxed mt-1">Gesture-driven flashcard review, SQL-optimised duplicate engine, smart merge preview, and actionable dashboard metrics. Beta APK available now.</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                {/* Default visible text that fades out on hover */}
+                <p className="text-sm text-slate-500 leading-relaxed block group-hover:hidden absolute bottom-6 left-6 right-6 transition-opacity">
+                  Hover to reveal the architecture shift...
                 </p>
+                <div className="h-6 block group-hover:hidden" /> {/* Spacer for default text */}
               </div>
             </div>
-            <div className="relative flex items-center justify-between md:justify-normal md:odd:flex-row-reverse group">
-              <div className="flex items-center justify-center w-10 h-10 rounded-full border-4 border-[#060813] bg-slate-700 text-slate-300 font-bold shrink-0 md:order-1 md:group-odd:-translate-x-1/2 md:group-even:translate-x-1/2">
+
+            {/* V2 */}
+            <div className="relative flex items-center justify-between md:justify-normal md:odd:flex-row-reverse group cursor-pointer">
+              <div className="flex items-center justify-center w-10 h-10 rounded-full border-4 border-[#060813] bg-slate-700 text-slate-300 font-bold shrink-0 md:order-1 md:group-odd:-translate-x-1/2 md:group-even:translate-x-1/2 transition-transform group-hover:scale-110">
                 V2
               </div>
-              <div className="w-[calc(100%-4rem)] md:w-[calc(50%-3rem)] bg-slate-800/20 p-6 rounded-3xl border border-slate-700/50">
-                <h4 className="text-xl font-bold text-slate-200 mb-2">Data &amp; Sync Foundation</h4>
-                <p className="text-sm text-slate-500 leading-relaxed">
-                  Manual WebDAV sync transport, encrypted local backups, Import Studio with CSV/VCF ingestion, and a safe undo-engine for all merges.
+              <div className="w-[calc(100%-4rem)] md:w-[calc(50%-3rem)] relative overflow-hidden rounded-3xl border border-slate-700/50 group-hover:border-teal-500/30 transition-all duration-500 bg-slate-800/20 p-6 hover:bg-slate-800/40">
+                <div className="absolute inset-0 bg-gradient-to-br from-teal-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none" />
+                
+                <h4 className="text-xl font-bold text-slate-200 mb-2 relative z-10 group-hover:text-white transition-colors">Data &amp; Sync Foundation</h4>
+                
+                <div className="relative z-10 grid grid-rows-[0fr] group-hover:grid-rows-[1fr] transition-[grid-template-rows] duration-500 ease-in-out">
+                  <div className="overflow-hidden">
+                    <div className="pt-4 pb-2 space-y-4">
+                      <div>
+                        <span className="text-xs font-bold tracking-widest text-orange-400 uppercase drop-shadow-[0_0_5px_rgba(251,146,60,0.4)]">The Problem</span>
+                        <p className="text-sm text-slate-400 leading-relaxed mt-1">Syncing contacts to the cloud quietly uploads private data to third parties, risking data harvesting.</p>
+                      </div>
+                      <div>
+                        <span className="text-xs font-bold tracking-widest text-teal-400 uppercase drop-shadow-[0_0_5px_rgba(45,212,191,0.4)]">The Solution</span>
+                        <p className="text-sm text-slate-300 leading-relaxed mt-1">Manual WebDAV sync transport, encrypted local backups, Import Studio with CSV/VCF ingestion, and a safe undo-engine for all merges.</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <p className="text-sm text-slate-500 leading-relaxed block group-hover:hidden absolute bottom-6 left-6 right-6 transition-opacity">
+                  Hover to reveal the architecture shift...
                 </p>
+                <div className="h-6 block group-hover:hidden" />
               </div>
             </div>
-            <div className="relative flex items-center justify-between md:justify-normal md:odd:flex-row-reverse group">
-              <div className="flex items-center justify-center w-10 h-10 rounded-full border-4 border-[#060813] bg-slate-800 text-slate-400 font-bold shrink-0 md:order-1 md:group-odd:-translate-x-1/2 md:group-even:translate-x-1/2">
+
+            {/* V1 */}
+            <div className="relative flex items-center justify-between md:justify-normal md:odd:flex-row-reverse group cursor-pointer">
+              <div className="flex items-center justify-center w-10 h-10 rounded-full border-4 border-[#060813] bg-slate-800 text-slate-400 font-bold shrink-0 md:order-1 md:group-odd:-translate-x-1/2 md:group-even:translate-x-1/2 transition-transform group-hover:scale-110">
                 V1
               </div>
-              <div className="w-[calc(100%-4rem)] md:w-[calc(50%-3rem)] bg-slate-800/10 p-6 rounded-3xl border border-slate-800/50">
-                <h4 className="text-xl font-bold text-slate-400 mb-2">The Local Mirror</h4>
-                <p className="text-sm text-slate-600 leading-relaxed">
-                  Established the offline-first SQLite mirror engine tracking native device contacts with zero cloud dependency.
+              <div className="w-[calc(100%-4rem)] md:w-[calc(50%-3rem)] relative overflow-hidden rounded-3xl border border-slate-800/50 group-hover:border-teal-500/30 transition-all duration-500 bg-slate-800/10 p-6 hover:bg-slate-800/30">
+                <div className="absolute inset-0 bg-gradient-to-br from-teal-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none" />
+                
+                <h4 className="text-xl font-bold text-slate-400 mb-2 relative z-10 group-hover:text-white transition-colors">The Local Mirror</h4>
+                
+                <div className="relative z-10 grid grid-rows-[0fr] group-hover:grid-rows-[1fr] transition-[grid-template-rows] duration-500 ease-in-out">
+                  <div className="overflow-hidden">
+                    <div className="pt-4 pb-2 space-y-4">
+                      <div>
+                        <span className="text-xs font-bold tracking-widest text-orange-400 uppercase drop-shadow-[0_0_5px_rgba(251,146,60,0.4)]">The Problem</span>
+                        <p className="text-sm text-slate-400 leading-relaxed mt-1">Default contact apps lack privacy controls and act as impenetrable black boxes.</p>
+                      </div>
+                      <div>
+                        <span className="text-xs font-bold tracking-widest text-teal-400 uppercase drop-shadow-[0_0_5px_rgba(45,212,191,0.4)]">The Solution</span>
+                        <p className="text-sm text-slate-300 leading-relaxed mt-1">Established the offline-first SQLite mirror engine tracking native device contacts with zero cloud dependency.</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <p className="text-sm text-slate-500 leading-relaxed block group-hover:hidden absolute bottom-6 left-6 right-6 transition-opacity">
+                  Hover to reveal the architecture shift...
                 </p>
+                <div className="h-6 block group-hover:hidden" />
               </div>
             </div>
+
           </div>
         </div>
 
