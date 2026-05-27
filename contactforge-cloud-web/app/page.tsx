@@ -61,7 +61,7 @@ export default function Home() {
   };
 
   return (
-    <main className="min-h-screen bg-[#060813] flex flex-col items-center relative overflow-hidden font-sans selection:bg-teal-500/30 pb-24">
+    <main className="min-h-screen bg-[#03050B] flex flex-col items-center relative overflow-hidden font-sans selection:bg-teal-500/30 pb-24">
       {/* ── Background Glows ─────────────────────────────────────────────────── */}
       <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[1000px] h-[600px] bg-gradient-to-b from-teal-500/10 to-transparent blur-[120px] rounded-full pointer-events-none" />
       <div className="absolute top-1/4 right-0 w-[500px] h-[500px] bg-blue-600/10 blur-[150px] rounded-full pointer-events-none" />
@@ -97,7 +97,7 @@ export default function Home() {
           className="text-5xl md:text-7xl lg:text-8xl font-extrabold tracking-tighter text-white mb-6 leading-[1.05] text-center"
         >
           Your Contacts,<br />
-          <span className="text-transparent bg-clip-text bg-gradient-to-r from-teal-400 via-emerald-300 to-blue-500 drop-shadow-sm pb-2">
+          <span className="text-transparent bg-clip-text bg-gradient-to-r from-teal-300 via-indigo-300 to-purple-400 drop-shadow-sm pb-2">
             Intelligently Secured.
           </span>
         </motion.h1>
@@ -201,64 +201,89 @@ export default function Home() {
           </p>
         </motion.div>
 
-        {/* ── V3 Highlights Grid ──────────────────────────────────────────────── */}
-        <div className="w-full mb-32 relative">
-          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full h-[300px] bg-teal-500/5 blur-[150px] rounded-full pointer-events-none" />
-          <div className="grid md:grid-cols-3 gap-6 relative z-10">
-            <div className="bg-slate-900/40 border border-slate-800/60 p-8 rounded-3xl backdrop-blur-md hover:bg-slate-800/40 transition-colors duration-500 group">
-              <div className="bg-gradient-to-br from-teal-500/20 to-emerald-500/10 w-14 h-14 flex items-center justify-center rounded-2xl mb-6 border border-teal-500/20 group-hover:border-teal-500/40 transition-colors">
+        {/* ── V3 Highlights Grid (Bento Box) ──────────────────────────────────── */}
+        <div className="w-full mb-32 relative max-w-6xl mx-auto">
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full h-[400px] bg-indigo-500/10 blur-[150px] rounded-full pointer-events-none" />
+          <div className="grid grid-cols-1 md:grid-cols-6 gap-6 relative z-10">
+            {/* Feature 1 (Large) */}
+            <motion.div 
+              whileHover={{ scale: 1.02, y: -4 }}
+              transition={{ type: "spring", stiffness: 300, damping: 20 }}
+              className="md:col-span-4 bg-slate-900/40 border border-slate-800/60 p-8 rounded-[2rem] backdrop-blur-xl hover:bg-slate-800/40 hover:border-teal-500/30 transition-colors duration-500 group shadow-2xl relative overflow-hidden"
+            >
+              <div className="absolute top-0 right-0 w-64 h-64 bg-teal-500/10 blur-[80px] rounded-full pointer-events-none transition-opacity opacity-0 group-hover:opacity-100 duration-700" />
+              <div className="bg-gradient-to-br from-teal-500/20 to-emerald-500/10 w-14 h-14 flex items-center justify-center rounded-2xl mb-6 border border-teal-500/20 group-hover:border-teal-500/40 transition-colors relative z-10">
                 <Users className="w-7 h-7 text-teal-400" />
               </div>
-              <h3 className="text-xl font-bold text-white mb-3">Gesture Flashcard Review</h3>
-              <p className="text-slate-400 text-sm leading-relaxed">
+              <h3 className="text-2xl font-bold text-white mb-3 relative z-10">Gesture Flashcard Review</h3>
+              <p className="text-slate-400 text-sm leading-relaxed max-w-lg relative z-10">
                 Swipe right to merge, left to dismiss, down to snooze. Review every duplicate pair with clear explanations—never guessing why two contacts were flagged.
               </p>
-            </div>
-            <div className="bg-slate-900/40 border border-slate-800/60 p-8 rounded-3xl backdrop-blur-md hover:bg-slate-800/40 transition-colors duration-500 group">
-              <div className="bg-gradient-to-br from-blue-500/20 to-indigo-500/10 w-14 h-14 flex items-center justify-center rounded-2xl mb-6 border border-blue-500/20 group-hover:border-blue-500/40 transition-colors">
+            </motion.div>
+
+            {/* Feature 2 (Medium) */}
+            <motion.div 
+              whileHover={{ scale: 1.03, y: -4 }}
+              transition={{ type: "spring", stiffness: 300, damping: 20 }}
+              className="md:col-span-2 bg-slate-900/40 border border-slate-800/60 p-8 rounded-[2rem] backdrop-blur-xl hover:bg-slate-800/40 hover:border-blue-500/30 transition-colors duration-500 group shadow-2xl relative overflow-hidden"
+            >
+              <div className="absolute bottom-0 right-0 w-48 h-48 bg-blue-500/10 blur-[60px] rounded-full pointer-events-none transition-opacity opacity-0 group-hover:opacity-100 duration-700" />
+              <div className="bg-gradient-to-br from-blue-500/20 to-indigo-500/10 w-14 h-14 flex items-center justify-center rounded-2xl mb-6 border border-blue-500/20 group-hover:border-blue-500/40 transition-colors relative z-10">
                 <Zap className="w-7 h-7 text-blue-400" />
               </div>
-              <h3 className="text-xl font-bold text-white mb-3">Deterministic Engine</h3>
-              <p className="text-slate-400 text-sm leading-relaxed">
-                Exact phone, email, and name matching with SQL-optimised fuzzy fallback. Every result is explainable—no black-box scoring, no phantom suggestions.
+              <h3 className="text-xl font-bold text-white mb-3 relative z-10">Deterministic Engine</h3>
+              <p className="text-slate-400 text-sm leading-relaxed relative z-10">
+                Exact matching with SQL-optimised fuzzy fallback. No black-box AI scoring.
               </p>
-            </div>
-            <div className="bg-slate-900/40 border border-slate-800/60 p-8 rounded-3xl backdrop-blur-md hover:bg-slate-800/40 transition-colors duration-500 group">
-              <div className="bg-gradient-to-br from-purple-500/20 to-fuchsia-500/10 w-14 h-14 flex items-center justify-center rounded-2xl mb-6 border border-purple-500/20 group-hover:border-purple-500/40 transition-colors">
+            </motion.div>
+
+            {/* Feature 3 (Medium) */}
+            <motion.div 
+              whileHover={{ scale: 1.03, y: -4 }}
+              transition={{ type: "spring", stiffness: 300, damping: 20 }}
+              className="md:col-span-2 bg-slate-900/40 border border-slate-800/60 p-8 rounded-[2rem] backdrop-blur-xl hover:bg-slate-800/40 hover:border-purple-500/30 transition-colors duration-500 group shadow-2xl relative overflow-hidden"
+            >
+              <div className="absolute top-0 left-0 w-48 h-48 bg-purple-500/10 blur-[60px] rounded-full pointer-events-none transition-opacity opacity-0 group-hover:opacity-100 duration-700" />
+              <div className="bg-gradient-to-br from-purple-500/20 to-fuchsia-500/10 w-14 h-14 flex items-center justify-center rounded-2xl mb-6 border border-purple-500/20 group-hover:border-purple-500/40 transition-colors relative z-10">
                 <Lock className="w-7 h-7 text-purple-400" />
               </div>
-              <h3 className="text-xl font-bold text-white mb-3">Zero-Upload Privacy</h3>
-              <p className="text-slate-400 text-sm leading-relaxed">
-                Everything runs in SQLite on your device. Your contacts never leave your phone. No analytics on contact data, no background sync to our servers—because we don't have any.
+              <h3 className="text-xl font-bold text-white mb-3 relative z-10">Zero-Upload Privacy</h3>
+              <p className="text-slate-400 text-sm leading-relaxed relative z-10">
+                Everything runs in SQLite on device. Your contacts never leave your phone.
               </p>
-            </div>
-            <div className="bg-slate-900/40 border border-slate-800/60 p-8 rounded-3xl backdrop-blur-md hover:bg-slate-800/40 transition-colors duration-500 group">
-              <div className="bg-gradient-to-br from-orange-500/20 to-amber-500/10 w-14 h-14 flex items-center justify-center rounded-2xl mb-6 border border-orange-500/20 group-hover:border-orange-500/40 transition-colors">
+            </motion.div>
+
+            {/* Feature 4 (Medium) */}
+            <motion.div 
+              whileHover={{ scale: 1.03, y: -4 }}
+              transition={{ type: "spring", stiffness: 300, damping: 20 }}
+              className="md:col-span-2 bg-slate-900/40 border border-slate-800/60 p-8 rounded-[2rem] backdrop-blur-xl hover:bg-slate-800/40 hover:border-orange-500/30 transition-colors duration-500 group shadow-2xl relative overflow-hidden"
+            >
+              <div className="absolute bottom-0 right-0 w-48 h-48 bg-orange-500/10 blur-[60px] rounded-full pointer-events-none transition-opacity opacity-0 group-hover:opacity-100 duration-700" />
+              <div className="bg-gradient-to-br from-orange-500/20 to-amber-500/10 w-14 h-14 flex items-center justify-center rounded-2xl mb-6 border border-orange-500/20 group-hover:border-orange-500/40 transition-colors relative z-10">
                 <Database className="w-7 h-7 text-orange-400" />
               </div>
-              <h3 className="text-xl font-bold text-white mb-3">Smart Merge Preview</h3>
-              <p className="text-slate-400 text-sm leading-relaxed">
-                Field-by-field conflict resolution before any data is touched. Only real conflicts are shown—empty fields are hidden automatically to cut through the noise.
+              <h3 className="text-xl font-bold text-white mb-3 relative z-10">Smart Merge Preview</h3>
+              <p className="text-slate-400 text-sm leading-relaxed relative z-10">
+                Field-by-field conflict resolution. Empty fields are hidden to cut through the noise.
               </p>
-            </div>
-            <div className="bg-slate-900/40 border border-slate-800/60 p-8 rounded-3xl backdrop-blur-md hover:bg-slate-800/40 transition-colors duration-500 group">
-              <div className="bg-gradient-to-br from-green-500/20 to-teal-500/10 w-14 h-14 flex items-center justify-center rounded-2xl mb-6 border border-green-500/20 group-hover:border-green-500/40 transition-colors">
+            </motion.div>
+
+            {/* Feature 5 (Medium) */}
+            <motion.div 
+              whileHover={{ scale: 1.03, y: -4 }}
+              transition={{ type: "spring", stiffness: 300, damping: 20 }}
+              className="md:col-span-2 bg-slate-900/40 border border-slate-800/60 p-8 rounded-[2rem] backdrop-blur-xl hover:bg-slate-800/40 hover:border-green-500/30 transition-colors duration-500 group shadow-2xl relative overflow-hidden"
+            >
+              <div className="absolute top-0 right-0 w-48 h-48 bg-green-500/10 blur-[60px] rounded-full pointer-events-none transition-opacity opacity-0 group-hover:opacity-100 duration-700" />
+              <div className="bg-gradient-to-br from-green-500/20 to-teal-500/10 w-14 h-14 flex items-center justify-center rounded-2xl mb-6 border border-green-500/20 group-hover:border-green-500/40 transition-colors relative z-10">
                 <GitBranch className="w-7 h-7 text-green-400" />
               </div>
-              <h3 className="text-xl font-bold text-white mb-3">Resilient Undo Engine</h3>
-              <p className="text-slate-400 text-sm leading-relaxed">
-                Every merge, delete, and bulk fix is fully reversible. Snapshots are captured to SQLite before any destructive action so you can recover with one tap.
+              <h3 className="text-xl font-bold text-white mb-3 relative z-10">Resilient Undo Engine</h3>
+              <p className="text-slate-400 text-sm leading-relaxed relative z-10">
+                Snapshots are captured to SQLite before any destructive action so you can recover.
               </p>
-            </div>
-            <div className="bg-slate-900/40 border border-slate-800/60 p-8 rounded-3xl backdrop-blur-md hover:bg-slate-800/40 transition-colors duration-500 group">
-              <div className="bg-gradient-to-br from-rose-500/20 to-pink-500/10 w-14 h-14 flex items-center justify-center rounded-2xl mb-6 border border-rose-500/20 group-hover:border-rose-500/40 transition-colors">
-                <Star className="w-7 h-7 text-rose-400" />
-              </div>
-              <h3 className="text-xl font-bold text-white mb-3">Premium Dashboard</h3>
-              <p className="text-slate-400 text-sm leading-relaxed">
-                Actionable metrics surface instantly: duplicate count, contact health score, and items needing attention—all rendering progressively so the app never feels slow.
-              </p>
-            </div>
+            </motion.div>
           </div>
         </div>
 
