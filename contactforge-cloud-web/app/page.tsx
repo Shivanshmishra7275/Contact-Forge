@@ -173,21 +173,6 @@ export default function Home() {
           </a>
         </motion.div>
 
-        {/* ── Product Proof Placeholder ────────────────────────────────────────── */}
-        <motion.div
-          initial={{ opacity: 0, y: 40 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 1, delay: 0.5, ease: [0.16, 1, 0.3, 1] }}
-          className="w-full max-w-3xl mb-32 relative"
-        >
-          <div className="absolute inset-0 bg-gradient-to-t from-[#040914] via-transparent to-transparent z-20 pointer-events-none" />
-          <div className="w-full aspect-[16/9] md:aspect-[21/9] bg-slate-900/50 border border-slate-800/80 rounded-[2rem] md:rounded-[3rem] overflow-hidden backdrop-blur-xl shadow-2xl flex flex-col items-center justify-center relative z-10 group">
-            <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-teal-500/50 to-transparent opacity-50" />
-            <Smartphone className="w-12 h-12 text-slate-600 mb-4 opacity-50 group-hover:scale-110 transition-transform duration-500" />
-            <span className="text-slate-500 font-medium tracking-wide uppercase text-sm">App UI Screenshot Area</span>
-            <span className="text-slate-600 text-xs mt-2">Drop transparent device frame here</span>
-          </div>
-        </motion.div>
         </motion.div>
 
         <motion.div
