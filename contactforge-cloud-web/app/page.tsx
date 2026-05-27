@@ -382,128 +382,108 @@ export default function Home() {
           </div>
         </div>
 
-        {/* ── Founder Section (Redesigned) ────────────────────────────────────── */}
+        {/* ── Founder Section (Cinematic Redesign) ────────────────────────────── */}
         <motion.div
-          initial={{ opacity: 0, y: 24 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true, margin: '-80px' }}
-          transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
-          className="w-full max-w-4xl mb-32"
+          initial={{ opacity: 0 }}
+          whileInView={{ opacity: 1 }}
+          viewport={{ once: true, margin: '-100px' }}
+          transition={{ duration: 1 }}
+          className="w-full relative mt-32 mb-40 overflow-visible flex flex-col items-center"
         >
-          {/* Section label */}
-          <p className="text-xs font-bold tracking-widest text-teal-400 uppercase text-center mb-10">
-            Built by a solo developer, for power users
-          </p>
+          {/* Spotlight Effect */}
+          <div className="absolute top-[-100px] left-1/2 -translate-x-1/2 w-[800px] h-[600px] bg-[radial-gradient(ellipse_at_top,rgba(20,184,166,0.15),transparent_70%)] pointer-events-none" />
+          
+          {/* Giant Background Typography */}
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full text-center pointer-events-none z-0 overflow-hidden">
+            <h2 className="text-[12vw] font-black text-slate-800/30 whitespace-nowrap tracking-tighter mix-blend-overlay select-none">
+              THE ARCHITECT
+            </h2>
+          </div>
 
-          <div className="bg-gradient-to-br from-slate-900/70 to-slate-900/30 border border-slate-800/60 rounded-[2.5rem] p-8 md:p-12 backdrop-blur-md relative overflow-hidden">
-            {/* Glow accent */}
-            <div className="absolute top-0 right-0 w-80 h-80 bg-teal-500/5 blur-[120px] rounded-full pointer-events-none" />
-            <div className="absolute bottom-0 left-0 w-60 h-60 bg-purple-500/5 blur-[100px] rounded-full pointer-events-none" />
-
-            <div className="relative z-10 flex flex-col md:flex-row items-start gap-10">
-              {/* Avatar + social links */}
-              <div className="shrink-0 flex flex-col items-center gap-4">
-                <div className="w-32 h-32 md:w-36 md:h-36 rounded-2xl bg-slate-800 border-2 border-slate-700/60 shadow-2xl overflow-hidden">
-                  <Image
-                    src="/founder.jpg"
-                    alt="Shivansh Mishra"
-                    width={144}
-                    height={144}
-                    className="w-full h-full object-cover"
-                  />
-                </div>
-                {/* Social row */}
-                <div className="flex gap-3">
-                  <a
-                    href={GITHUB_PROFILE_URL}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    onClick={() => trackEvent('View Founder GitHub')}
-                    className="flex items-center gap-1.5 text-xs text-slate-400 hover:text-white bg-slate-800/60 hover:bg-slate-700/60 border border-slate-700/40 px-3 py-1.5 rounded-lg transition-all duration-200"
-                  >
-                    <Code className="w-3.5 h-3.5" />
-                    GitHub
-                  </a>
-                  <a
-                    href={`${GITHUB_URL}/issues/new`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    onClick={() => trackEvent('Open Feedback Issue')}
-                    className="flex items-center gap-1.5 text-xs text-slate-400 hover:text-white bg-slate-800/60 hover:bg-slate-700/60 border border-slate-700/40 px-3 py-1.5 rounded-lg transition-all duration-200"
-                  >
-                    <MessageSquare className="w-3.5 h-3.5" />
-                    Feedback
-                  </a>
-                </div>
+          <div className="relative z-10 flex flex-col items-center w-full max-w-5xl px-6">
+            
+            {/* Portrait with Glowing Aura */}
+            <motion.div 
+              initial={{ scale: 0.9, opacity: 0 }}
+              whileInView={{ scale: 1, opacity: 1 }}
+              viewport={{ once: true }}
+              transition={{ duration: 1.5, ease: "easeOut" }}
+              className="relative w-48 h-48 md:w-64 md:h-64 rounded-full mb-12 group"
+            >
+              {/* Intense Aura */}
+              <div className="absolute inset-[-20%] rounded-full bg-teal-500/20 blur-[60px] group-hover:bg-teal-400/30 group-hover:blur-[80px] transition-all duration-1000 animate-pulse" />
+              <div className="absolute inset-[-10%] rounded-full bg-indigo-500/20 blur-[40px] animate-pulse" style={{ animationDelay: '1s' }} />
+              
+              {/* Image Container */}
+              <div className="relative w-full h-full rounded-full overflow-hidden border-4 border-[#020617] shadow-[0_0_50px_rgba(45,212,191,0.4)]">
+                <Image
+                  src="/founder.jpg"
+                  alt="Shivansh Mishra"
+                  width={256}
+                  height={256}
+                  className="w-full h-full object-cover scale-110 group-hover:scale-100 transition-transform duration-1000"
+                />
               </div>
 
-              {/* Bio content */}
-              <div className="flex-1">
-                <div className="flex items-start justify-between mb-1 gap-4 flex-wrap">
-                  <div>
-                    <h2 className="text-3xl font-bold text-white">Shivansh Mishra</h2>
-                    <p className="text-teal-400 font-medium text-sm mt-0.5">
-                      Creator, Architect &amp; Lead Developer
-                    </p>
-                  </div>
-                  {/* Open to work badge */}
-                  <span className="inline-flex items-center gap-1.5 text-xs font-medium text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-3 py-1.5 rounded-full whitespace-nowrap">
-                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                    Building in public
+              {/* Floating Badges */}
+              {SKILLS.slice(0, 3).map((skill, index) => (
+                <motion.div
+                  key={skill}
+                  animate={{ y: [0, -15, 0] }}
+                  transition={{ duration: 4, repeat: Infinity, delay: index * 1.5, ease: "easeInOut" }}
+                  className={`absolute backdrop-blur-md bg-slate-900/60 border border-teal-500/30 text-teal-300 text-xs font-bold px-4 py-2 rounded-full shadow-[0_0_15px_rgba(45,212,191,0.2)] whitespace-nowrap
+                    ${index === 0 ? '-left-12 top-10' : ''}
+                    ${index === 1 ? '-right-16 top-1/2' : ''}
+                    ${index === 2 ? '-left-8 bottom-4' : ''}
+                  `}
+                >
+                  {skill}
+                </motion.div>
+              ))}
+            </motion.div>
+
+            {/* Mission Statement */}
+            <motion.div 
+              initial={{ y: 30, opacity: 0 }}
+              whileInView={{ y: 0, opacity: 1 }}
+              viewport={{ once: true }}
+              transition={{ duration: 1, delay: 0.3 }}
+              className="text-center max-w-3xl"
+            >
+              <h3 className="text-4xl md:text-5xl font-extrabold text-white mb-6 tracking-tight drop-shadow-lg">
+                Shivansh Mishra
+              </h3>
+              <p className="text-xl md:text-2xl text-slate-300 font-light leading-relaxed mb-10 text-balance">
+                <span className="text-teal-400 font-semibold drop-shadow-[0_0_8px_rgba(45,212,191,0.5)]">Forged in code. Driven by privacy.</span><br />
+                I built ContactForge because I was exhausted by silent cloud uploads and opaque algorithms. A solo developer engineering the local-first revolution—treating your data as yours.
+              </p>
+              
+              <div className="flex flex-wrap items-center justify-center gap-6">
+                <a
+                  href={GITHUB_PROFILE_URL}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  onClick={() => trackEvent('View Founder GitHub Cinematic')}
+                  className="group relative px-8 py-4 bg-transparent overflow-hidden rounded-xl border border-teal-500/50 hover:border-teal-400 transition-colors"
+                >
+                  <div className="absolute inset-0 bg-teal-500/10 group-hover:bg-teal-500/20 transition-colors" />
+                  <span className="relative flex items-center gap-2 text-white font-bold tracking-wide">
+                    <Code className="w-5 h-5 text-teal-400" />
+                    INSPECT THE ARCHITECT
                   </span>
-                </div>
-
-                {/* Story */}
-                <p className="text-slate-300 leading-relaxed mt-4 mb-4">
-                  I built ContactForge because I was frustrated with how my contact list had silently
-                  turned into a mess—hundreds of duplicates, missing names, phantom numbers from
-                  forgotten events. Every "solution" I found wanted to upload my private data to a cloud
-                  server, lock features behind a paywall, or call it "AI" when it was just a fuzzy match.
-                </p>
-                <p className="text-slate-400 leading-relaxed mb-6">
-                  So I engineered it myself. ContactForge is what I actually wanted: a fast, offline-first,
-                  fully explainable contact manager that treats your data as yours—no telemetry on
-                  contact records, no subscriptions, no dark patterns. Every feature is backed by deterministic
-                  logic you can read in the open-source code.
-                </p>
-
-                {/* Skills/interests */}
-                <div className="flex flex-wrap gap-2 mb-6">
-                  {SKILLS.map((skill) => (
-                    <span
-                      key={skill}
-                      className="text-xs text-slate-400 bg-slate-800/60 border border-slate-700/40 px-2.5 py-1 rounded-lg"
-                    >
-                      {skill}
-                    </span>
-                  ))}
-                </div>
-
-                {/* CTA links */}
-                <div className="flex flex-wrap gap-4">
-                  <a
-                    href={GITHUB_PROFILE_URL}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    onClick={() => trackEvent('View Founder GitHub')}
-                    className="inline-flex items-center gap-2 text-sm text-slate-300 hover:text-white transition-colors group font-medium"
-                  >
-                    <span>View GitHub Profile</span>
-                    <ExternalLink className="w-3.5 h-3.5 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
-                  </a>
-                  <a
-                    href={`${GITHUB_URL}/issues`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    onClick={() => trackEvent('View Issues')}
-                    className="inline-flex items-center gap-2 text-sm text-teal-400 hover:text-teal-300 transition-colors group font-medium"
-                  >
-                    <span>Report a bug or request a feature</span>
-                    <ChevronRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
-                  </a>
-                </div>
+                </a>
+                <a
+                  href={`${GITHUB_URL}/issues/new`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  onClick={() => trackEvent('Open Feedback Issue Cinematic')}
+                  className="flex items-center gap-2 text-slate-400 hover:text-white transition-colors font-medium"
+                >
+                  <MessageSquare className="w-5 h-5" />
+                  Request a Feature
+                </a>
               </div>
-            </div>
+            </motion.div>
           </div>
         </motion.div>
 
