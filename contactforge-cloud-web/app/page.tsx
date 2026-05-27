@@ -426,20 +426,28 @@ export default function Home() {
               </div>
 
               {/* Floating Badges */}
-              {SKILLS.slice(0, 3).map((skill, index) => (
-                <motion.div
-                  key={skill}
-                  animate={{ y: [0, -15, 0] }}
-                  transition={{ duration: 4, repeat: Infinity, delay: index * 1.5, ease: "easeInOut" }}
-                  className={`absolute backdrop-blur-md bg-slate-900/60 border border-teal-500/30 text-teal-300 text-xs font-bold px-4 py-2 rounded-full shadow-[0_0_15px_rgba(45,212,191,0.2)] whitespace-nowrap
-                    ${index === 0 ? '-left-12 top-10' : ''}
-                    ${index === 1 ? '-right-16 top-1/2' : ''}
-                    ${index === 2 ? '-left-8 bottom-4' : ''}
-                  `}
-                >
-                  {skill}
-                </motion.div>
-              ))}
+              {SKILLS.map((skill, index) => {
+                const positions = [
+                  '-left-16 top-4',       // Top left
+                  '-right-20 top-8',      // Top right
+                  '-left-24 top-1/2',     // Mid left
+                  '-right-24 top-1/2',    // Mid right
+                  '-left-12 bottom-6',    // Bottom left
+                  '-right-12 bottom-2',   // Bottom right
+                ];
+                return (
+                  <motion.div
+                    key={skill}
+                    animate={{ y: [0, -15, 0] }}
+                    transition={{ duration: 4, repeat: Infinity, delay: index * 0.7, ease: "easeInOut" }}
+                    className={`absolute backdrop-blur-md bg-slate-900/80 border border-teal-500/40 text-teal-300 text-xs font-bold px-4 py-2 rounded-full shadow-[0_0_15px_rgba(45,212,191,0.3)] whitespace-nowrap z-20
+                      ${positions[index]}
+                    `}
+                  >
+                    {skill}
+                  </motion.div>
+                );
+              })}
             </motion.div>
 
             {/* Mission Statement */}
