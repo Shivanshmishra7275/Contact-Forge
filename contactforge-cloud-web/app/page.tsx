@@ -73,14 +73,14 @@ export default function Home() {
   const heroScale = useTransform(scrollYProgress, [0, 0.5], [1, 0.9]);
 
   return (
-    <main ref={containerRef} className="min-h-screen bg-[#020617] flex flex-col items-center relative overflow-hidden font-sans selection:bg-teal-500/30 pb-24">
-      {/* ── God-Level Fluid Aurora Background ─────────────────────────────────── */}
+    <main ref={containerRef} className="min-h-screen bg-[#040914] flex flex-col items-center relative overflow-hidden font-sans selection:bg-teal-500/30 pb-24">
+      {/* ── God-Level Fluid Obsidian Mesh Background ──────────────────────────── */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-[-10%] left-[-10%] w-[120%] h-[120%] opacity-40">
-          <div className="absolute top-[20%] left-[20%] w-[800px] h-[800px] bg-cyan-600/30 rounded-full blur-[120px] animate-aurora mix-blend-screen" />
-          <div className="absolute top-[30%] right-[10%] w-[700px] h-[700px] bg-violet-700/40 rounded-full blur-[140px] animate-aurora-reverse mix-blend-screen" />
-          <div className="absolute bottom-[20%] left-[30%] w-[900px] h-[900px] bg-indigo-600/30 rounded-full blur-[130px] animate-aurora mix-blend-screen" style={{ animationDelay: '-5s' }} />
-          <div className="absolute bottom-[10%] right-[20%] w-[600px] h-[600px] bg-blue-700/30 rounded-full blur-[100px] animate-aurora-reverse mix-blend-screen" style={{ animationDelay: '-10s' }} />
+        <div className="absolute top-[-10%] left-[-10%] w-[120%] h-[120%] opacity-30">
+          <div className="absolute top-[20%] left-[20%] w-[900px] h-[900px] bg-teal-600/20 rounded-full blur-[150px] animate-aurora mix-blend-screen" />
+          <div className="absolute top-[30%] right-[10%] w-[800px] h-[800px] bg-emerald-700/20 rounded-full blur-[160px] animate-aurora-reverse mix-blend-screen" />
+          <div className="absolute bottom-[20%] left-[30%] w-[1000px] h-[1000px] bg-blue-900/30 rounded-full blur-[140px] animate-aurora mix-blend-screen" style={{ animationDelay: '-5s' }} />
+          <div className="absolute bottom-[10%] right-[20%] w-[700px] h-[700px] bg-slate-700/30 rounded-full blur-[120px] animate-aurora-reverse mix-blend-screen" style={{ animationDelay: '-10s' }} />
         </div>
       </div>
 
@@ -115,7 +115,7 @@ export default function Home() {
           className="text-5xl md:text-7xl lg:text-8xl font-extrabold tracking-tighter text-white mb-6 leading-[1.05] text-center"
         >
           Your Contacts,<br />
-          <span className="text-transparent bg-clip-text bg-gradient-to-r from-teal-300 via-indigo-300 to-purple-400 drop-shadow-sm pb-2">
+          <span className="text-transparent bg-clip-text bg-gradient-to-r from-teal-300 via-emerald-300 to-blue-400 drop-shadow-sm pb-2">
             Intelligently Secured.
           </span>
         </motion.h1>
