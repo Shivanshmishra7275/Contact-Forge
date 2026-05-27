@@ -44,18 +44,14 @@ describe('executeSafeBulkMerge', () => {
       fields: [],
     }));
 
-    // Mock isSafeBulkMerge: true for first, false for second
-    (buildMergeComparison.isSafeBulkMerge as jest.Mock).mockImplementation((model) => {
-      return model.contactA.id === 10;
-    });
-
-    (buildMergeComparison.buildMergeResult as jest.Mock).mockReturnValue({
-      survivorId: 10,
-      losingId: 11,
-      firstName: 'Contact10',
+    (buildMergeComparison.buildMergeResult as jest.Mock).mockImplementation((model) => ({
+      survivorId: model.contactA.id,
+      losingId: model.contactB.id,
+      firstName: `Contact${model.contactA.id}`,
       phones: [],
       emails: [],
-    });
+      isSafeBulkMergeable: model.contactA.id === 10,
+    }));
 
     const relationshipRepo = require('../db/repositories/relationshipRepository');
     (relationshipRepo.reassignRelationships as jest.Mock).mockReturnValue({
