@@ -1,6 +1,6 @@
 import type { ContactWithDetails } from '../../../types';
 
-export type UndoActionType = 'archive' | 'merge' | 'delete' | 'bulk_delete' | 'import';
+export type UndoActionType = 'archive' | 'merge' | 'delete' | 'bulk_delete' | 'bulk_merge' | 'import';
 
 export interface UndoRecord {
   id: number;
@@ -23,4 +23,8 @@ export interface UndoBulkDeletePayload {
 export interface UndoMergePayload {
   survivorPreMerge: ContactWithDetails;
   absorbedPreMerge: ContactWithDetails;
+}
+
+export interface UndoBulkMergePayload {
+  merges: UndoMergePayload[];
 }

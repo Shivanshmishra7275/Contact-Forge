@@ -7,7 +7,7 @@ import {
   replaceEmailsByContactIdSync
 } from '../../../db/repositories/contactRepository';
 import { upsertDuplicateCandidate } from '../../../db/repositories/duplicateRepository';
-import type { UndoRecord, UndoDeletePayload, UndoBulkDeletePayload, UndoMergePayload } from '../types';
+import type { UndoRecord, UndoDeletePayload, UndoBulkDeletePayload, UndoMergePayload, UndoBulkMergePayload } from '../types';
 
 export interface UndoResult {
   success: boolean;
@@ -40,6 +40,9 @@ export function executeUndo(): UndoResult {
           break;
         case 'merge':
           restoredCount = rollbackMerge(latestAction, warnings);
+          break;
+        case 'bulk_merge':
+          restoredCount = rollbackBulkMerge(latestAction, warnings);
           break;
         default:
           throw new Error(`Unsupported undo action type: ${latestAction.actionType}`);
@@ -92,6 +95,25 @@ function rollbackMerge(action: UndoRecord, warnings: string[]): number {
     throw new Error('Invalid undo payload for merge');
   }
 
+  rollbackSingleMerge(payload, warnings);
+  return 2; // Two contacts restored/reverted
+}
+
+function rollbackBulkMerge(action: UndoRecord, warnings: string[]): number {
+  const payload = JSON.parse(action.actionDataJson) as UndoBulkMergePayload;
+  
+  if (!payload.merges || !Array.isArray(payload.merges)) {
+    throw new Error('Invalid undo payload for bulk merge');
+  }
+
+  for (const merge of payload.merges) {
+    rollbackSingleMerge(merge, warnings);
+  }
+
+  return payload.merges.length * 2;
+}
+
+function rollbackSingleMerge(payload: UndoMergePayload, warnings: string[]) {
   const { survivorPreMerge, absorbedPreMerge } = payload;
 
   // 1. Re-insert the absorbed contact exactly as it was
@@ -127,6 +149,4 @@ function rollbackMerge(action: UndoRecord, warnings: string[]): number {
   });
 
   warnings.push('Notes and relationship links moved during merge could not be fully un-moved.');
-
-  return 2; // Two contacts restored/reverted
 }
