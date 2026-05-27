@@ -5,8 +5,8 @@ import './globals.css';
 const inter = Inter({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
-  title: 'ContactForge Cloud | Private by design. Optional by choice.',
-  description: 'Encrypted sync for people who want control over their contacts. Built on a local-first foundation.',
+  title: 'ContactForge | The Local-First Android Contact Manager',
+  description: 'Download the ContactForge APK. A 100% offline-first, zero-telemetry Android contact manager built for privacy-conscious users.',
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

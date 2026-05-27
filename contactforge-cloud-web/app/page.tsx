@@ -135,51 +135,58 @@ export default function Home() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.8, delay: 0.3, ease: [0.16, 1, 0.3, 1] }}
-          className="flex flex-col sm:flex-row gap-4 items-center justify-center mb-6 w-full sm:w-auto"
+          className="flex flex-col items-center w-full sm:w-auto"
         >
           {/* Primary: direct APK download */}
           <a
             href={APK_DOWNLOAD_URL}
             onClick={() => handleDirectDownload('hero')}
-            className="group flex items-center justify-center gap-3 bg-white hover:bg-slate-100 text-slate-950 font-semibold px-8 py-4 rounded-xl transition-all duration-300 w-full sm:w-auto hover:shadow-[0_0_30px_rgba(255,255,255,0.2)] hover:-translate-y-0.5"
+            className="group flex items-center justify-center gap-3 bg-white hover:bg-slate-100 text-slate-950 font-bold px-10 py-5 rounded-2xl transition-all duration-300 w-full sm:w-auto shadow-[0_0_40px_rgba(45,212,191,0.2)] hover:shadow-[0_0_60px_rgba(45,212,191,0.4)] hover:-translate-y-1 mb-6 text-lg"
           >
-            <Download className="w-5 h-5 group-hover:animate-bounce" />
-            <span>Download latest APK from GitHub</span>
+            <Download className="w-6 h-6 group-hover:animate-bounce" />
+            <span>Download Android APK</span>
           </a>
 
-          {/* Secondary: view source */}
+          {/* Trust Metadata Strip */}
+          <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-xs font-medium text-slate-400 max-w-2xl text-center mb-8 bg-slate-900/40 border border-slate-800/60 rounded-xl px-6 py-3 backdrop-blur-md">
+            <span className="flex items-center gap-1.5 text-teal-400">
+              <ShieldCheck className="w-3.5 h-3.5" /> No Internet Required
+            </span>
+            <span className="w-1 h-1 rounded-full bg-slate-700 hidden sm:block" />
+            <span>v3.2.0</span>
+            <span className="w-1 h-1 rounded-full bg-slate-700 hidden sm:block" />
+            <span>Android 8.0+</span>
+            <span className="w-1 h-1 rounded-full bg-slate-700 hidden sm:block" />
+            <span>~35MB</span>
+            <span className="w-1 h-1 rounded-full bg-slate-700 hidden sm:block" />
+            <span className="text-slate-500 font-mono tracking-tighter" title="SHA-256 Checksum (Pending Release)">
+              SHA-256 (Pending Release)
+            </span>
+          </div>
+
+          {/* Secondary: Installation Guide */}
           <a
-            href={GITHUB_URL}
-            target="_blank"
-            rel="noopener noreferrer"
-            onClick={handleGitHubClick}
-            className="group flex items-center justify-center gap-3 bg-slate-900/50 hover:bg-slate-800/80 border border-slate-700/50 text-white font-semibold px-8 py-4 rounded-xl transition-all duration-300 w-full sm:w-auto backdrop-blur-md hover:border-slate-600 hover:-translate-y-0.5"
+            href="#install-guide"
+            className="text-sm text-slate-400 hover:text-white transition-colors underline underline-offset-4 decoration-slate-700 hover:decoration-slate-400 mb-20"
           >
-            <Code className="w-5 h-5" />
-            <span>View on GitHub</span>
+            How to install this APK safely
           </a>
         </motion.div>
 
-        {/* Install instruction hint */}
+        {/* ── Product Proof Placeholder ────────────────────────────────────────── */}
         <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.6, duration: 0.6 }}
-          className="flex items-center gap-2 text-xs text-slate-500 mb-32 text-center"
+          initial={{ opacity: 0, y: 40 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 1, delay: 0.5, ease: [0.16, 1, 0.3, 1] }}
+          className="w-full max-w-3xl mb-32 relative"
         >
-          <Smartphone className="w-3.5 h-3.5 shrink-0" />
-          <span>
-            Android only · Enable <strong className="text-slate-400 font-medium">"Install from unknown sources"</strong> in Settings before installing ·{' '}
-            <a
-              href={RELEASE_PAGE_URL}
-              target="_blank"
-              rel="noopener noreferrer"
-              onClick={handleReleasePageClick}
-              className="text-teal-500 hover:text-teal-300 underline underline-offset-2 transition-colors"
-            >
-              View release notes
-            </a>
-          </span>
+          <div className="absolute inset-0 bg-gradient-to-t from-[#040914] via-transparent to-transparent z-20 pointer-events-none" />
+          <div className="w-full aspect-[16/9] md:aspect-[21/9] bg-slate-900/50 border border-slate-800/80 rounded-[2rem] md:rounded-[3rem] overflow-hidden backdrop-blur-xl shadow-2xl flex flex-col items-center justify-center relative z-10 group">
+            <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-teal-500/50 to-transparent opacity-50" />
+            <Smartphone className="w-12 h-12 text-slate-600 mb-4 opacity-50 group-hover:scale-110 transition-transform duration-500" />
+            <span className="text-slate-500 font-medium tracking-wide uppercase text-sm">App UI Screenshot Area</span>
+            <span className="text-slate-600 text-xs mt-2">Drop transparent device frame here</span>
+          </div>
         </motion.div>
         </motion.div>
 
@@ -445,6 +452,84 @@ export default function Home() {
               </div>
             </div>
 
+          </div>
+        </div>
+        {/* ── Installation Guide & FAQ ─────────────────────────────────────────── */}
+        <div id="install-guide" className="w-full max-w-5xl mb-32 relative pt-20">
+          <div className="text-center mb-16">
+            <h2 className="text-sm font-bold tracking-widest text-teal-400 uppercase mb-4 drop-shadow-[0_0_8px_rgba(45,212,191,0.5)]">Direct Distribution</h2>
+            <h3 className="text-3xl md:text-5xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-slate-200 to-slate-500 mb-6">
+              How to Install the APK
+            </h3>
+            <p className="text-slate-400 max-w-2xl mx-auto">
+              ContactForge is distributed directly to guarantee zero third-party tracking. Follow these 3 simple steps to install it on your Android device.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-20 relative z-10">
+            {/* Step 1 */}
+            <div className="bg-slate-900/40 border border-slate-800/60 rounded-[2rem] p-8 relative overflow-hidden backdrop-blur-md group">
+              <div className="absolute top-0 right-0 w-32 h-32 bg-blue-500/10 blur-[40px] rounded-full pointer-events-none transition-opacity opacity-0 group-hover:opacity-100 duration-700" />
+              <div className="w-12 h-12 bg-blue-500/20 text-blue-400 rounded-2xl flex items-center justify-center text-xl font-bold mb-6 border border-blue-500/20">
+                1
+              </div>
+              <h4 className="text-xl font-bold text-white mb-3">Download</h4>
+              <p className="text-slate-400 text-sm leading-relaxed">
+                Tap the download button to grab the latest APK file directly from our secure GitHub release pipeline.
+              </p>
+            </div>
+
+            {/* Step 2 */}
+            <div className="bg-slate-900/40 border border-slate-800/60 rounded-[2rem] p-8 relative overflow-hidden backdrop-blur-md group">
+              <div className="absolute top-0 right-0 w-32 h-32 bg-orange-500/10 blur-[40px] rounded-full pointer-events-none transition-opacity opacity-0 group-hover:opacity-100 duration-700" />
+              <div className="w-12 h-12 bg-orange-500/20 text-orange-400 rounded-2xl flex items-center justify-center text-xl font-bold mb-6 border border-orange-500/20">
+                2
+              </div>
+              <h4 className="text-xl font-bold text-white mb-3">Allow Install</h4>
+              <p className="text-slate-400 text-sm leading-relaxed">
+                Open the file. If prompted, tap <strong>Settings</strong> and enable <strong>"Allow from this source"</strong> for your browser or file manager.
+              </p>
+            </div>
+
+            {/* Step 3 */}
+            <div className="bg-slate-900/40 border border-slate-800/60 rounded-[2rem] p-8 relative overflow-hidden backdrop-blur-md group">
+              <div className="absolute top-0 right-0 w-32 h-32 bg-teal-500/10 blur-[40px] rounded-full pointer-events-none transition-opacity opacity-0 group-hover:opacity-100 duration-700" />
+              <div className="w-12 h-12 bg-teal-500/20 text-teal-400 rounded-2xl flex items-center justify-center text-xl font-bold mb-6 border border-teal-500/20">
+                3
+              </div>
+              <h4 className="text-xl font-bold text-white mb-3">Start Locally</h4>
+              <p className="text-slate-400 text-sm leading-relaxed">
+                Launch ContactForge. It works instantly, 100% offline. No accounts, no cloud syncs, no tracking.
+              </p>
+            </div>
+          </div>
+
+          {/* FAQ */}
+          <div className="max-w-3xl mx-auto bg-slate-900/30 border border-slate-800/50 rounded-3xl p-8 backdrop-blur-xl">
+            <h4 className="text-xl font-bold text-white mb-6 flex items-center gap-2">
+              <ShieldCheck className="w-5 h-5 text-teal-400" />
+              Common Questions
+            </h4>
+            <div className="space-y-6">
+              <div>
+                <h5 className="font-semibold text-slate-200 mb-1">Why isn't this on the Google Play Store?</h5>
+                <p className="text-sm text-slate-400 leading-relaxed">
+                  We distribute directly to guarantee zero third-party tracking policies. We don't want to embed the required store analytics SDKs into an app designed for absolute privacy.
+                </p>
+              </div>
+              <div>
+                <h5 className="font-semibold text-slate-200 mb-1">Does ContactForge need internet access?</h5>
+                <p className="text-sm text-slate-400 leading-relaxed">
+                  No. The app operates completely offline. It reads your local device contacts, processes them in a local SQLite database, and saves them back to your device.
+                </p>
+              </div>
+              <div>
+                <h5 className="font-semibold text-slate-200 mb-1">Will this upload my contacts anywhere?</h5>
+                <p className="text-sm text-slate-400 leading-relaxed">
+                  Never. Your contacts stay exactly where they belong: on your device.
+                </p>
+              </div>
+            </div>
           </div>
         </div>
 
