@@ -42,8 +42,8 @@ const STATS = [
 
 // ─── Founder skills/interests ───────────────────────────────────────────────────
 const SKILLS = [
-  'React Native', 'TypeScript', 'SQLite', 'Privacy Engineering',
-  'Expo', 'Local-First Apps', 'Reanimated', 'Offline UX',
+  'Python', 'SQL', 'C', 'ML Engineer',
+  'Vibe Coding', 'Excellent Thinking'
 ];
 
 export default function Home() {
@@ -454,8 +454,8 @@ export default function Home() {
                 Shivansh Mishra
               </h3>
               <p className="text-xl md:text-2xl text-slate-300 font-light leading-relaxed mb-10 text-balance">
-                <span className="text-teal-400 font-semibold drop-shadow-[0_0_8px_rgba(45,212,191,0.5)]">Forged in code. Driven by privacy.</span><br />
-                I built ContactForge because I was exhausted by silent cloud uploads and opaque algorithms. A solo developer engineering the local-first revolution—treating your data as yours.
+                <span className="text-teal-400 font-semibold drop-shadow-[0_0_8px_rgba(45,212,191,0.5)]">Aspiring ML Engineer. Forged by Vibe Coding.</span><br />
+                I built ContactForge through excellent thinking and pure intuition. A solo developer engineering the local-first revolution, driven by a passion for Python, C, and SQL.
               </p>
               
               <div className="flex flex-wrap items-center justify-center gap-6">
