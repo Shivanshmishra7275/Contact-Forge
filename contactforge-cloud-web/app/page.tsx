@@ -24,9 +24,8 @@ import { trackEvent } from '../lib/analytics';
 import { TelemetryWidget } from '../components/TelemetryWidget';
 
 // ─── Direct APK download URL ────────────────────────────────────────────────────
-// Currently points to the Expo build page.
-const APK_DOWNLOAD_URL =
-  'https://github.com/Shivanshmishra7275/Contact-Forge/releases/latest/download/ContactForge.apk';
+// Direct download API route (dynamically fetches the latest APK)
+const APK_DOWNLOAD_URL = '/api/download';
 const RELEASE_PAGE_URL =
   'https://github.com/Shivanshmishra7275/Contact-Forge/releases/tag/v3.2.0';
 const GITHUB_URL = 'https://github.com/Shivanshmishra7275/Contact-Forge';
