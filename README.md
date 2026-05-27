@@ -35,9 +35,7 @@
 ContactForge is a premium utility designed for users who want complete ownership of their networks. Experience instantaneous performance and actionable insights without ever uploading a single byte to the cloud.
 </p>
 
-<br>
-
-<a href="https://github.com/Shivanshmishra7275/Contact-Forge/releases/latest">
+<a href="https://github.com/Shivanshmishra7275/Contact-Forge/releases/latest/download/ContactForge.apk">
   <img src="https://img.shields.io/badge/⬇_Download_latest_APK_from_GitHub-000000?style=for-the-badge&logo=github&logoColor=ffffff&labelColor=111111" height="54" alt="Download latest APK from GitHub">
 </a>
 
@@ -75,8 +73,8 @@ Stop scrolling and start acting. With one-tap deep links across the entire UI, y
 
 # ✨ Premium Features
 
-### 🧹 Smart Merge & Cleanup Engine
-Merge duplicates with surgical precision. Field-level conflict resolution, side-by-side visual diffs, and an "Ignore" memory ensure a clean CRM.
+### 🧹 Deterministic Duplicate Engine
+Merge duplicates with surgical precision. Our SQL-grouped engine performs exact multi-field matches instantly. Field-level conflict resolution, side-by-side visual diffs, and persistent "Ignore" memory ensure a clean CRM.
 
 ### 📥 100% Offline Import Studio
 Import VCF and CSV files securely. Dynamic column mapping and robust truncation protection for large databases.
@@ -139,7 +137,7 @@ npm run test
 # 🚀 Version History
 
 ### 🏷️ V3.3: The Performance & Integrity Release
-*Introduced FTS5 Indexed Search, Tombstone Sync hardening, bulk multi-select operations, and safe merge memory.*
+*Introduced FTS5 Indexed Search, deterministic SQL-grouped Duplicate Engine, Tombstone Sync hardening, bulk multi-select operations, and safe merge memory.*
 
 ### 🏷️ V3.2: Local Offline Group Management
 *Introduced SQLite-backed tags and quick-filtering cohorts.*
