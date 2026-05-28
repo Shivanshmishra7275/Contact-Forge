@@ -1,4 +1,4 @@
-<div align="center">
+﻿<div align="center">
 
 <img src="https://capsule-render.vercel.app/api?type=waving&height=240&color=0:111827,100:000000&text=ContactForge&fontSize=56&fontColor=ffffff&animation=fadeIn&fontAlignY=38&desc=An%20offline-first,%20zero-cloud,%20privacy-first%20contact%20CRM.&descAlignY=60" width="100%" />
 
@@ -25,14 +25,14 @@
 <img src="https://img.shields.io/badge/Architecture-Offline_First-111827?style=flat-square" />
 <img src="https://img.shields.io/badge/Privacy-Local_Only-065F46?style=flat-square" />
 <img src="https://img.shields.io/badge/Open_Source-Community_Ready-6D28D9?style=flat-square" />
-<img src="https://img.shields.io/badge/License-MIT-black?style=flat-square" />
+<img src="https://img.shields.io/badge/Release-v4.0.1-2563EB?style=flat-square" />
 
 <br><br>
 
 ### 🛡️ An offline-first, zero-cloud, privacy-first contact CRM.
 
 <p>
-ContactForge is a premium utility designed for users who want complete ownership of their networks. Experience instantaneous performance and actionable insights without ever uploading a single byte to the cloud.
+ContactForge is a premium utility designed for users who want complete ownership of their networks. Experience instantaneous performance, algorithmic deduplication, and actionable insights without ever uploading a single byte to the cloud.
 </p>
 
 <a href="https://github.com/Shivanshmishra7275/Contact-Forge/releases/latest">
@@ -62,34 +62,19 @@ Stop scrolling and start acting. With one-tap deep links across the entire UI, y
 
 ---
 
-# 🎯 Built For
+# ✨ What's New in v4.0.1 (The Premium Design Update)
 
-- **Privacy Advocates**: Users who explicitly reject cloud contact indexing and third-party data tracking.
-- **Power Networkers**: People with massive contact lists who need scalable offline CRM features.
-- **Offline Warriors**: Fast, zero-latency workflows regardless of connectivity.
-- **Modern Developers**: Engineers eager to explore cutting-edge local-first architecture on React Native, Expo, and SQLite.
-
----
-
-# ✨ Premium Features
-
-### 🧹 Deterministic Duplicate Engine
-Merge duplicates with surgical precision. Our SQL-grouped engine performs exact multi-field matches instantly. Field-level conflict resolution, side-by-side visual diffs, and persistent "Ignore" memory ensure a clean CRM.
-
-### 📥 100% Offline Import Studio
-Import VCF and CSV files securely. Dynamic column mapping and robust truncation protection for large databases.
-
-### ⏪ Global Undo Engine
-Made a mistake? A resilient global safety system automatically captures pre-mutation snapshots for destructive actions (merges, bulk deletions), offering one-tap recovery.
-
-### 📇 Offline QR Sharing & Backup Vault
-Exchange vCards via local QR codes and export encrypted backups without ever touching a server.
+- **2-Way Native OS Write-Back Sync:** Push perfectly cleaned, merged, and enhanced Contact-Forge libraries directly back to your iOS or Android native address book.
+- **Full CRM Contact Editing:** Dynamically edit names, companies, job titles, notes, and tags directly inside the app.
+- **Shake-to-Undo Global Gesture:** Accidentally merged the wrong contacts? Just physically shake your phone to trigger a premium global Undo action with haptic feedback.
+- **Single Contact VCF Sharing:** Instantly generate a .vcf file and pop up the native iOS/Android share sheet.
+- **Cinematic UI Overhaul:** Buttery-smooth 60fps scrolling using Shopify's FlashList, 3-layer aurora glass backgrounds, eact-native-reanimated physics, and WCAG AA accessibility color tuning.
 
 ---
 
 # 🏛️ Architecture & Tech Stack
 
-```txt
+\\\	xt
 UI Layer (Stateless, React Native Paper, Reanimated) 
   ↓
 State Management (Zustand)
@@ -98,71 +83,9 @@ Service Layer (Deduplication, FTS Search, Backup)
   ↓
 Repository Layer (SQLite Transactions, Tombstones)
   ↓
-Database Layer (Expo SQLite / wa-sqlite)
-```
-
-### Technical Stack
-* **Framework**: React Native with Expo (Managed Workflow)
-* **Routing**: Expo Router (v3 Typed Routes)
-* **Storage**: Expo SQLite with FTS5 
-* **State**: Zustand
-* **Platform Support**: Android, iOS, and Web (Metro Bundler)
+Infrastructure (Expo SQLite, Expo FileSystem, Expo Contacts)
+\\\
 
 ---
 
-# 💻 Developer Setup
-
-### 1. Clone & Install
-```bash
-git clone https://github.com/Shivanshmishra7275/Contact-Forge.git
-cd Contact-Forge
-npm install
-```
-
-### 2. Start Development Server
-```bash
-npm start
-npm run android   # Android emulator
-npm run ios       # iOS simulator
-```
-
-### 3. Quality Assurance
-```bash
-npm run typecheck
-npm run test
-```
-
----
-
-# 🚀 Version History
-
-### 🏷️ V4.0: The Complete CRM & Write-Back Sync Release
-*Introduced 2-Way Native OS Contact Sync, Full CRUD CRM Editing capabilities, Shake-to-Undo Gestures, Single Contact VCF Sharing, FlashList UI Virtualization, and Cinematic Reanimated UI components.*
-
-### 🏷️ V3.3: The Performance & Integrity Release
-*Introduced FTS5 Indexed Search, deterministic SQL-grouped Duplicate Engine, Tombstone Sync hardening, bulk multi-select operations, and safe merge memory.*
-
-### 🏷️ V3.2: Local Offline Group Management
-*Introduced SQLite-backed tags and quick-filtering cohorts.*
-
-### 🎨 V3.1: "Mission Control" UI Overhaul
-*Cinematic Dark Mode, Reanimated physics, and 3D flashcard stacking.*
-
----
-
-# 📄 License
-
-<div align="center">
-
-<a href="./LICENSE">
-  <img src="https://img.shields.io/badge/License-MIT-111111?style=for-the-badge?logo=opensourceinitiative&logoColor=white" alt="MIT License">
-</a>
-
-<br><br>
-
-## Architected by Shivansh Mishra
-### B.Tech • Cloud Computing & Machine Learning
-
-<i>Building privacy-first mobile systems with modern local-first architecture.</i>
-
-</div>
+**Architected with 🖤 by Shivansh Mishra**

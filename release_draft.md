@@ -1,36 +1,49 @@
-# 🚀 ContactForge v4.0.1: The Complete CRM & Write-Back Sync Release
+﻿# 🚀 ContactForge v4.0.1 — Hotfix + Premium Design Overhaul
 
-We are thrilled to announce **ContactForge v4.0.1** — our biggest and most feature-rich update yet! 
-*(Note: v4.0.1 contains a critical hotfix for upgrading users that resolves crash loops and "no such column: name_key" sync errors from the v4.0.0 release).*
+This release contains **critical stability fixes** from the v4.0.0 launch and a sweeping **UI/UX design overhaul**.
 
-## 🔥 What's New in v4.0.0 & v4.0.1?
+## 🔥 Critical Fixes (v4.0.1)
 
-### 🔄 2-Way Native OS Write-Back Sync
-ContactForge is no longer an isolated island. With the new **Write Back to Phone** feature in the Mission Control Dashboard, you can push your perfectly cleaned, merged, and enhanced Contact-Forge library directly back to your iOS or Android native address book. Clean up duplicates here, and let the changes reflect everywhere!
+### 🪲 Fixed: App crash on upgrade (schema migration race condition)
+Users upgrading from v3.3 to v4.0.0 encountered a fatal crash loop. The root cause was a SQLite schema migration executing CREATE INDEX ON contacts(name_key) **before** the migration that added the 
+ame_key column. This caused a 
+o such column fatal error that cascaded into:
+- Every sync crashing with "no such column: name_key"  
+- Terms & Conditions screen showing on every launch (settings couldn't load)
+- Magic Merge All button crashing
 
-### 📝 Full CRM Contact Editing
-You no longer need to jump to your phone's native address book to fix typos. We've added a dedicated **Edit Contact** screen. Tap the Pencil Icon in the top right of any Contact's Detail page to dynamically edit their name, company, job title, notes, and tags.
+**Fix:** Reordered schema bootstrap so COLUMN_MIGRATIONS always run before CREATE_INDEXES.
 
-### 🫨 Shake-to-Undo Global Gesture
-Accidentally merged the wrong contacts? Accidentally deleted someone? Just **physically shake your phone**! We've integrated hardware accelerometer sensors to trigger a premium global Undo action, complete with haptic feedback.
+### 🪲 Fixed: Library Health always showing 0%
+Health was calculated by running 5 DB queries per contact × 1800 contacts = **9,000+ DB round trips** — which silently timed out. Replaced with a single SQL AVG() aggregation query.
 
-### 📤 Single Contact VCF Sharing
-While bulk export is great for backups, sometimes you just need to share a single person's info. We've added a **Share Contact Card** button in the Contact Details screen. Tap it to instantly generate a `.vcf` file and pop up the native iOS/Android share sheet.
-
-### 🎬 Cinematic UI & FlashList Virtualization
-We've completely overhauled the list rendering engines using Shopify's `FlashList`, guaranteeing buttery-smooth 60fps scrolling even with 2,000+ contacts. Plus, we've injected `react-native-reanimated` physics, giving lists a beautiful cascading fade-in effect. Dark mode colors have also been tweaked for optimal WCAG accessibility and premium aesthetics.
+### 🪲 Fixed: Splash screen text truncation
+The typewriter loading text was being clipped mid-word on some Android screen densities. Fixed with proper layout constraints.
 
 ---
 
-## 🛠️ Previous Highlights (v3.3)
-- **SQLite FTS5 Indexed Search**: Microsecond filtering across tens of thousands of contacts.
-- **Zero-Loss Tombstone Sync Architecture**: Safe deletions and flawless sync propagation.
-- **Bulk Action Multi-Select**: Mass delete and mass export capabilities.
-- **Safe Merge Memory**: Persistent 'Ignore Duplicate' functionality.
+## ✨ New: Premium Design System v4.0.1
+
+A complete visual overhaul based on WCAG AA accessibility standards and 2025 mobile design trends:
+
+### 🎨 Color System & UI
+- **Richer background**: Deep navy eliminates harsh halation
+- **WCAG AA compliant text**: All text colors verified to 4.5:1+ contrast ratio
+- **3-Layer Aurora Background**: Three breathing radial gradients (violet, teal, indigo) that slowly drift.
+- **Glass Cards 2.0**: Cards now have proper box shadow depth and subtle border edges.
+- **Tab Bar Overhaul**: Solid opaque background, proper elevation shadow, active tint.
+- **Automatic First Sync**: On first launch with contacts permission, the app automatically begins syncing.
+
+---
 
 ## 📥 Getting Started
-Download the latest signed APK from the assets below, or clone the repository to run it locally on Expo. No servers. No cloud. Just your data, perfectly synced.
+Download the APK below, or clone the repository to run locally on Expo Go. 
+
+### 📦 Asset Details
+- **File:** ContactForge-v4.0.1.apk
+- **Size:** 92 MB
+- **SHA-256:** ACEE059F4EBF2D055BADB3B6D3C76B944E7FD123B2BD81F6C61A4C2A093FBB8B
 
 ---
-**Architected with 🖤 by Shivansh Mishra**
+**Architected with 🖤 by Shivansh Mishra**  
 *Building privacy-first mobile systems with modern local-first architecture.*
