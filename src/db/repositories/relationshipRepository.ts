@@ -170,37 +170,35 @@ export function reassignRelationships(fromContactId: number, toContactId: number
   let updated = 0;
   let removed = 0;
 
-  db.withTransactionSync(() => {
-    for (const rel of relationships) {
-      const newFrom = rel.contactIdFrom === fromContactId ? toContactId : rel.contactIdFrom;
-      const newTo = rel.contactIdTo === fromContactId ? toContactId : rel.contactIdTo;
+  for (const rel of relationships) {
+    const newFrom = rel.contactIdFrom === fromContactId ? toContactId : rel.contactIdFrom;
+    const newTo = rel.contactIdTo === fromContactId ? toContactId : rel.contactIdTo;
 
-      if (newFrom === newTo) {
-        db.runSync('DELETE FROM contact_relationships WHERE id = ?', [rel.id]);
-        removed++;
-        continue;
-      }
-
-      if (relationshipExists(db, {
-        contactIdFrom: newFrom,
-        contactIdTo: newTo,
-        relationshipType: rel.relationshipType,
-        direction: rel.direction,
-      })) {
-        db.runSync('DELETE FROM contact_relationships WHERE id = ?', [rel.id]);
-        removed++;
-        continue;
-      }
-
-      db.runSync(
-        `UPDATE contact_relationships
-            SET contact_id_from = ?, contact_id_to = ?
-          WHERE id = ?`,
-        [newFrom, newTo, rel.id],
-      );
-      updated++;
+    if (newFrom === newTo) {
+      db.runSync('DELETE FROM contact_relationships WHERE id = ?', [rel.id]);
+      removed++;
+      continue;
     }
-  });
+
+    if (relationshipExists(db, {
+      contactIdFrom: newFrom,
+      contactIdTo: newTo,
+      relationshipType: rel.relationshipType,
+      direction: rel.direction,
+    })) {
+      db.runSync('DELETE FROM contact_relationships WHERE id = ?', [rel.id]);
+      removed++;
+      continue;
+    }
+
+    db.runSync(
+      `UPDATE contact_relationships
+          SET contact_id_from = ?, contact_id_to = ?
+        WHERE id = ?`,
+      [newFrom, newTo, rel.id],
+    );
+    updated++;
+  }
 
   return { updated, removed };
 }
