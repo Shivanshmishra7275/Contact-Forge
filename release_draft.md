@@ -1,8 +1,8 @@
-# 🚀 ContactForge v4.0.1 — Hotfix + Premium Design Overhaul
+# 🚀 ContactForge v4.2.0 — Hotfix + Premium Design Overhaul
 
 This release contains **critical stability fixes** from the v4.0.0 launch and a sweeping **UI/UX design overhaul**.
 
-## 🔥 Critical Fixes (v4.0.1)
+## 🔥 Critical Fixes (v4.2.0)
 
 ### 🪲 Fixed: App crash on upgrade (schema migration race condition)
 Users upgrading from v3.3 to v4.0.0 encountered a fatal crash loop. The root cause was a SQLite schema migration executing `CREATE INDEX ON contacts(name_key)` **before** the migration that added the `name_key` column. This caused a `no such column` fatal error that cascaded into:
@@ -18,9 +18,15 @@ Health was calculated by running 5 DB queries per contact × 1800 contacts = **9
 ### 🪲 Fixed: Splash screen text truncation
 The typewriter loading text was being clipped mid-word on some Android screen densities. Fixed with proper layout constraints.
 
+### 🪲 Fixed: Magic Merge All nested transaction crash
+A massive regression where clicking "Magic Merge All" caused an immediate crash with `cannot rollback - no transaction is active`. This was due to an `expo-sqlite` limitation where a nested transaction inside `reassignRelationships` conflicted with the parent bulk merge transaction. Stripped out the nested wrapper so the merge executes smoothly within a single atomic commit.
+
+### 🪲 Fixed: Website APK Download Timeout (504 Gateway Error)
+Users downloading the 92MB APK from the website frequently experienced a failed download. Vercel serverless functions have a 10s execution limit, causing the stream to forcibly timeout. Refactored the `/api/download` route to track analytics via Redis and immediately HTTP 302 redirect directly to the GitHub CDN, allowing full high-speed downloads directly from S3.
+
 ---
 
-## ✨ New: Premium Design System v4.0.1
+## ✨ New: Premium Design System v4.2.0
 
 A complete visual overhaul based on WCAG AA accessibility standards and 2025 mobile design trends:
 
@@ -38,8 +44,8 @@ A complete visual overhaul based on WCAG AA accessibility standards and 2025 mob
 Download the APK below, or clone the repository to run locally on Expo Go. 
 
 ### 📦 Asset Details
-- **File:** `ContactForge-v4.0.1.apk`
-- **Size:** 92 MB
+- **File:** `ContactForge-v4.2.0.apk`
+- **Size:** ~92 MB
 - **SHA-256:** `ACEE059F4EBF2D055BADB3B6D3C76B944E7FD123B2BD81F6C61A4C2A093FBB8B`
 
 ---
