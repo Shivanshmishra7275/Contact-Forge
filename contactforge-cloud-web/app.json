@@ -1,0 +1,12 @@
+{
+  "expo": {
+    "extra": {
+      "eas": {
+        "projectId": "8115c22e-3376-472c-b064-f891bc2ecc98"
+      }
+    },
+    "android": {
+      "package": "com.shivansh_98.contactforgecloudweb"
+    }
+  }
+}
