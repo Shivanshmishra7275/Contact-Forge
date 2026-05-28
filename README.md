@@ -25,7 +25,7 @@
 <img src="https://img.shields.io/badge/Architecture-Offline_First-111827?style=flat-square" />
 <img src="https://img.shields.io/badge/Privacy-Local_Only-065F46?style=flat-square" />
 <img src="https://img.shields.io/badge/Open_Source-Community_Ready-6D28D9?style=flat-square" />
-<img src="https://img.shields.io/badge/Release-v4.0.1-2563EB?style=flat-square" />
+<img src="https://img.shields.io/badge/Release-v4.2.0-2563EB?style=flat-square" />
 
 <br><br>
 
@@ -62,7 +62,7 @@ Stop scrolling and start acting. With one-tap deep links across the entire UI, y
 
 ---
 
-# ✨ What's New in v4.0.1 (The Premium Design Update)
+# ✨ What's New in v4.2.0 (The Premium Design Update)
 
 - **2-Way Native OS Write-Back Sync:** Push perfectly cleaned, merged, and enhanced Contact-Forge libraries directly back to your iOS or Android native address book.
 - **Full CRM Contact Editing:** Dynamically edit names, companies, job titles, notes, and tags directly inside the app.

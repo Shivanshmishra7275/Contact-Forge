@@ -28,7 +28,7 @@ import { TelemetryWidget } from '../components/TelemetryWidget';
 // Direct download API route (dynamically fetches the latest APK)
 const APK_DOWNLOAD_URL = '/api/download';
 const RELEASE_PAGE_URL =
-  'https://github.com/Shivanshmishra7275/Contact-Forge/releases/tag/v4.0.1';
+  'https://github.com/Shivanshmishra7275/Contact-Forge/releases/tag/v4.2.0';
 const GITHUB_URL = 'https://github.com/Shivanshmishra7275/Contact-Forge';
 const GITHUB_PROFILE_URL = 'https://github.com/Shivanshmishra7275';
 
@@ -37,7 +37,7 @@ const STATS = [
   { value: '1,800+', label: 'Contacts Handled' },
   { value: '115', label: 'Tests Passing' },
   { value: '100%', label: 'Offline & Private' },
-  { value: 'v4.0.1', label: 'Current Version' },
+  { value: 'v4.2.0', label: 'Current Version' },
 ];
 
 // ─── Founder skills/interests ───────────────────────────────────────────────────
@@ -50,7 +50,7 @@ export default function Home() {
   const [apkError, setApkError] = useState(false);
 
   const handleDirectDownload = (source: 'hero' | 'footer') => {
-    trackEvent('Download APK Direct', { source, version: 'v4.0.1' });
+    trackEvent('Download APK Direct', { source, version: 'v4.2.0' });
   };
 
   const handleReleasePageClick = () => {
@@ -126,7 +126,7 @@ export default function Home() {
           transition={{ duration: 0.8, delay: 0.2, ease: [0.16, 1, 0.3, 1] }}
           className="text-lg md:text-xl text-slate-400 mb-12 max-w-2xl mx-auto leading-relaxed font-light text-center"
         >
-          ContactForge V4.0.1 is a privacy-first Android app that cleans duplicates, edits your contacts, tracks relationships,
+          ContactForge V4.2.0 is a privacy-first Android app that cleans duplicates, edits your contacts, tracks relationships,
           and syncs securely to your phone—fully offline, zero cloud, zero tracking.
         </motion.p>
 
@@ -153,7 +153,7 @@ export default function Home() {
               <ShieldCheck className="w-3.5 h-3.5" /> No Internet Required
             </span>
             <span className="w-1 h-1 rounded-full bg-slate-700 hidden sm:block" />
-            <span>v4.0.1</span>
+            <span>v4.2.0</span>
             <span className="w-1 h-1 rounded-full bg-slate-700 hidden sm:block" />
             <span>Android 8.0+</span>
             <span className="w-1 h-1 rounded-full bg-slate-700 hidden sm:block" />
