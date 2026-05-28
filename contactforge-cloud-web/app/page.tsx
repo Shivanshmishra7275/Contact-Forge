@@ -28,7 +28,7 @@ import { TelemetryWidget } from '../components/TelemetryWidget';
 // Direct download API route (dynamically fetches the latest APK)
 const APK_DOWNLOAD_URL = '/api/download';
 const RELEASE_PAGE_URL =
-  'https://github.com/Shivanshmishra7275/Contact-Forge/releases/tag/v4.2.0';
+  'https://github.com/Shivanshmishra7275/Contact-Forge/releases/tag/v4.3.0';
 const GITHUB_URL = 'https://github.com/Shivanshmishra7275/Contact-Forge';
 const GITHUB_PROFILE_URL = 'https://github.com/Shivanshmishra7275';
 
@@ -37,7 +37,7 @@ const STATS = [
   { value: '1,800+', label: 'Contacts Handled' },
   { value: '115', label: 'Tests Passing' },
   { value: '100%', label: 'Offline & Private' },
-  { value: 'v4.2.0', label: 'Current Version' },
+  { value: 'v4.3.0', label: 'Current Version' },
 ];
 
 // ─── Founder skills/interests ───────────────────────────────────────────────────
@@ -50,7 +50,7 @@ export default function Home() {
   const [apkError, setApkError] = useState(false);
 
   const handleDirectDownload = (source: 'hero' | 'footer') => {
-    trackEvent('Download APK Direct', { source, version: 'v4.2.0' });
+    trackEvent('Download APK Direct', { source, version: 'v4.3.0' });
   };
 
   const handleReleasePageClick = () => {
@@ -153,7 +153,7 @@ export default function Home() {
               <ShieldCheck className="w-3.5 h-3.5" /> No Internet Required
             </span>
             <span className="w-1 h-1 rounded-full bg-slate-700 hidden sm:block" />
-            <span>v4.2.0</span>
+            <span>v4.3.0</span>
             <span className="w-1 h-1 rounded-full bg-slate-700 hidden sm:block" />
             <span>Android 8.0+</span>
             <span className="w-1 h-1 rounded-full bg-slate-700 hidden sm:block" />
