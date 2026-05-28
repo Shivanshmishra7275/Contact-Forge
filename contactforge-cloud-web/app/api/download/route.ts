@@ -1,10 +1,12 @@
 import { NextResponse } from 'next/server';
 
+export const dynamic = 'force-dynamic';
+
 export async function GET() {
   try {
     // Fetch the latest release metadata from GitHub
     const res = await fetch('https://api.github.com/repos/Shivanshmishra7275/Contact-Forge/releases/latest', {
-      next: { revalidate: 3600 }, // cache for 1 hour to avoid rate limits
+      next: { revalidate: 0 }, // do not cache so users always get the latest APK immediately
     });
 
     if (!res.ok) {

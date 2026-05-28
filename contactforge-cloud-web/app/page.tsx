@@ -337,7 +337,7 @@ export default function Home() {
             <div className="p-3 bg-slate-800/50 rounded-xl border border-slate-700/50">
               <History className="w-6 h-6 text-slate-300" />
             </div>
-            <h2 className="text-3xl font-bold text-white tracking-tight">The Journey to V3</h2>
+            <h2 className="text-3xl font-bold text-white tracking-tight">The Journey to V4</h2>
           </div>
           
           <div className="space-y-12 relative before:absolute before:inset-0 before:ml-5 before:-translate-x-px md:before:mx-auto md:before:translate-x-0 before:h-full before:w-px before:bg-gradient-to-b before:from-teal-500/50 before:via-slate-700/50 before:to-transparent z-10">
