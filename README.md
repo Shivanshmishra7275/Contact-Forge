@@ -35,8 +35,8 @@
 ContactForge is a premium utility designed for users who want complete ownership of their networks. Experience instantaneous performance and actionable insights without ever uploading a single byte to the cloud.
 </p>
 
-<a href="https://github.com/Shivanshmishra7275/Contact-Forge/releases/latest/download/ContactForge.apk">
-  <img src="https://img.shields.io/badge/⬇_Download_latest_APK_from_GitHub-000000?style=for-the-badge&logo=github&logoColor=ffffff&labelColor=111111" height="54" alt="Download latest APK from GitHub">
+<a href="https://github.com/Shivanshmishra7275/Contact-Forge/releases/latest">
+  <img src="https://img.shields.io/badge/⬇_Download_Latest_APK-000000?style=for-the-badge&logo=github&logoColor=ffffff&labelColor=111111" height="54" alt="Download latest APK from GitHub">
 </a>
 
 <br><br>
