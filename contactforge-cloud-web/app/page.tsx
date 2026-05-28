@@ -157,10 +157,10 @@ export default function Home() {
             <span className="w-1 h-1 rounded-full bg-slate-700 hidden sm:block" />
             <span>Android 8.0+</span>
             <span className="w-1 h-1 rounded-full bg-slate-700 hidden sm:block" />
-            <span>~35MB</span>
+            <span>~92MB</span>
             <span className="w-1 h-1 rounded-full bg-slate-700 hidden sm:block" />
-            <span className="text-slate-500 font-mono tracking-tighter" title="SHA-256 Checksum (Pending Release)">
-              SHA-256 (Pending Release)
+            <span className="text-slate-500 font-mono tracking-tighter" title="SHA-256: ACEE059F4EBF2D055BADB3B6D3C76B944E7FD123B2BD81F6C61A4C2A093FBB8B">
+              SHA-256 Checksum Verified
             </span>
           </div>
 
