@@ -1,4 +1,4 @@
-﻿<div align="center">
+<div align="center">
 
 <img src="https://capsule-render.vercel.app/api?type=waving&height=240&color=0:111827,100:000000&text=ContactForge&fontSize=56&fontColor=ffffff&animation=fadeIn&fontAlignY=38&desc=An%20offline-first,%20zero-cloud,%20privacy-first%20contact%20CRM.&descAlignY=60" width="100%" />
 
@@ -67,14 +67,14 @@ Stop scrolling and start acting. With one-tap deep links across the entire UI, y
 - **2-Way Native OS Write-Back Sync:** Push perfectly cleaned, merged, and enhanced Contact-Forge libraries directly back to your iOS or Android native address book.
 - **Full CRM Contact Editing:** Dynamically edit names, companies, job titles, notes, and tags directly inside the app.
 - **Shake-to-Undo Global Gesture:** Accidentally merged the wrong contacts? Just physically shake your phone to trigger a premium global Undo action with haptic feedback.
-- **Single Contact VCF Sharing:** Instantly generate a .vcf file and pop up the native iOS/Android share sheet.
-- **Cinematic UI Overhaul:** Buttery-smooth 60fps scrolling using Shopify's FlashList, 3-layer aurora glass backgrounds, eact-native-reanimated physics, and WCAG AA accessibility color tuning.
+- **Single Contact VCF Sharing:** Instantly generate a `.vcf` file and pop up the native iOS/Android share sheet.
+- **Cinematic UI Overhaul:** Buttery-smooth 60fps scrolling using Shopify's `FlashList`, 3-layer aurora glass backgrounds, `react-native-reanimated` physics, and WCAG AA accessibility color tuning.
 
 ---
 
 # 🏛️ Architecture & Tech Stack
 
-\\\	xt
+```txt
 UI Layer (Stateless, React Native Paper, Reanimated) 
   ↓
 State Management (Zustand)
@@ -84,7 +84,7 @@ Service Layer (Deduplication, FTS Search, Backup)
 Repository Layer (SQLite Transactions, Tombstones)
   ↓
 Infrastructure (Expo SQLite, Expo FileSystem, Expo Contacts)
-\\\
+```
 
 ---
 
