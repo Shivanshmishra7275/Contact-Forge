@@ -8,7 +8,6 @@
 import { memo, useCallback, useEffect, useRef, useState } from 'react';
 import {
   View,
-  FlatList,
   StyleSheet,
   TouchableOpacity,
   TextInput as RNTextInput,
@@ -17,6 +16,8 @@ import {
   Platform,
   Alert,
 } from 'react-native';
+import { FlashList } from '@shopify/flash-list';
+import Animated, { FadeInDown } from 'react-native-reanimated';
 import { Text, Chip, FAB, ActivityIndicator, Button } from 'react-native-paper';
 import { router, useLocalSearchParams } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -321,27 +322,28 @@ export default function ContactsScreen() {
         <Text style={styles.totalText}>{total} total</Text>
       </View>
 
-      {/* List */}
-      <FlatList
-        data={contacts}
-        keyExtractor={(item) => String(item.id)}
-        renderItem={renderItem}
-        onEndReached={handleEndReached}
-        onEndReachedThreshold={0.5}
-        ListEmptyComponent={isLoading ? null : <EmptyState />}
-        ListFooterComponent={isLoading ? <ActivityIndicator style={styles.loader} color={COLORS.primary} /> : null}
-        contentContainerStyle={
-          contacts.length === 0 
-            ? styles.listEmpty 
-            : isSelectionMode ? { paddingBottom: 100 } : undefined
-        }
-        style={styles.list}
-        // getItemLayout removed — row heights vary by company/tags presence
-        initialNumToRender={10}
-        maxToRenderPerBatch={12}
-        windowSize={7}
-        removeClippedSubviews
-      />
+      {/* Main List */}
+      <Animated.View style={{ flex: 1 }} entering={FadeInDown.duration(400).springify()}>
+        <FlashList
+          data={contacts}
+          keyExtractor={(item) => String(item.id)}
+          renderItem={renderItem}
+          ListEmptyComponent={!isLoading ? EmptyState : null}
+          ListFooterComponent={isLoading ? <ActivityIndicator style={{ padding: SPACING.md }} /> : null}
+          onEndReached={handleEndReached}
+          onEndReachedThreshold={0.5}
+          extraData={{ selectedIds, filter }}
+          // @ts-ignore - Required for FlashList performance
+          estimatedItemSize={70}
+          keyboardShouldPersistTaps="handled"
+          contentContainerStyle={
+            contacts.length === 0 
+              ? styles.listEmpty 
+              : isSelectionMode ? { paddingBottom: 100 } : undefined
+          }
+          style={styles.list}
+        />
+      </Animated.View>
 
       {isSelectionMode ? (
         <View style={styles.actionBar}>
@@ -438,8 +440,9 @@ const ContactRow = memo(function ContactRow({ contact, onPress, onLongPress, sel
 });
 
 function getInitials(name: string): string {
+  if (!name || name.trim().length === 0) return '?';
   const parts = name.trim().split(/\s+/);
-  if (parts.length >= 2) {
+  if (parts.length >= 2 && parts[0].length > 0 && parts[parts.length - 1].length > 0) {
     return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
   }
   return name.slice(0, 2).toUpperCase();

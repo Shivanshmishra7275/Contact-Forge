@@ -32,6 +32,7 @@ import {
   getPendingDuplicates,
   resolveDuplicateCandidate,
 } from '../../src/db/repositories/duplicateRepository';
+import { executeMagicBulkMerge } from '../../src/services/bulkDuplicateService';
 import {
   getContactById,
   getPhonesByContactId,
@@ -281,6 +282,7 @@ export default function DuplicateFlashcardsScreen() {
   const setPendingDuplicateCount = useAppStore((s) => s.setPendingDuplicateCount);
   const [cardKey, setCardKey] = useState(0);
 
+
   const loadQueue = useCallback(() => {
     setIsLoading(true);
     const candidates = getPendingDuplicates();
@@ -295,6 +297,14 @@ export default function DuplicateFlashcardsScreen() {
     setPendingDuplicateCount(pairs.length);
     setIsLoading(false);
   }, [setPendingDuplicateCount]);
+
+  const handleMagicMergeAll = useCallback(() => {
+    setIsLoading(true);
+    setTimeout(() => {
+      executeMagicBulkMerge();
+      loadQueue();
+    }, 100);
+  }, [loadQueue]);
 
   useFocusEffect(
     useCallback(() => {
@@ -381,6 +391,9 @@ export default function DuplicateFlashcardsScreen() {
           <Text style={styles.queueText}>Reviewing {currentIndex + 1} of {queue.length}</Text>
         </View>
         <View style={styles.headerRight}>
+          <Button mode="text" onPress={handleMagicMergeAll} textColor={COLORS.primaryLight} compact icon="creation">
+            Magic Merge All
+          </Button>
           {undoStack.length > 0 && (
             <Button mode="text" onPress={handleUndo} textColor={COLORS.primaryLight} compact icon="undo" contentStyle={{ flexDirection: 'row-reverse' }}>
               Undo

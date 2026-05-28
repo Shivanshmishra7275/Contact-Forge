@@ -4,7 +4,8 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import { ScrollView, StyleSheet, View, Alert, Linking, Clipboard, TouchableOpacity } from 'react-native';
-import { Text, Button, Card, Chip, Divider, Portal, Dialog, RadioButton, Modal } from 'react-native-paper';
+import { Text, Button, Card, Chip, Divider, Portal, Dialog, RadioButton, Modal, IconButton } from 'react-native-paper';
+import QRCode from 'react-native-qrcode-svg';
 import { router, useLocalSearchParams } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
@@ -62,6 +63,23 @@ export default function ContactDetailScreen() {
 
   const [isTempModalVisible, setTempModalVisible] = useState(false);
   const [selectedExpiry, setSelectedExpiry] = useState<'none' | '1day' | '1week' | '1month'>('none');
+  const [showQrModal, setShowQrModal] = useState(false);
+
+  const generateVCard = useCallback(() => {
+    if (!contact) return '';
+    let vcard = 'BEGIN:VCARD\nVERSION:3.0\n';
+    vcard += `FN:${contact.displayName}\n`;
+    if (contact.company) vcard += `ORG:${contact.company}\n`;
+    if (contact.jobTitle) vcard += `TITLE:${contact.jobTitle}\n`;
+    contact.phoneNumbers.forEach(p => {
+      vcard += `TEL;TYPE=${p.label?.toUpperCase() || 'CELL'}:${p.number}\n`;
+    });
+    contact.emails.forEach(e => {
+      vcard += `EMAIL;TYPE=${e.label?.toUpperCase() || 'HOME'}:${e.email}\n`;
+    });
+    vcard += 'END:VCARD';
+    return vcard;
+  }, [contact]);
 
   const load = useCallback(() => {
     const c = getContactWithDetails(Number(id));
@@ -169,7 +187,12 @@ export default function ContactDetailScreen() {
           <View style={styles.avatar}>
             <Text style={styles.avatarText}>{getInitials(contact.displayName)}</Text>
           </View>
-          <Text style={styles.displayName}>{contact.displayName}</Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+            <Text style={styles.displayName}>{contact.displayName}</Text>
+            <TouchableOpacity onPress={() => setShowQrModal(true)} accessibilityLabel="Show QR Code">
+              <MaterialCommunityIcons name="qrcode" size={24} color={COLORS.primary} />
+            </TouchableOpacity>
+          </View>
           {contact.company && <Text style={styles.company}>{contact.company}</Text>}
           {contact.jobTitle && <Text style={styles.jobTitle}>{contact.jobTitle}</Text>}
           
@@ -695,6 +718,13 @@ export default function ContactDetailScreen() {
             contactName={contact.displayName}
             onClose={() => { setShowReminderEditor(false); load(); }}
           />
+        </Modal>
+        <Modal visible={showQrModal} onDismiss={() => setShowQrModal(false)} contentContainerStyle={[styles.dialog, { padding: 24, alignItems: 'center', margin: 24, borderRadius: RADIUS.lg }]}>
+          <Text style={{ fontSize: FONT_SIZE.lg, fontWeight: 'bold', marginBottom: SPACING.md, color: COLORS.textPrimary }}>Scan to Save</Text>
+          <View style={{ backgroundColor: '#fff', padding: 16, borderRadius: 12 }}>
+            <QRCode value={generateVCard()} size={200} />
+          </View>
+          <Button mode="contained" onPress={() => setShowQrModal(false)} style={{ marginTop: SPACING.lg, width: '100%' }}>Close</Button>
         </Modal>
       </Portal>
     </SafeAreaView>

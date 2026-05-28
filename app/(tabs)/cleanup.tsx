@@ -7,7 +7,8 @@
  */
 
 import { memo, useCallback, useMemo, useState } from 'react';
-import { View, FlatList, StyleSheet, InteractionManager, Dimensions, ScrollView } from 'react-native';
+import { View, StyleSheet, InteractionManager, Dimensions, ScrollView } from 'react-native';
+import { FlashList } from '@shopify/flash-list';
 import {
   Text,
   Card,
@@ -425,9 +426,12 @@ export default function PowerCleanupCommandCenter() {
           </Button>
         </View>
       ) : (
-        <FlatList
+        <FlashList
           data={filteredItems}
           keyExtractor={(item) => item.id}
+          // @ts-ignore - Required for FlashList performance
+          estimatedItemSize={120}
+          keyboardShouldPersistTaps="handled"
           renderItem={({ item }) => (
             <UnifiedCleanupCard
               item={item}
@@ -440,9 +444,6 @@ export default function PowerCleanupCommandCenter() {
             />
           )}
           contentContainerStyle={styles.listContent}
-          initialNumToRender={6}
-          maxToRenderPerBatch={8}
-          windowSize={5}
         />
       )}
 

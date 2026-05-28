@@ -188,6 +188,7 @@ export function restoreContactWithDetailsSync(contact: ContactWithDetails): void
 export function updateContact(
   id: number,
   params: Partial<{
+    nativeId: string | null;
     firstName: string | null;
     lastName: string | null;
     company: string | null;
@@ -207,6 +208,7 @@ export function updateContact(
   const fields: string[] = [];
   const values: (string | number | null)[] = [];
 
+  if ('nativeId' in params) { fields.push('native_id = ?'); values.push(params.nativeId ?? null); }
   if ('firstName' in params) { fields.push('first_name = ?'); values.push(params.firstName ?? null); }
   if ('lastName' in params) { fields.push('last_name = ?'); values.push(params.lastName ?? null); }
   if ('company' in params) { fields.push('company = ?'); values.push(params.company ?? null); }

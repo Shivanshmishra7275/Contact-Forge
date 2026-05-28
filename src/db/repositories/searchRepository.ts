@@ -33,7 +33,6 @@ import { getCachedFtsMode, type FtsMode } from '../ftsProbe';
 // to avoid the circular dependency that would arise from importing getDatabase
 // at module level while db/index.ts is still constructing.
 function getDb(): SQLiteTypes.SQLiteDatabase {
-  // eslint-disable-next-line @typescript-eslint/no-var-requires
   return require('..').getDatabase() as SQLiteTypes.SQLiteDatabase;
 }
 

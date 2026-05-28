@@ -56,8 +56,11 @@ const theme = {
 };
 
 import { UndoSnackbar } from '../src/features/undo/components/UndoSnackbar';
+import { useShakeToUndo } from '../src/hooks/useShakeToUndo';
 
 export default function RootLayout() {
+  useShakeToUndo();
+  
   const setSettings = useAppStore((s) => s.setSettings);
   const setPendingDuplicateCount = useAppStore((s) => s.setPendingDuplicateCount);
   const setSyncStatus = useAppStore((s) => s.setSyncStatus);

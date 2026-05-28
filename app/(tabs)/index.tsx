@@ -19,6 +19,7 @@ import {
   requestContactsPermission,
   getContactsPermissionStatus,
   syncContactsToLocal,
+  syncCleanedContactsToDevice,
 } from '../../src/services/contactSyncService';
 import { runDuplicateScan } from '../../src/services/duplicateService';
 import { applyBulkCleanupFixes, scanAllContactsForIssues } from '../../src/services/cleanupService';
@@ -64,6 +65,7 @@ export default function DashboardScreen() {
   const [permissionGranted, setPermissionGranted] = useState<boolean | null>(null);
   const [syncProgress, setSyncProgress] = useState<SyncProgress | null>(null);
   const [isSyncing, setIsSyncing] = useState(false);
+  const [isWritingBack, setIsWritingBack] = useState(false);
   const [isScanning, setIsScanning] = useState(false);
   const [maintenanceState, setMaintenanceState] = useState(() => getMaintenanceState());
 
@@ -216,6 +218,36 @@ export default function DashboardScreen() {
       setSyncProgress(null);
     }
   }, [refreshStats, settings.autoCleanOnSync, settings.duplicateScanOnSync]);
+
+  const handleWriteBack = useCallback(async () => {
+    Alert.alert(
+      'Write Back to Phone',
+      'This will update your native OS contacts (iPhone/Android) with all the merges, fixes, and cleanups from Contact-Forge. Proceed?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { 
+          text: 'Write Back', 
+          style: 'destructive',
+          onPress: async () => {
+            setIsWritingBack(true);
+            setGlobalLoading(true);
+            setGlobalLoadingMessage('Writing to native contacts...');
+            try {
+              await syncCleanedContactsToDevice((progress) => {
+                setGlobalLoadingMessage(`Writing... ${progress.processed}/${progress.total}`);
+              });
+              Alert.alert('Success', 'Your native phone contacts have been perfectly synced with Contact-Forge!');
+            } catch (err) {
+              Alert.alert('Error', err instanceof Error ? err.message : String(err));
+            } finally {
+              setIsWritingBack(false);
+              setGlobalLoading(false);
+            }
+          }
+        }
+      ]
+    );
+  }, [setGlobalLoading, setGlobalLoadingMessage]);
 
   const handleScanDuplicates = useCallback(async () => {
     if (totalContacts === 0) {
@@ -419,13 +451,24 @@ export default function DashboardScreen() {
                 mode="outlined"
                 onPress={handleScanDuplicates}
                 loading={isScanning}
-                disabled={isSyncing || isScanning}
+                disabled={isSyncing || isScanning || isWritingBack}
                 icon="magnify"
                 textColor={COLORS.primaryLight}
                 containerStyle={styles.actionBtn}
                 style={{ borderColor: COLORS.border }}
               >
                 Scan duplicates
+              </QuickActionButton>
+              <QuickActionButton
+                mode="contained"
+                onPress={handleWriteBack}
+                loading={isWritingBack}
+                disabled={isSyncing || isScanning || isWritingBack}
+                icon="cellphone-arrow-down"
+                buttonColor={COLORS.secondary}
+                containerStyle={styles.actionBtn}
+              >
+                Write Back to Phone
               </QuickActionButton>
             </Card.Content>
           </GlassCard>

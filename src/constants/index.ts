@@ -74,43 +74,39 @@ export const COLORS = {
   // Neutral layers
   background: '#05050A',
   backgroundAlt: '#0A0A12',
-  surface: 'rgba(20, 20, 30, 0.4)', // Frosted glass default
-  surfaceElevated: 'rgba(30, 30, 45, 0.6)',
-  surfaceHover: 'rgba(40, 40, 60, 0.8)',
-  surfaceVariant: 'rgba(255, 255, 255, 0.03)',
-  surfaceOverlay: 'rgba(5, 5, 10, 0.7)',
+  surface: 'rgba(25, 25, 38, 0.65)', // Increased opacity for better text contrast
+  surfaceElevated: 'rgba(35, 35, 52, 0.85)',
+  surfaceHover: 'rgba(50, 50, 75, 0.95)',
+  surfaceVariant: 'rgba(255, 255, 255, 0.06)',
+  surfaceOverlay: 'rgba(5, 5, 10, 0.85)',
 
-  // Brand accent colors (refined)
-  primary: '#4C1D95',
-  primaryDim: '#3B1578',
-  primaryLight: '#6D28D9',
+  // Brand accent colors (vibrant cinematic glows)
+  primary: '#6D28D9', // Brightened primary for punchier contrast
+  primaryDim: '#4C1D95',
+  primaryLight: '#8B5CF6',
 
-  secondary: '#0891B2',
+  secondary: '#06B6D4', // Cyan pop
   accent: '#10B981',
 
-  // Semantic colors (muted)
+  // Semantic colors (vibrant)
   success: '#10B981',
   warning: '#F59E0B',
   error: '#EF4444',
   info: '#3B82F6',
 
   // Text hierarchy
-  textPrimary: '#F8FAFC',
-  textSecondary: '#a8b3c1',
-  // WCAG AA fix: raised from #707a88 (~2.6:1) → #8a95a3 (~3.8:1) on #05050A
-  textTertiary: '#8a95a3',
-  // WCAG AA fix: raised from #50576a (~2.1:1) → #636d7e (~3.1:1) on #05050A (non-interactive)
-  textDisabled: '#636d7e',
+  textPrimary: '#FFFFFF', // Pure white for absolute clarity on dark
+  textSecondary: '#CBD5E1', // Slate 300 for high-contrast secondary
+  textTertiary: '#94A3B8', // Slate 400
+  textDisabled: '#64748B', // Slate 500
 
-  // Interactive label on primary-colored contained buttons (WCAG AA on #4C1D95)
   onPrimary: '#FFFFFF',
-  // Accessible active tab indicator: #7C3AED ≈ 3.6:1 on rgba(20,20,30,0.4) effective dark bg
-  tabBarActive: '#7C3AED',
+  tabBarActive: '#8B5CF6', // Vibrant violet for active tabs
 
   // Borders and dividers
-  border: 'rgba(255, 255, 255, 0.1)',
-  divider: 'rgba(255, 255, 255, 0.05)',
-  borderFocus: 'rgba(76, 29, 149, 0.5)',
+  border: 'rgba(255, 255, 255, 0.12)',
+  divider: 'rgba(255, 255, 255, 0.08)',
+  borderFocus: 'rgba(139, 92, 246, 0.6)',
 
   // Feedback and overlays
   overlay: 'rgba(0,0,0,0.5)',

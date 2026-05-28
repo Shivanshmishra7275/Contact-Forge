@@ -12,7 +12,7 @@ import { reassignNotes } from '../db/repositories/noteRepository';
 import { reassignRelationships } from '../db/repositories/relationshipRepository';
 import { transferTemporaryContact } from '../db/repositories/temporaryContactRepository';
 import { recordUndoAction } from '../db/repositories/undoRepository';
-import { buildMergeComparison, buildMergeResult, isSafeBulkMerge } from '../features/merge/utils/buildMergeComparison';
+import { buildMergeComparison, buildMergeResult, isSafeBulkMerge, applyMagicHeuristics } from '../features/merge/utils/buildMergeComparison';
 import { logAction } from '../db/repositories/auditRepository';
 import type { UndoMergePayload, UndoBulkMergePayload } from '../features/undo/types';
 import type { DuplicateCandidate } from '../types';
@@ -23,6 +23,14 @@ export interface BulkMergeResult {
 }
 
 export function executeSafeBulkMerge(): BulkMergeResult {
+  return executeBulkMergeBase(false);
+}
+
+export function executeMagicBulkMerge(): BulkMergeResult {
+  return executeBulkMergeBase(true);
+}
+
+function executeBulkMergeBase(useMagicHeuristics: boolean): BulkMergeResult {
   const db = getDatabase();
   const pendingPairs = getPendingDuplicates();
   
@@ -46,10 +54,16 @@ export function executeSafeBulkMerge(): BulkMergeResult {
       }
 
       const comparisonModel = buildMergeComparison(contactA, contactB);
+      
+      if (useMagicHeuristics) {
+        applyMagicHeuristics(comparisonModel);
+      }
+
       const mergeResult = buildMergeResult(comparisonModel, candidate.reasons);
       
       // Phase F: Check if it's safe for bulk merge without user review
-      if (!mergeResult.isSafeBulkMergeable) {
+      // For Magic Merge, we forcefully bypass this safety check if heuristics were applied
+      if (!useMagicHeuristics && !mergeResult.isSafeBulkMergeable) {
         skippedCount++;
         continue;
       }

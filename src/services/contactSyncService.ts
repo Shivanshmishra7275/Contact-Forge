@@ -319,3 +319,58 @@ function upsertNativeContact(
     return 'added';
   }
 }
+
+/**
+ * Writes the cleaned, merged local contacts back to the native device address book.
+ * WARNING: This modifies the user's OS-level contacts.
+ */
+export async function syncCleanedContactsToDevice(
+  onProgress?: ProgressCallback
+): Promise<void> {
+  const { status } = await Contacts.requestPermissionsAsync();
+  if (status !== 'granted') {
+    throw new Error('Contacts permission denied');
+  }
+
+  // Get all local contacts
+  const { listContacts } = require('../db/repositories/contactRepository');
+  const allContacts = listContacts({ pageSize: 100000, page: 0 });
+  let processed = 0;
+  
+  for (const contact of allContacts) {
+    try {
+      // Basic contact fields for creation/update
+      const baseContact = {
+        contactType: Contacts.ContactTypes.Person,
+        name: contact.displayName || `${contact.firstName || ''} ${contact.lastName || ''}`.trim() || undefined,
+        firstName: contact.firstName || undefined,
+        lastName: contact.lastName || undefined,
+        company: contact.company || undefined,
+        jobTitle: contact.jobTitle || undefined,
+        note: contact.notes || undefined,
+        phoneNumbers: contact.phoneNumbers.map((p: any) => ({ label: p.label || 'mobile', number: p.number })),
+        emails: contact.emails.map((e: any) => ({ label: e.label || 'home', email: e.email })),
+      };
+
+      if (contact.nativeId) {
+        // Try update. updateContactAsync expects id to be explicitly string, plus other fields
+        const updatePayload: { id: string } & Partial<Contacts.ExistingContact> = {
+          ...baseContact,
+          id: contact.nativeId,
+        };
+        await Contacts.updateContactAsync(updatePayload as any);
+      } else {
+        // Create new
+        const newNativeId = await Contacts.addContactAsync(baseContact as Contacts.Contact);
+        if (newNativeId) {
+          updateContact(contact.id, { nativeId: newNativeId });
+        }
+      }
+    } catch (err) {
+      console.warn(`Failed to sync contact ${contact.id} to native:`, err);
+    }
+    
+    processed++;
+    if (onProgress) onProgress({ processed, total: allContacts.length });
+  }
+}
