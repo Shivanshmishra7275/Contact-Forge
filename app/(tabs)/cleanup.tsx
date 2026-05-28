@@ -131,20 +131,37 @@ export default function PowerCleanupCommandCenter() {
     // 2. Fetch formatting & incomplete profile issues
     const profileIssues = scanAllContactsForIssues();
     profileIssues.forEach((item) => {
-      const hasIncomplete = item.issues.some((iss) =>
+      const incompleteIssues = item.issues.filter(iss => 
         ['missing_name', 'missing_phone', 'missing_email', 'ghost_contact'].includes(iss.kind)
       );
       
-      const category: CleanupCategory = hasIncomplete ? 'incomplete' : 'formatting';
-      mappedItems.push({
-        id: `issue_${item.contact.id}`,
-        category,
-        title: item.contact.displayName,
-        subtitle: `${item.issues.length} data quality issue${item.issues.length > 1 ? 's' : ''}`,
-        icon: hasIncomplete ? 'account-alert' : 'card-text-outline',
-        contactId: item.contact.id,
-        contactIssues: item,
-      });
+      const formattingIssues = item.issues.filter(iss => 
+        !['missing_name', 'missing_phone', 'missing_email', 'ghost_contact'].includes(iss.kind)
+      );
+      
+      if (incompleteIssues.length > 0) {
+        mappedItems.push({
+          id: `incomplete_${item.contact.id}`,
+          category: 'incomplete',
+          title: item.contact.displayName,
+          subtitle: `${incompleteIssues.length} incomplete field${incompleteIssues.length > 1 ? 's' : ''}`,
+          icon: 'account-alert',
+          contactId: item.contact.id,
+          contactIssues: { contact: item.contact, issues: incompleteIssues },
+        });
+      }
+
+      if (formattingIssues.length > 0) {
+        mappedItems.push({
+          id: `formatting_${item.contact.id}`,
+          category: 'formatting',
+          title: item.contact.displayName,
+          subtitle: `${formattingIssues.length} formatting issue${formattingIssues.length > 1 ? 's' : ''}`,
+          icon: 'card-text-outline',
+          contactId: item.contact.id,
+          contactIssues: { contact: item.contact, issues: formattingIssues },
+        });
+      }
     });
 
     // 3. Fetch expired temporary contacts
