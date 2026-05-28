@@ -22,14 +22,7 @@ export async function GET() {
     const apkAsset = data.assets?.find((asset: any) => asset.name.endsWith('.apk'));
 
     if (apkAsset && apkAsset.browser_download_url) {
-      // Fetch the actual file from GitHub to proxy the download directly
-      const fileResponse = await fetch(apkAsset.browser_download_url);
-      
-      if (!fileResponse.ok) {
-        return NextResponse.redirect('https://github.com/Shivanshmishra7275/Contact-Forge/releases/latest');
-      }
-
-      // Track the proxy download in Redis since GitHub API won't catch it
+      // Track the proxy download in Redis before redirecting
       try {
         if (process.env.REDIS_URL) {
           const redis = new Redis(process.env.REDIS_URL);
@@ -40,15 +33,8 @@ export async function GET() {
         console.error('Failed to increment proxy download count:', err);
       }
 
-      // Create a direct response with the file stream and appropriate headers
-      const headers = new Headers();
-      headers.set('Content-Type', 'application/vnd.android.package-archive');
-      headers.set('Content-Disposition', `attachment; filename="${apkAsset.name}"`);
-      
-      return new NextResponse(fileResponse.body, {
-        status: 200,
-        headers,
-      });
+      // Redirect directly to the APK download URL (this forces a download in the browser without opening GitHub UI)
+      return NextResponse.redirect(apkAsset.browser_download_url);
     }
 
     // Fallback if no APK is found in the latest release
