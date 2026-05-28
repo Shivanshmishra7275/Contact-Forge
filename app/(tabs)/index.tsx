@@ -133,6 +133,9 @@ export default function DashboardScreen() {
     });
   }, [setPendingDuplicateCount, setSnapshots]);
 
+  // Ref so the focus effect can call the latest handleSync without being in its dep array
+  const handleSyncRef = useRef<(() => void) | null>(null);
+
   useFocusEffect(
     useCallback(() => {
       let cancelled = false;
@@ -150,7 +153,7 @@ export default function DashboardScreen() {
 
             // Auto-sync on first launch: if permission is granted and no contacts yet
             if (granted && countContacts() === 0 && !sync.lastSyncAt && !isSyncing) {
-              handleSync();
+              handleSyncRef.current?.();
             }
           }
         });
@@ -166,7 +169,7 @@ export default function DashboardScreen() {
         cancelled = true;
         task.cancel();
       };
-    }, [refreshStats, sync.lastSyncAt, isSyncing, handleSync]),
+    }, [refreshStats, sync.lastSyncAt, isSyncing]),
   );
 
   const handleSync = useCallback(async () => {
@@ -224,6 +227,9 @@ export default function DashboardScreen() {
       setSyncProgress(null);
     }
   }, [refreshStats, settings.autoCleanOnSync, settings.duplicateScanOnSync]);
+
+  // Keep the ref in sync so the focus effect always calls the latest version
+  handleSyncRef.current = handleSync;
 
   const handleWriteBack = useCallback(async () => {
     Alert.alert(

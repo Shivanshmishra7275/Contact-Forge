@@ -97,15 +97,16 @@ export function calculateContactHealthScore(contactId: number): ContactHealthSco
 
 export function getContactsNeedingCuration(threshold = 60): number[] {
   try {
-    const ids = getAllContactIds();
-    if (ids.length === 0) return [];
+    const db = getDatabase();
+    const rows = db.getAllSync<{ id: number }>('SELECT id FROM contacts WHERE is_ghost = 0 ORDER BY id', []);
+    if (rows.length === 0) return [];
 
     const scored: Array<{ id: number; score: number }> = [];
-    for (const id of ids) {
-      const health = calculateContactHealthScore(id);
+    for (const row of rows) {
+      const health = calculateContactHealthScore(row.id);
       if (!health) continue;
       if (health.score < threshold) {
-        scored.push({ id, score: health.score });
+        scored.push({ id: row.id, score: health.score });
       }
     }
 
