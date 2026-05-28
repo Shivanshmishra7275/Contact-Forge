@@ -652,59 +652,70 @@ function QuickActionButton({ containerStyle, ...props }: QuickActionButtonProps)
 const styles = StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: COLORS.background },
   scroll: { flex: 1 },
-  content: { padding: SPACING.md, paddingBottom: SPACING.xxl },
+  content: { padding: SPACING.lg, paddingBottom: SPACING.xxxl },
   header: { marginBottom: SPACING.lg },
   appName: {
-    fontSize: FONT_SIZE.xxxl,
-    fontWeight: '800',
+    fontSize: 36,
+    fontWeight: '900',
     color: COLORS.textPrimary,
-    letterSpacing: -0.5,
+    letterSpacing: -0.8,
   },
-  tagline: { fontSize: FONT_SIZE.sm, color: COLORS.textSecondary, marginTop: 4 },
-  
+  tagline: { fontSize: FONT_SIZE.sm, color: COLORS.textTertiary, marginTop: 4, letterSpacing: 0.2 },
+
   glassCard: {
-    backgroundColor: COLORS.surface,
+    backgroundColor: 'rgba(22, 20, 40, 0.88)',
     borderWidth: 1,
-    borderColor: COLORS.border,
-    borderRadius: 16,
+    borderColor: 'rgba(255,255,255,0.09)',
+    borderRadius: RADIUS.lg,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.25,
+    shadowRadius: 12,
+    elevation: 6,
   },
 
-  warningCard: { backgroundColor: 'rgba(245, 158, 11, 0.1)', marginBottom: SPACING.md, borderWidth: 1, borderColor: 'rgba(245, 158, 11, 0.3)' },
+  warningCard: {
+    backgroundColor: 'rgba(245, 158, 11, 0.08)',
+    marginBottom: SPACING.md,
+    borderWidth: 1,
+    borderColor: 'rgba(245, 158, 11, 0.25)',
+    borderRadius: RADIUS.lg,
+  },
   warningContent: { flexDirection: 'row', alignItems: 'center', gap: SPACING.sm },
-  warningText: { color: COLORS.warning, fontSize: FONT_SIZE.sm, flex: 1 },
-  
-  statsRow: { flexDirection: 'row', gap: SPACING.md, marginBottom: SPACING.md },
-  statCard: { flex: 1, borderRadius: 16 },
-  statContent: { alignItems: 'center', paddingVertical: SPACING.md },
-  statValue: { fontSize: FONT_SIZE.xxl, fontWeight: '800', marginTop: 4 },
-  statLabel: { fontSize: FONT_SIZE.xs, color: COLORS.textSecondary, marginTop: 2, textTransform: 'uppercase', letterSpacing: 0.5 },
-  
+  warningText: { color: COLORS.warning, fontSize: FONT_SIZE.sm, flex: 1, lineHeight: 20 },
+
+  statsRow: { flexDirection: 'row', gap: SPACING.sm, marginBottom: SPACING.md },
+  statCard: { flex: 1, borderRadius: RADIUS.lg },
+  statContent: { alignItems: 'center', paddingVertical: SPACING.lg },
+  statValue: { fontSize: FONT_SIZE.xxl, fontWeight: '800', marginTop: 6, letterSpacing: -0.5 },
+  statLabel: { fontSize: 10, color: COLORS.textTertiary, marginTop: 4, textTransform: 'uppercase', letterSpacing: 0.8, fontWeight: '600' },
+
   card: { marginBottom: SPACING.md },
   cardTitle: { color: COLORS.textPrimary, fontSize: FONT_SIZE.md, fontWeight: '700' },
-  statusChip: { alignSelf: 'center', borderRadius: RADIUS.full },
+  statusChip: { alignSelf: 'center', borderRadius: RADIUS.full, marginRight: SPACING.md },
   syncTime: { color: COLORS.textPrimary, fontSize: FONT_SIZE.md, fontWeight: '600' },
-  syncMeta: { color: COLORS.textSecondary, fontSize: FONT_SIZE.xs, marginTop: 4 },
-  syncHelper: { color: COLORS.textDisabled, fontSize: FONT_SIZE.xs, marginTop: 8 },
+  syncMeta: { color: COLORS.textTertiary, fontSize: FONT_SIZE.xs, marginTop: 6 },
+  syncHelper: { color: COLORS.textDisabled, fontSize: FONT_SIZE.xs, marginTop: 8, lineHeight: 18 },
   errorText: { color: COLORS.error, fontSize: FONT_SIZE.sm, marginTop: 8 },
-  
-  progressRow: { flexDirection: 'row', alignItems: 'center', gap: SPACING.sm, marginTop: 12 },
+
+  progressRow: { flexDirection: 'row', alignItems: 'center', gap: SPACING.sm, marginTop: 14 },
   progressText: { color: COLORS.textSecondary, fontSize: FONT_SIZE.sm },
   progressBar: { marginTop: SPACING.sm, height: 4, borderRadius: 4, backgroundColor: COLORS.surfaceElevated },
-  
+
   actionsContent: { gap: SPACING.sm },
-  actionBtn: { marginBottom: 0, borderRadius: RADIUS.lg },
-  
+  actionBtn: { marginBottom: 0, borderRadius: RADIUS.md },
+
   healthCard: { marginBottom: SPACING.md },
   healthContent: { flexDirection: 'row', alignItems: 'center', gap: SPACING.md },
-  healthLeft: { flexDirection: 'row', alignItems: 'center', gap: SPACING.sm, flex: 1 },
-  healthLabel: { color: COLORS.textSecondary, fontSize: FONT_SIZE.sm, textTransform: 'uppercase', letterSpacing: 0.5, fontWeight: '600' },
-  healthValue: { fontSize: FONT_SIZE.xl, fontWeight: '800', marginTop: 2 },
+  healthLeft: { flexDirection: 'row', alignItems: 'center', gap: SPACING.md, flex: 1 },
+  healthLabel: { color: COLORS.textTertiary, fontSize: 11, textTransform: 'uppercase', letterSpacing: 0.8, fontWeight: '700' },
+  healthValue: { fontSize: FONT_SIZE.xl, fontWeight: '800', marginTop: 3, letterSpacing: -0.3 },
   healthBar: { height: 6, backgroundColor: COLORS.surfaceElevated, borderRadius: 3, overflow: 'hidden', flex: 1, minWidth: 60 },
   healthProgress: { height: 6, borderRadius: 3 },
 
   duplicateCta: { marginBottom: SPACING.md },
   duplicateCtaContent: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   duplicateCtaLeft: { flexDirection: 'row', alignItems: 'center', gap: SPACING.md },
-  duplicateCtaTitle: { fontSize: FONT_SIZE.md, fontWeight: '700' },
-  duplicateCtaHint: { fontSize: FONT_SIZE.xs, color: COLORS.textSecondary, marginTop: 2 },
+  duplicateCtaTitle: { fontSize: FONT_SIZE.md, fontWeight: '700', lineHeight: 22 },
+  duplicateCtaHint: { fontSize: FONT_SIZE.xs, color: COLORS.textTertiary, marginTop: 3 },
 });

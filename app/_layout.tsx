@@ -46,12 +46,14 @@ const theme = {
     primary: COLORS.primary,
     secondary: COLORS.secondary,
     background: COLORS.background,
-    surface: COLORS.surface,
-    surfaceVariant: COLORS.surfaceVariant,
+    surface: '#16142A',
+    surfaceVariant: '#1E1C36',
     error: COLORS.error,
     onBackground: COLORS.textPrimary,
     onSurface: COLORS.textPrimary,
+    onSurfaceVariant: COLORS.textSecondary,
     outline: COLORS.border,
+    inversePrimary: COLORS.primarySoft,
   },
 };
 
@@ -188,10 +190,11 @@ export default function RootLayout() {
         <PaperProvider theme={theme}>
           <Stack
             screenOptions={{
-              headerStyle: { backgroundColor: COLORS.surface },
+              headerStyle: { backgroundColor: '#13131F' },
               headerTintColor: COLORS.textPrimary,
-              headerTitleStyle: { color: COLORS.textPrimary },
+              headerTitleStyle: { color: COLORS.textPrimary, fontWeight: '700', fontSize: 18 },
               contentStyle: { backgroundColor: COLORS.background },
+              headerShadowVisible: false,
             }}
           >
             <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
