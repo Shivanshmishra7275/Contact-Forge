@@ -1,8 +1,14 @@
-# 🚀 ContactForge v4.2.0 — Hotfix + Premium Design Overhaul
+# 🚀 ContactForge v4.3.0 — Hotfix + Premium Design Overhaul
 
-This release contains **critical stability fixes** from the v4.0.0 launch and a sweeping **UI/UX design overhaul**.
+This release contains **critical stability fixes** from the v4.0.0 launch, a sweeping **UI/UX design overhaul**, and major bugfixes to the Power Cleanup UI.
 
-## 🔥 Critical Fixes (v4.2.0)
+## 🔥 Critical Fixes (v4.3.0)
+
+### 🪲 Fixed: Android Aurora SVG Crash
+Android's SVG rendering engine silently failed when animating `AnimatedRadialGradient` via `useAnimatedProps`, resulting in a completely black screen instead of the Premium Design Aurora background. Completely rewrote the animation engine to use native static SVGs wrapped in `Animated.View` transforming matrices. The background now breathes at a buttery 60 FPS on Android.
+
+### 🪲 Fixed: "Missing critical contact field" UI Bug in Power Cleanup
+The Power Cleanup UI mistakenly grouped ANY contact missing an email address into the "Incomplete" tab. This completely hid their fixable formatting errors (like Duplicate Numbers and Missing Country Codes), and disabled the "Fix Formatting" bulk action. Refactored the internal mapping logic to strictly separate formatting and incomplete issues, enabling bulk-formatting automation for all 1600+ contacts.
 
 ### 🪲 Fixed: App crash on upgrade (schema migration race condition)
 Users upgrading from v3.3 to v4.0.0 encountered a fatal crash loop. The root cause was a SQLite schema migration executing `CREATE INDEX ON contacts(name_key)` **before** the migration that added the `name_key` column. This caused a `no such column` fatal error that cascaded into:
@@ -26,7 +32,7 @@ Users downloading the 92MB APK from the website frequently experienced a failed 
 
 ---
 
-## ✨ New: Premium Design System v4.2.0
+## ✨ New: Premium Design System v4.3.0
 
 A complete visual overhaul based on WCAG AA accessibility standards and 2025 mobile design trends:
 
@@ -44,9 +50,9 @@ A complete visual overhaul based on WCAG AA accessibility standards and 2025 mob
 Download the APK below, or clone the repository to run locally on Expo Go. 
 
 ### 📦 Asset Details
-- **File:** `ContactForge-v4.2.0.apk`
+- **File:** `ContactForge-v4.3.0.apk`
 - **Size:** ~92 MB
-- **SHA-256:** `ACEE059F4EBF2D055BADB3B6D3C76B944E7FD123B2BD81F6C61A4C2A093FBB8B`
+- **SHA-256:** `[Calculated on release]`
 
 ---
 **Architected with 🖤 by Shivansh Mishra**  
