@@ -197,6 +197,7 @@ export default function RootLayout() {
             <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
             <Stack.Screen name="contact/[id]" options={{ title: 'Contact Details' }} />
             <Stack.Screen name="contact/new" options={{ title: 'New Contact' }} />
+            <Stack.Screen name="contact/edit" options={{ title: 'Edit Contact' }} />
             <Stack.Screen name="merge/[id]" options={{ title: 'Merge Contacts' }} />
             <Stack.Screen name="backups" options={{ title: 'Backup Vault' }} />
             <Stack.Screen name="legal/terms" options={{ title: 'Terms & Conditions' }} />

@@ -6,7 +6,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { ScrollView, StyleSheet, View, Alert, Linking, Clipboard, TouchableOpacity } from 'react-native';
 import { Text, Button, Card, Chip, Divider, Portal, Dialog, RadioButton, Modal, IconButton } from 'react-native-paper';
 import QRCode from 'react-native-qrcode-svg';
-import { router, useLocalSearchParams } from 'expo-router';
+import { router, useLocalSearchParams, Stack } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import {
@@ -16,6 +16,7 @@ import {
 } from '../../src/db/repositories/contactRepository';
 import { getDuplicatesByContactId } from '../../src/db/repositories/duplicateRepository';
 import { logAction } from '../../src/db/repositories/auditRepository';
+import { exportToVCF, shareFile } from '../../src/services/exportService';
 import { getNotesByContactId } from '../../src/db/repositories/noteRepository';
 import { getRelationshipsByContactId } from '../../src/db/repositories/relationshipRepository';
 import { getContactContext } from '../../src/db/repositories/contactContextRepository';
@@ -129,6 +130,23 @@ export default function ContactDetailScreen() {
     load();
   }, [contact, load]);
 
+  const handleShareContact = useCallback(async () => {
+    if (!contact) return;
+    try {
+      const ts = new Date().toISOString().replace(/[:.]/g, '-');
+      const filename = `contact-${contact.id}-${ts}.vcf`;
+      const result = await exportToVCF({
+        format: 'vcf',
+        contactIds: [contact.id],
+        includeNotes: true,
+        filename,
+      });
+      await shareFile(result.filePath);
+    } catch (err) {
+      Alert.alert('Share Failed', err instanceof Error ? err.message : 'Unknown error');
+    }
+  }, [contact]);
+
   const handleDelete = useCallback(() => {
     if (!contact) return;
     Alert.alert(
@@ -181,6 +199,18 @@ export default function ContactDetailScreen() {
 
   return (
     <SafeAreaView style={styles.safeArea} edges={['bottom']}>
+      <Stack.Screen 
+        options={{ 
+          headerRight: () => (
+            <IconButton 
+              icon="pencil" 
+              iconColor={COLORS.primary} 
+              onPress={() => router.push(`/contact/edit?id=${contact.id}`)} 
+              accessibilityLabel="Edit Contact"
+            />
+          ) 
+        }} 
+      />
       <ScrollView style={styles.scroll} contentContainerStyle={styles.content}>
         {/* Avatar & Name */}
         <View style={styles.hero}>
@@ -236,6 +266,16 @@ export default function ContactDetailScreen() {
             Mark as Temporary
           </Button>
         )}
+
+        <Button 
+          mode="outlined" 
+          icon="export-variant" 
+          onPress={handleShareContact} 
+          textColor={COLORS.primary}
+          style={{ borderColor: COLORS.primary }}
+        >
+          Share Contact Card
+        </Button>
 
         {/* Groups & Tags */}
         {(tags.length > 0 || assignedGroups.length > 0) ? (
