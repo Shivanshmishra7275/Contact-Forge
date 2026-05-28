@@ -1,9 +1,9 @@
 import React, { useEffect } from 'react';
-import { StyleSheet, Dimensions } from 'react-native';
+import { StyleSheet, Dimensions, View } from 'react-native';
 import Svg, { Defs, RadialGradient, Rect, Stop } from 'react-native-svg';
 import Animated, {
   useSharedValue,
-  useAnimatedProps,
+  useAnimatedStyle,
   withRepeat,
   withTiming,
   withSequence,
@@ -12,8 +12,7 @@ import Animated, {
 import { COLORS } from '../constants';
 
 const { width, height } = Dimensions.get('window');
-
-const AnimatedRadialGradient = Animated.createAnimatedComponent(RadialGradient);
+const ORB_SIZE = Math.max(width, height) * 1.5;
 
 /**
  * AuroraBackground — Living ambient glow behind every screen.
@@ -24,6 +23,9 @@ const AnimatedRadialGradient = Animated.createAnimatedComponent(RadialGradient);
  *   grad3 — Indigo mid-accent (center-right) — adds depth
  *
  * All opacity values kept at ≤0.18 to ensure card text remains readable (WCAG AA).
+ * 
+ * NOTE: Fixed for Android! react-native-svg AnimatedRadialGradient does not work
+ * on Android. We must use static SVGs wrapped in Animated.View transforms.
  */
 export function AuroraBackground() {
   // Violet glow (primary)
@@ -121,66 +123,72 @@ export function AuroraBackground() {
     );
   }, []);
 
-  const animatedProps1 = useAnimatedProps(() => ({
-    r: Math.max(width, height) * breath1.value,
-    cx: cx1.value,
-    cy: cy1.value,
+  const style1 = useAnimatedStyle(() => ({
+    transform: [
+      { translateX: cx1.value - ORB_SIZE / 2 },
+      { translateY: cy1.value - ORB_SIZE / 2 },
+      { scale: breath1.value * 2.5 },
+    ],
   }));
 
-  const animatedProps2 = useAnimatedProps(() => ({
-    r: Math.max(width, height) * breath2.value,
-    cx: cx2.value,
-    cy: cy2.value,
+  const style2 = useAnimatedStyle(() => ({
+    transform: [
+      { translateX: cx2.value - ORB_SIZE / 2 },
+      { translateY: cy2.value - ORB_SIZE / 2 },
+      { scale: breath2.value * 2.5 },
+    ],
   }));
 
-  const animatedProps3 = useAnimatedProps(() => ({
-    r: Math.max(width, height) * breath3.value,
-    cx: cx3.value,
-    cy: cy3.value,
+  const style3 = useAnimatedStyle(() => ({
+    transform: [
+      { translateX: cx3.value - ORB_SIZE / 2 },
+      { translateY: cy3.value - ORB_SIZE / 2 },
+      { scale: breath3.value * 2.5 },
+    ],
   }));
 
   return (
-    <Animated.View style={StyleSheet.absoluteFill}>
-      <Svg style={StyleSheet.absoluteFill} width="100%" height="100%">
-        <Defs>
-          {/* Violet primary glow */}
-          <AnimatedRadialGradient
-            id="grad1"
-            animatedProps={animatedProps1}
-            gradientUnits="userSpaceOnUse"
-          >
-            <Stop offset="0%" stopColor="#7C3AED" stopOpacity={0.18} />
-            <Stop offset="60%" stopColor="#7C3AED" stopOpacity={0.06} />
-            <Stop offset="100%" stopColor="#7C3AED" stopOpacity={0} />
-          </AnimatedRadialGradient>
-          {/* Teal secondary glow */}
-          <AnimatedRadialGradient
-            id="grad2"
-            animatedProps={animatedProps2}
-            gradientUnits="userSpaceOnUse"
-          >
-            <Stop offset="0%" stopColor="#06B6D4" stopOpacity={0.14} />
-            <Stop offset="60%" stopColor="#06B6D4" stopOpacity={0.04} />
-            <Stop offset="100%" stopColor="#06B6D4" stopOpacity={0} />
-          </AnimatedRadialGradient>
-          {/* Indigo depth glow */}
-          <AnimatedRadialGradient
-            id="grad3"
-            animatedProps={animatedProps3}
-            gradientUnits="userSpaceOnUse"
-          >
-            <Stop offset="0%" stopColor="#4F46E5" stopOpacity={0.12} />
-            <Stop offset="60%" stopColor="#4F46E5" stopOpacity={0.03} />
-            <Stop offset="100%" stopColor="#4F46E5" stopOpacity={0} />
-          </AnimatedRadialGradient>
-        </Defs>
-        {/* Base background */}
-        <Rect x="0" y="0" width="100%" height="100%" fill={COLORS.background} />
-        {/* Glow layers */}
-        <Rect x="0" y="0" width="100%" height="100%" fill="url(#grad1)" />
-        <Rect x="0" y="0" width="100%" height="100%" fill="url(#grad2)" />
-        <Rect x="0" y="0" width="100%" height="100%" fill="url(#grad3)" />
-      </Svg>
-    </Animated.View>
+    <View style={StyleSheet.absoluteFill} pointerEvents="none">
+      <View style={[StyleSheet.absoluteFill, { backgroundColor: COLORS.background }]} />
+      
+      <Animated.View style={[{ position: 'absolute', width: ORB_SIZE, height: ORB_SIZE }, style1]}>
+        <Svg width="100%" height="100%">
+          <Defs>
+            <RadialGradient id="grad1" cx="50%" cy="50%" r="50%">
+              <Stop offset="0%" stopColor="#7C3AED" stopOpacity={0.18} />
+              <Stop offset="60%" stopColor="#7C3AED" stopOpacity={0.06} />
+              <Stop offset="100%" stopColor="#7C3AED" stopOpacity={0} />
+            </RadialGradient>
+          </Defs>
+          <Rect x="0" y="0" width="100%" height="100%" fill="url(#grad1)" />
+        </Svg>
+      </Animated.View>
+
+      <Animated.View style={[{ position: 'absolute', width: ORB_SIZE, height: ORB_SIZE }, style2]}>
+        <Svg width="100%" height="100%">
+          <Defs>
+            <RadialGradient id="grad2" cx="50%" cy="50%" r="50%">
+              <Stop offset="0%" stopColor="#06B6D4" stopOpacity={0.14} />
+              <Stop offset="60%" stopColor="#06B6D4" stopOpacity={0.04} />
+              <Stop offset="100%" stopColor="#06B6D4" stopOpacity={0} />
+            </RadialGradient>
+          </Defs>
+          <Rect x="0" y="0" width="100%" height="100%" fill="url(#grad2)" />
+        </Svg>
+      </Animated.View>
+
+      <Animated.View style={[{ position: 'absolute', width: ORB_SIZE, height: ORB_SIZE }, style3]}>
+        <Svg width="100%" height="100%">
+          <Defs>
+            <RadialGradient id="grad3" cx="50%" cy="50%" r="50%">
+              <Stop offset="0%" stopColor="#4F46E5" stopOpacity={0.12} />
+              <Stop offset="60%" stopColor="#4F46E5" stopOpacity={0.03} />
+              <Stop offset="100%" stopColor="#4F46E5" stopOpacity={0} />
+            </RadialGradient>
+          </Defs>
+          <Rect x="0" y="0" width="100%" height="100%" fill="url(#grad3)" />
+        </Svg>
+      </Animated.View>
+    </View>
   );
 }
