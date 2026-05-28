@@ -12,7 +12,7 @@
 
 import * as SQLite from 'expo-sqlite';
 import { DB_NAME } from '../constants';
-import { ALL_CREATE_STATEMENTS } from './schema';
+import { ALL_CREATE_STATEMENTS, CREATE_INDEXES } from './schema';
 import { probeFtsMode, type FtsMode } from './ftsProbe';
 import { createFtsTable, populateFtsFromExisting } from './repositories/searchRepository';
 
@@ -72,12 +72,6 @@ function initSchema(db: SQLite.SQLiteDatabase): void {
     for (const sql of ALL_CREATE_STATEMENTS) {
       db.execSync(sql);
     }
-
-    // Seed sync_state row if absent
-    db.execSync(`
-      INSERT OR IGNORE INTO sync_state (id, status, last_sync_at, total_native_contacts, total_local_contacts)
-      VALUES (1, 'idle', NULL, 0, 0)
-    `);
   });
 
   // Column migrations (outside transaction for SQLite compatibility)
@@ -88,6 +82,20 @@ function initSchema(db: SQLite.SQLiteDatabase): void {
       // Column already exists — safe to ignore
     }
   }
+
+  // Indexes must be created after column migrations, because some indexes
+  // rely on newly added columns (e.g. name_key). 
+  db.withTransactionSync(() => {
+    for (const sql of CREATE_INDEXES) {
+      db.execSync(sql);
+    }
+
+    // Seed sync_state row if absent
+    db.execSync(`
+      INSERT OR IGNORE INTO sync_state (id, status, last_sync_at, total_native_contacts, total_local_contacts)
+      VALUES (1, 'idle', NULL, 0, 0)
+    `);
+  });
 }
 
 
@@ -130,10 +138,6 @@ export function resetDatabaseForTesting(): void {
     try { _db.execSync('DROP TABLE IF EXISTS contacts_fts'); } catch { /* ok */ }
 
     initSchema(_db);
-    // Re-run column migrations so tests see the same schema as the real app
-    for (const migration of COLUMN_MIGRATIONS) {
-      try { _db.execSync(migration); } catch { /* column already exists */ }
-    }
   }
 }
 
