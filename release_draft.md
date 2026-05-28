@@ -1,10 +1,9 @@
-# 🚀 ContactForge v4.0.0: The Complete CRM & Write-Back Sync Release
+# 🚀 ContactForge v4.0.1: The Complete CRM & Write-Back Sync Release
 
-We are thrilled to announce **ContactForge v4.0.0** — our biggest and most feature-rich update yet!
+We are thrilled to announce **ContactForge v4.0.1** — our biggest and most feature-rich update yet! 
+*(Note: v4.0.1 contains a critical hotfix for upgrading users that resolves crash loops and "no such column: name_key" sync errors from the v4.0.0 release).*
 
-This release bridges the gap between ContactForge and your native phone OS, introduces full CRUD CRM editing capabilities, and adds a suite of premium UI/UX enhancements.
-
-## 🔥 What's New in v4.0.0?
+## 🔥 What's New in v4.0.0 & v4.0.1?
 
 ### 🔄 2-Way Native OS Write-Back Sync
 ContactForge is no longer an isolated island. With the new **Write Back to Phone** feature in the Mission Control Dashboard, you can push your perfectly cleaned, merged, and enhanced Contact-Forge library directly back to your iOS or Android native address book. Clean up duplicates here, and let the changes reflect everywhere!

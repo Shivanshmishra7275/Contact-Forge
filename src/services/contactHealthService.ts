@@ -4,11 +4,12 @@
  * Calculates explainable quality scores for contacts (Phase 8).
  */
 
-import { getContactById, getPhonesByContactId, getEmailsByContactId, getAllContactIds } from '../db/repositories/contactRepository';
+import { getContactById, getPhonesByContactId, getEmailsByContactId } from '../db/repositories/contactRepository';
 import { getNotesByContactId } from '../db/repositories/noteRepository';
 import { getRelationshipsByContactId } from '../db/repositories/relationshipRepository';
 import { getDuplicatesByContactId } from '../db/repositories/duplicateRepository';
 import { getTemporaryContactEntry } from './temporaryContactService';
+import { getDatabase } from '../db';
 import type { ContactHealthScore } from '../types';
 
 export function calculateContactHealthScore(contactId: number): ContactHealthScore | null {
@@ -121,23 +122,48 @@ export function calculateHealthSummary(threshold = 60): {
   total: number;
 } {
   try {
-    const ids = getAllContactIds();
-    if (ids.length === 0) return { average: 0, lowCount: 0, total: 0 };
+    const db = getDatabase();
 
-    let totalScore = 0;
-    let lowCount = 0;
+    // Single-pass SQL health score: weighted field presence
+    // phone (+35), first+last name (+25), company (+15), email (+15) = max 90 for typical contact
+    // Normalize to 100 with a ghost penalty baked in
+    const row = db.getFirstSync<{
+      total: number;
+      avg_score: number;
+      low_count: number;
+    }>(`
+      SELECT
+        COUNT(*) as total,
+        AVG(
+          CASE WHEN (SELECT COUNT(*) FROM phone_numbers WHERE contact_id = contacts.id) > 0 THEN 35 ELSE 0 END +
+          CASE WHEN first_name IS NOT NULL AND first_name != '' THEN 15 ELSE 0 END +
+          CASE WHEN last_name IS NOT NULL AND last_name != '' THEN 10 ELSE 0 END +
+          CASE WHEN company IS NOT NULL AND company != '' THEN 15 ELSE 0 END +
+          CASE WHEN (SELECT COUNT(*) FROM emails WHERE contact_id = contacts.id) > 0 THEN 15 ELSE 0 END +
+          CASE WHEN notes IS NOT NULL AND notes != '' THEN 5 ELSE 0 END +
+          CASE WHEN has_thumbnail = 1 THEN 5 ELSE 0 END
+        ) as avg_score,
+        SUM(CASE WHEN (
+          CASE WHEN (SELECT COUNT(*) FROM phone_numbers WHERE contact_id = contacts.id) > 0 THEN 35 ELSE 0 END +
+          CASE WHEN first_name IS NOT NULL AND first_name != '' THEN 15 ELSE 0 END +
+          CASE WHEN last_name IS NOT NULL AND last_name != '' THEN 10 ELSE 0 END +
+          CASE WHEN company IS NOT NULL AND company != '' THEN 15 ELSE 0 END +
+          CASE WHEN (SELECT COUNT(*) FROM emails WHERE contact_id = contacts.id) > 0 THEN 15 ELSE 0 END +
+          CASE WHEN notes IS NOT NULL AND notes != '' THEN 5 ELSE 0 END +
+          CASE WHEN has_thumbnail = 1 THEN 5 ELSE 0 END
+        ) < ? THEN 1 ELSE 0 END) as low_count
+      FROM contacts
+      WHERE is_ghost = 0
+    `, [threshold]);
 
-    for (const id of ids) {
-      const health = calculateContactHealthScore(id);
-      if (!health) continue;
-      totalScore += health.score;
-      if (health.score < threshold) lowCount++;
-    }
+    if (!row || row.total === 0) return { average: 0, lowCount: 0, total: 0 };
 
+    // Scale from 0–100 range (max raw score is 100)
+    const average = Math.min(100, Math.round(row.avg_score ?? 0));
     return {
-      average: totalScore / ids.length,
-      lowCount,
-      total: ids.length,
+      average,
+      lowCount: row.low_count ?? 0,
+      total: row.total,
     };
   } catch {
     return { average: 0, lowCount: 0, total: 0 };

@@ -145,7 +145,13 @@ export default function DashboardScreen() {
 
         getContactsPermissionStatus().then((status) => {
           if (!cancelled) {
-            setPermissionGranted(status === 'granted');
+            const granted = status === 'granted';
+            setPermissionGranted(granted);
+
+            // Auto-sync on first launch: if permission is granted and no contacts yet
+            if (granted && countContacts() === 0 && !sync.lastSyncAt && !isSyncing) {
+              handleSync();
+            }
           }
         });
 
@@ -160,7 +166,7 @@ export default function DashboardScreen() {
         cancelled = true;
         task.cancel();
       };
-    }, [refreshStats]),
+    }, [refreshStats, sync.lastSyncAt, isSyncing, handleSync]),
   );
 
   const handleSync = useCallback(async () => {
@@ -372,14 +378,23 @@ export default function DashboardScreen() {
           <GlassCard style={styles.healthCard}>
             <Card.Content style={styles.healthContent}>
               <View style={styles.healthLeft}>
-                <MaterialCommunityIcons name="heart-pulse" size={28} color={COLORS.success} />
+                <MaterialCommunityIcons
+                  name="heart-pulse"
+                  size={28}
+                  color={averageHealth >= 70 ? COLORS.success : averageHealth >= 40 ? COLORS.warning : averageHealth > 0 ? COLORS.error : COLORS.textDisabled}
+                />
                 <View>
                   <Text style={styles.healthLabel}>Library Health</Text>
-                  <Text style={[styles.healthValue, { color: COLORS.success }]}>{Math.round(averageHealth)}%</Text>
+                  <Text style={[styles.healthValue, { color: averageHealth >= 70 ? COLORS.success : averageHealth >= 40 ? COLORS.warning : averageHealth > 0 ? COLORS.error : COLORS.textSecondary }]}>
+                    {totalContacts === 0 ? '—' : `${Math.round(averageHealth)}%`}
+                  </Text>
                 </View>
               </View>
               <View style={styles.healthBar}>
-                <View style={[styles.healthProgress, { width: `${averageHealth}%`, backgroundColor: COLORS.success }]} />
+                <View style={[styles.healthProgress, {
+                  width: `${averageHealth}%`,
+                  backgroundColor: averageHealth >= 70 ? COLORS.success : averageHealth >= 40 ? COLORS.warning : averageHealth > 0 ? COLORS.error : COLORS.surfaceElevated,
+                }]} />
               </View>
             </Card.Content>
           </GlassCard>

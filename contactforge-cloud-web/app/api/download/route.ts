@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import Redis from 'ioredis';
 
 export const dynamic = 'force-dynamic';
 
@@ -26,6 +27,17 @@ export async function GET() {
       
       if (!fileResponse.ok) {
         return NextResponse.redirect('https://github.com/Shivanshmishra7275/Contact-Forge/releases/latest');
+      }
+
+      // Track the proxy download in Redis since GitHub API won't catch it
+      try {
+        if (process.env.REDIS_URL) {
+          const redis = new Redis(process.env.REDIS_URL);
+          await redis.incr('contactforge_downloads');
+          await redis.quit().catch(() => {});
+        }
+      } catch (err) {
+        console.error('Failed to increment proxy download count:', err);
       }
 
       // Create a direct response with the file stream and appropriate headers

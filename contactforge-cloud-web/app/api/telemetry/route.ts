@@ -47,6 +47,10 @@ export async function GET() {
     }
     const redis = new Redis(process.env.REDIS_URL);
     visitorsCount = await redis.incr('contactforge_visitors');
+    const proxyDownloads = await redis.get('contactforge_downloads');
+    if (proxyDownloads) {
+      downloadsCount += parseInt(proxyDownloads, 10);
+    }
     await redis.quit().catch(() => {});
   } catch (kvErr) {
     kvDebug = String(kvErr);

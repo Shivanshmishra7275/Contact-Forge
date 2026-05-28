@@ -292,7 +292,7 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({ onFinish }) => {
   const convergeProgress = useSharedValue(0); // 0=nodes spread, 1=converged to center
 
   // Typewriter text for loading state
-  const loadingText = useTypewriter('Initializing local workspace…', 36, 540);
+  const loadingText = useTypewriter('Initializing secure workspace…', 36, 540);
 
   // Cursor blink for typewriter
   const cursorBlink = useSharedValue(1);
@@ -439,7 +439,7 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({ onFinish }) => {
 
           {/* Typewriter loading status */}
           <Animated.View style={[styles.loadingRow, subStyle]}>
-            <Animated.Text style={styles.loadingText}>
+            <Animated.Text style={styles.loadingText} numberOfLines={1}>
               {loadingText}
             </Animated.Text>
             <Animated.Text style={[styles.cursor, cursorStyle]}>|</Animated.Text>
@@ -607,6 +607,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: SPACING.xl,
     gap: 10,
+    width: '100%',
   },
   title: {
     fontSize: 46,
@@ -640,7 +641,10 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     marginTop: SPACING.lg,
-    minHeight: 18,
+    minHeight: 20,
+    width: '100%',
+    justifyContent: 'center',
+    paddingHorizontal: SPACING.md,
   },
   loadingText: {
     fontSize: FONT_SIZE.xs,
@@ -648,6 +652,7 @@ const styles = StyleSheet.create({
     color: '#5A6478',
     letterSpacing: 0.4,
     fontVariant: ['tabular-nums'],
+    flexShrink: 1,
   },
   cursor: {
     fontSize: FONT_SIZE.xs,
