@@ -21,8 +21,22 @@ export async function GET() {
     const apkAsset = data.assets?.find((asset: any) => asset.name.endsWith('.apk'));
 
     if (apkAsset && apkAsset.browser_download_url) {
-      // Redirect directly to the APK download
-      return NextResponse.redirect(apkAsset.browser_download_url);
+      // Fetch the actual file from GitHub to proxy the download directly
+      const fileResponse = await fetch(apkAsset.browser_download_url);
+      
+      if (!fileResponse.ok) {
+        return NextResponse.redirect('https://github.com/Shivanshmishra7275/Contact-Forge/releases/latest');
+      }
+
+      // Create a direct response with the file stream and appropriate headers
+      const headers = new Headers();
+      headers.set('Content-Type', 'application/vnd.android.package-archive');
+      headers.set('Content-Disposition', `attachment; filename="${apkAsset.name}"`);
+      
+      return new NextResponse(fileResponse.body, {
+        status: 200,
+        headers,
+      });
     }
 
     // Fallback if no APK is found in the latest release
