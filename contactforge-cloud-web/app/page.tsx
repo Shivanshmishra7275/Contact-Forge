@@ -28,7 +28,7 @@ import { TelemetryWidget } from '../components/TelemetryWidget';
 // Direct download API route (dynamically fetches the latest APK)
 const APK_DOWNLOAD_URL = '/api/download';
 const RELEASE_PAGE_URL =
-  'https://github.com/Shivanshmishra7275/Contact-Forge/releases/tag/v3.2.0';
+  'https://github.com/Shivanshmishra7275/Contact-Forge/releases/tag/v4.0.0';
 const GITHUB_URL = 'https://github.com/Shivanshmishra7275/Contact-Forge';
 const GITHUB_PROFILE_URL = 'https://github.com/Shivanshmishra7275';
 
@@ -37,7 +37,7 @@ const STATS = [
   { value: '1,800+', label: 'Contacts Handled' },
   { value: '115', label: 'Tests Passing' },
   { value: '100%', label: 'Offline & Private' },
-  { value: 'v3.2.0', label: 'Current Version' },
+  { value: 'v4.0.0', label: 'Current Version' },
 ];
 
 // ─── Founder skills/interests ───────────────────────────────────────────────────
@@ -50,7 +50,7 @@ export default function Home() {
   const [apkError, setApkError] = useState(false);
 
   const handleDirectDownload = (source: 'hero' | 'footer') => {
-    trackEvent('Download APK Direct', { source, version: 'v3.2.0' });
+    trackEvent('Download APK Direct', { source, version: 'v4.0.0' });
   };
 
   const handleReleasePageClick = () => {
@@ -126,8 +126,8 @@ export default function Home() {
           transition={{ duration: 0.8, delay: 0.2, ease: [0.16, 1, 0.3, 1] }}
           className="text-lg md:text-xl text-slate-400 mb-12 max-w-2xl mx-auto leading-relaxed font-light text-center"
         >
-          ContactForge V3 is a privacy-first Android app that cleans duplicates, tracks relationships,
-          and organises your entire contact library—fully offline, zero cloud, zero tracking.
+          ContactForge V4 is a privacy-first Android app that cleans duplicates, edits your contacts, tracks relationships,
+          and syncs securely to your phone—fully offline, zero cloud, zero tracking.
         </motion.p>
 
         {/* ── CTA Buttons ────────────────────────────────────────────────────── */}
@@ -153,7 +153,7 @@ export default function Home() {
               <ShieldCheck className="w-3.5 h-3.5" /> No Internet Required
             </span>
             <span className="w-1 h-1 rounded-full bg-slate-700 hidden sm:block" />
-            <span>v3.2.0</span>
+            <span>v4.0.0</span>
             <span className="w-1 h-1 rounded-full bg-slate-700 hidden sm:block" />
             <span>Android 8.0+</span>
             <span className="w-1 h-1 rounded-full bg-slate-700 hidden sm:block" />
@@ -342,12 +342,39 @@ export default function Home() {
           
           <div className="space-y-12 relative before:absolute before:inset-0 before:ml-5 before:-translate-x-px md:before:mx-auto md:before:translate-x-0 before:h-full before:w-px before:bg-gradient-to-b before:from-teal-500/50 before:via-slate-700/50 before:to-transparent z-10">
             
+            {/* V4 */}
+            <div className="relative flex items-center justify-between md:justify-normal md:odd:flex-row-reverse group cursor-pointer mb-12">
+              <div className="flex items-center justify-center w-10 h-10 rounded-full border-4 border-[#060813] bg-teal-400 text-slate-900 font-bold shrink-0 md:order-1 md:group-odd:-translate-x-1/2 md:group-even:translate-x-1/2 shadow-[0_0_20px_rgba(45,212,191,0.5)] transition-transform group-hover:scale-110">
+                V4
+              </div>
+              <div className="w-[calc(100%-4rem)] md:w-[calc(50%-3rem)] relative overflow-hidden rounded-3xl border border-teal-400/30 group-hover:border-teal-300/60 transition-all duration-500 bg-teal-900/20 p-6 shadow-lg group-hover:shadow-[0_0_30px_rgba(45,212,191,0.2)]">
+                <div className="absolute inset-0 bg-gradient-to-br from-teal-400/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none" />
+                
+                <h4 className="text-xl font-bold text-white mb-2 relative z-10">The Complete CRM</h4>
+                
+                <div className="relative z-10 grid grid-rows-[0fr] group-hover:grid-rows-[1fr] transition-[grid-template-rows] duration-500 ease-in-out">
+                  <div className="overflow-hidden">
+                    <div className="pt-4 pb-2 space-y-4">
+                      <div>
+                        <span className="text-xs font-bold tracking-widest text-teal-300 uppercase drop-shadow-[0_0_5px_rgba(45,212,191,0.4)]">The Solution</span>
+                        <p className="text-sm text-slate-200 leading-relaxed mt-1">2-Way Native OS Write-Back Sync, Full CRM Editing, Shake-to-Undo, Single Contact Sharing, and FlashList Virtualization.</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <p className="text-sm text-slate-400 leading-relaxed block group-hover:hidden absolute bottom-6 left-6 right-6 transition-opacity">
+                  Hover to view V4 highlights...
+                </p>
+                <div className="h-6 block group-hover:hidden" />
+              </div>
+            </div>
+
             {/* V3 */}
-            <div className="relative flex items-center justify-between md:justify-normal md:odd:flex-row-reverse group cursor-pointer">
-              <div className="flex items-center justify-center w-10 h-10 rounded-full border-4 border-[#060813] bg-teal-500 text-slate-900 font-bold shrink-0 md:order-1 md:group-odd:-translate-x-1/2 md:group-even:translate-x-1/2 shadow-[0_0_20px_rgba(20,184,166,0.3)] transition-transform group-hover:scale-110">
+            <div className="relative flex items-center justify-between md:justify-normal md:odd:flex-row-reverse group cursor-pointer mb-12">
+              <div className="flex items-center justify-center w-10 h-10 rounded-full border-4 border-[#060813] bg-teal-600 text-slate-900 font-bold shrink-0 md:order-1 md:group-odd:-translate-x-1/2 md:group-even:translate-x-1/2 shadow-[0_0_20px_rgba(20,184,166,0.3)] transition-transform group-hover:scale-110">
                 V3
               </div>
-              <div className="w-[calc(100%-4rem)] md:w-[calc(50%-3rem)] relative overflow-hidden rounded-3xl border border-teal-500/20 group-hover:border-teal-400/50 transition-all duration-500 bg-slate-800/40 p-6 shadow-lg group-hover:shadow-[0_0_30px_rgba(20,184,166,0.15)]">
+              <div className="w-[calc(100%-4rem)] md:w-[calc(50%-3rem)] relative overflow-hidden rounded-3xl border border-teal-600/20 group-hover:border-teal-500/50 transition-all duration-500 bg-slate-800/40 p-6 shadow-lg group-hover:shadow-[0_0_30px_rgba(20,184,166,0.15)]">
                 {/* Background glow on hover */}
                 <div className="absolute inset-0 bg-gradient-to-br from-teal-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none" />
                 

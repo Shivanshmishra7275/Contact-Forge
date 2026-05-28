@@ -1,32 +1,36 @@
-# 🚀 ContactForge v3.3.0: The Performance & Integrity Update
+# 🚀 ContactForge v4.0.0: The Complete CRM & Write-Back Sync Release
 
-We are thrilled to announce **ContactForge v3.3.0** — a massive architectural leap forward for our offline-first, zero-cloud contact CRM. 
+We are thrilled to announce **ContactForge v4.0.0** — our biggest and most feature-rich update yet!
 
-This release focuses entirely on scaling the application for power-networkers and fortifying the data integrity of the local engine. We've ripped out the bottlenecks, upgraded the search engine, and made synchronization virtually bulletproof.
+This release bridges the gap between ContactForge and your native phone OS, introduces full CRUD CRM editing capabilities, and adds a suite of premium UI/UX enhancements.
 
-## 🔥 What's New?
+## 🔥 What's New in v4.0.0?
 
-### ⚡ SQLite FTS5 Indexed Search
-Say goodbye to UI stutter on large contact lists. We've replaced the old JS-filtered search with a **C-level SQLite Virtual Table (FTS5)** implementation. Searches across 10,000+ contacts are now instantaneously resolved at the database layer.
+### 🔄 2-Way Native OS Write-Back Sync
+ContactForge is no longer an isolated island. With the new **Write Back to Phone** feature in the Mission Control Dashboard, you can push your perfectly cleaned, merged, and enhanced Contact-Forge library directly back to your iOS or Android native address book. Clean up duplicates here, and let the changes reflect everywhere!
 
-### 🛡️ Zero-Loss Tombstone Sync Architecture
-Data synchronization just got a major integrity upgrade. Deleting a contact now safely **tombstones** the record (`is_deleted=1`). This guarantees that deletions and merges propagate perfectly across your synced devices without resurrecting old data. Repeated syncs are now strictly idempotent—zero duplicate bleeding.
+### 📝 Full CRM Contact Editing
+You no longer need to jump to your phone's native address book to fix typos. We've added a dedicated **Edit Contact** screen. Tap the Pencil Icon in the top right of any Contact's Detail page to dynamically edit their name, company, job title, notes, and tags.
 
-### 🧹 Bulk Action Multi-Select
-You asked, we delivered. Long-press on the Dashboard to activate the new **Multi-Select Mode**. You can now mass-delete or export dozens of contacts to a VCF payload with a single tap.
+### 🫨 Shake-to-Undo Global Gesture
+Accidentally merged the wrong contacts? Accidentally deleted someone? Just **physically shake your phone**! We've integrated hardware accelerometer sensors to trigger a premium global Undo action, complete with haptic feedback.
 
-### 🤝 Safe Merge Memory
-Resolving duplicates is now permanent. The new **Ignore Duplicate** button in the Merge Preview UI saves your decision to the database, ensuring that dismissed pairs never clutter your command center again. Oh, and every merge still captures a pre-mutation snapshot to our global Undo Engine.
+### 📤 Single Contact VCF Sharing
+While bulk export is great for backups, sometimes you just need to share a single person's info. We've added a **Share Contact Card** button in the Contact Details screen. Tap it to instantly generate a `.vcf` file and pop up the native iOS/Android share sheet.
 
-### 📱 One-Tap CRM Actions
-The Contact Detail screen is no longer just a viewer—it's a launchpad. We've wired up native OS deep-links so you can instantly launch a WhatsApp thread, dial a number, or compose an email directly from the contact profile.
+### 🎬 Cinematic UI & FlashList Virtualization
+We've completely overhauled the list rendering engines using Shopify's `FlashList`, guaranteeing buttery-smooth 60fps scrolling even with 2,000+ contacts. Plus, we've injected `react-native-reanimated` physics, giving lists a beautiful cascading fade-in effect. Dark mode colors have also been tweaked for optimal WCAG accessibility and premium aesthetics.
 
-## 🛠️ Under the Hood (Performance Wins)
-- **Eliminated N+1 Queries**: Re-engineered the list rendering pathways to fetch relationship and tag data cleanly without cascading DB roundtrips.
-- **Virtualized List Optimization**: Stripped out hardcoded constraints and improved batch rendering, ensuring buttery-smooth scrolling on huge datasets.
+---
+
+## 🛠️ Previous Highlights (v3.3)
+- **SQLite FTS5 Indexed Search**: Microsecond filtering across tens of thousands of contacts.
+- **Zero-Loss Tombstone Sync Architecture**: Safe deletions and flawless sync propagation.
+- **Bulk Action Multi-Select**: Mass delete and mass export capabilities.
+- **Safe Merge Memory**: Persistent 'Ignore Duplicate' functionality.
 
 ## 📥 Getting Started
-Download the latest signed APK from the assets below, or clone the repository to run it locally on Expo. No servers. No cloud. Just your data, moving at lightspeed.
+Download the latest signed APK from the assets below, or clone the repository to run it locally on Expo. No servers. No cloud. Just your data, perfectly synced.
 
 ---
 **Architected with 🖤 by Shivansh Mishra**

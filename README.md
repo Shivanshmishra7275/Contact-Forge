@@ -136,6 +136,9 @@ npm run test
 
 # 🚀 Version History
 
+### 🏷️ V4.0: The Complete CRM & Write-Back Sync Release
+*Introduced 2-Way Native OS Contact Sync, Full CRUD CRM Editing capabilities, Shake-to-Undo Gestures, Single Contact VCF Sharing, FlashList UI Virtualization, and Cinematic Reanimated UI components.*
+
 ### 🏷️ V3.3: The Performance & Integrity Release
 *Introduced FTS5 Indexed Search, deterministic SQL-grouped Duplicate Engine, Tombstone Sync hardening, bulk multi-select operations, and safe merge memory.*
 
