@@ -33,15 +33,35 @@ export async function GET() {
         console.error('Failed to increment proxy download count:', err);
       }
 
-      // Redirect directly to the APK download URL (this forces a download in the browser without opening GitHub UI)
-      return NextResponse.redirect(apkAsset.browser_download_url);
+      try {
+        // Resolve the GitHub 302 redirect server-side so the client never hits github.com
+        const resolveRes = await fetch(apkAsset.browser_download_url, { redirect: 'manual' });
+        const finalUrl = resolveRes.headers.get('location');
+        
+        if (finalUrl) {
+          const response = NextResponse.redirect(finalUrl);
+          response.headers.set('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0');
+          return response;
+        }
+      } catch (err) {
+        console.error('Failed to resolve final URL:', err);
+      }
+
+      // Fallback redirect directly to the APK download URL (this forces a download in the browser without opening GitHub UI)
+      const response = NextResponse.redirect(apkAsset.browser_download_url);
+      response.headers.set('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0');
+      return response;
     }
 
     // Fallback if no APK is found in the latest release
-    return NextResponse.redirect('https://github.com/Shivanshmishra7275/Contact-Forge/releases/latest');
+    const response = NextResponse.redirect('https://github.com/Shivanshmishra7275/Contact-Forge/releases/latest');
+    response.headers.set('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0');
+    return response;
   } catch (error) {
     console.error('Error fetching release:', error);
     // Fallback on error
-    return NextResponse.redirect('https://github.com/Shivanshmishra7275/Contact-Forge/releases/latest');
+    const response = NextResponse.redirect('https://github.com/Shivanshmishra7275/Contact-Forge/releases/latest');
+    response.headers.set('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0');
+    return response;
   }
 }
